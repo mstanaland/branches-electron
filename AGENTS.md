@@ -21,7 +21,9 @@ A Mac git client. Electron + React + TypeScript, built with electron-vite and pn
 ## Running git
 
 - Use `execFile` (or `spawn`) with an argument array. Never `exec`, `shell: true`, or command strings built by concatenation.
-- Always pass `-C <root>` and `--no-optional-locks` as global options, before the subcommand.
+- Always pass `-C <root>`, `--no-optional-locks` and `--literal-pathspecs` as global options, before the subcommand.
+- Git writes run one at a time per repository (a queue in `src/main/git/`); reads run in parallel.
+- File paths received over IPC must be relative and contain no `..`. Reject anything else before it reaches git.
 - Prefer machine-readable output: `--porcelain=v2`, `-z`, `for-each-ref --format` with `%00` separators. Do not parse human-formatted output.
 - Git calls are async. Never use the `*Sync` child-process functions.
 - Failures throw a typed `GitError` that includes the args, exit code and stderr.
