@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process'
 import { GitError } from './errors'
+import { getGitExecutable } from './executable'
 
 const MAX_BUFFER = 64 * 1024 * 1024
 
@@ -13,14 +14,15 @@ export interface GitResult {
  *
  * `--no-optional-locks` keeps read commands like `status` from taking
  * `.git/index.lock`, so this app never blocks the user's other git tools.
- * Rejects with a GitError on a non-zero exit.
+ * Rejects with a GitError on a non-zero exit, or GIT_NOT_FOUND if no git binary can be located.
  */
-export function runGit(root: string, args: readonly string[]): Promise<GitResult> {
+export async function runGit(root: string, args: readonly string[]): Promise<GitResult> {
   const fullArgs = ['-C', root, '--no-optional-locks', ...args]
+  const git = await getGitExecutable()
 
   return new Promise((resolve, reject) => {
     execFile(
-      'git',
+      git.path,
       fullArgs,
       {
         encoding: 'utf8',
@@ -36,10 +38,6 @@ export function runGit(root: string, args: readonly string[]): Promise<GitResult
       (error, stdout, stderr) => {
         if (!error) {
           resolve({ stdout, stderr })
-          return
-        }
-        if ((error as NodeJS.ErrnoException).code === 'ENOENT') {
-          reject(new GitError('GIT_NOT_FOUND', 'git was not found on this computer.', { args }))
           return
         }
         const exitCode = typeof error.code === 'number' ? error.code : null

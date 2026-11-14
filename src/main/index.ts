@@ -1,6 +1,7 @@
 import { app, BrowserWindow, ipcMain, shell } from 'electron'
 import { join } from 'node:path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
+import { getGitExecutable } from './git'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -43,6 +44,10 @@ void app.whenReady().then(() => {
 
   // F12 toggles DevTools in dev; Cmd+R reload is disabled in production.
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
+
+  // Locate git now so it's ready for the first git call. If it's missing, runGit reports
+  // GIT_NOT_FOUND to the caller, so here we only log.
+  getGitExecutable().catch((error: unknown) => console.error('Could not locate git:', error))
 
   registerIpc()
   createWindow()
