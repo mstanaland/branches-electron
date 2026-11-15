@@ -1,7 +1,6 @@
 # Branches
 
 A Mac git client: a GUI for viewing and changing the state of git repositories on the user's machine.
-ssss
 
 ## Language
 
