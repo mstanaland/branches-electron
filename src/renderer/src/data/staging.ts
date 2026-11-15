@@ -1,7 +1,7 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
-import { useCallback } from 'react'
+import { useCallback, useState } from 'react'
 import type { ApiError } from '../../../shared/apiError'
-import { stagingState } from '../../../shared/changes'
+import { isConflict, stagingState } from '../../../shared/changes'
 import type { FileChange, RepositoryStatus } from '../../../shared/git'
 import { api } from '../api'
 import { keys } from './keys'
@@ -11,6 +11,11 @@ import { predictStaged, predictUnstaged } from './optimisticStaging'
 interface Staging {
   action: 'stage' | 'unstage'
   paths: readonly string[]
+}
+
+/** The rows one request changed, as they were, so a failure puts back only those. */
+interface Rollback {
+  before: Map<string, FileChange>
 }
 
 export interface StagingActions {
@@ -23,9 +28,21 @@ export interface StagingActions {
   stageAll: () => void
   /** False when there is nothing left to stage, so "Stage All" can be disabled. */
   canStageAll: boolean
-  /** The last failure, already rolled back, or null. */
+  /** The last failure, already rolled back, or null. Cleared when a new request starts. */
   error: ApiError | null
-  pending: boolean
+}
+
+/** The status with every change in `affected` replaced by what it will look like. */
+function predicted(
+  status: RepositoryStatus | undefined,
+  affected: ReadonlySet<string>,
+  predict: (change: FileChange) => FileChange
+): RepositoryStatus | undefined {
+  if (status === undefined) return status
+  return {
+    ...status,
+    changes: status.changes.map((change) => (affected.has(change.path) ? predict(change) : change))
+  }
 }
 
 /** What "Stage All" would stage: everything with an unstaged side, conflicts excluded. */
@@ -33,7 +50,7 @@ function stageableChanges(changes: readonly FileChange[]): string[] {
   return changes
     .filter(
       (change) =>
-        change.kind !== 'unmerged' && change.kind !== 'ignored' && stagingState(change) !== 'staged'
+        !isConflict(change) && change.kind !== 'ignored' && stagingState(change) !== 'staged'
     )
     .map((change) => change.path)
 }
@@ -50,52 +67,61 @@ function stageableChanges(changes: readonly FileChange[]): string[] {
 export function useStaging(root: string, changes: readonly FileChange[]): StagingActions {
   const queryClient = useQueryClient()
   const statusKey = keys.status(root)
+  // Held here rather than read off the mutation: one `useMutation` reports only its latest
+  // call, so a failure would be hidden by whatever the user clicked next.
+  const [error, setError] = useState<ApiError | null>(null)
 
-  const mutation = useMutation<void, ApiError, Staging, { previous: RepositoryStatus | undefined }>(
-    {
-      mutationFn: ({ action, paths }) =>
-        action === 'stage' ? api.stageFiles(root, paths) : api.unstageFiles(root, paths),
-      onMutate: async ({ action, paths }) => {
-        // Stop a refetch in flight from landing on top of the optimistic status.
-        await queryClient.cancelQueries({ queryKey: statusKey })
-        const previous = queryClient.getQueryData<RepositoryStatus>(statusKey)
-        const affected = new Set(paths)
-        const predict = action === 'stage' ? predictStaged : predictUnstaged
-        queryClient.setQueryData<RepositoryStatus>(statusKey, (current) =>
-          current === undefined
-            ? current
-            : {
-                ...current,
-                changes: current.changes.map((change) =>
-                  affected.has(change.path) ? predict(change) : change
-                )
-              }
-        )
-        return { previous }
-      },
-      onError: (_error, _staging, context) => {
-        if (context) queryClient.setQueryData(statusKey, context.previous)
-      },
-      onSettled: async (_data, _error, { paths }) => {
-        const affected = new Set<string>(paths)
-        await Promise.all([
-          queryClient.invalidateQueries({ queryKey: statusKey }),
-          queryClient.invalidateQueries({
-            queryKey: keys.diffs(root),
-            // keys.diff(root, path, originalPath): the path is the key's fourth part.
-            predicate: (query) => affected.has(query.queryKey[3] as string)
-          })
-        ])
-      }
+  const mutation = useMutation<void, ApiError, Staging, Rollback>({
+    mutationFn: ({ action, paths }) =>
+      action === 'stage' ? api.stageFiles(root, paths) : api.unstageFiles(root, paths),
+    onMutate: async ({ action, paths }) => {
+      setError(null)
+      // Stop a refetch in flight from landing on top of the optimistic status.
+      await queryClient.cancelQueries({ queryKey: statusKey })
+      const affected = new Set(paths)
+      const predict = action === 'stage' ? predictStaged : predictUnstaged
+      // Only the rows this request touches are remembered, so rolling it back can't also
+      // undo rows another request is still waiting on.
+      const before = new Map(
+        (queryClient.getQueryData<RepositoryStatus>(statusKey)?.changes ?? [])
+          .filter((change) => affected.has(change.path))
+          .map((change) => [change.path, change] as const)
+      )
+      queryClient.setQueryData<RepositoryStatus>(statusKey, (status) =>
+        predicted(status, affected, predict)
+      )
+      return { before }
+    },
+    onError: (failure, _staging, context) => {
+      setError(failure)
+      if (context === undefined) return
+      queryClient.setQueryData<RepositoryStatus>(statusKey, (status) =>
+        status === undefined
+          ? status
+          : {
+              ...status,
+              changes: status.changes.map((change) => context.before.get(change.path) ?? change)
+            }
+      )
+    },
+    onSettled: async (_data, _error, { paths }) => {
+      const isAffectedDiff = keys.isDiffOfAny(root, paths)
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: statusKey }),
+        queryClient.invalidateQueries({
+          queryKey: keys.diffs(root),
+          predicate: (query) => isAffectedDiff(query.queryKey)
+        })
+      ])
     }
-  )
+  })
 
   const stageable = stageableChanges(changes)
   const { mutate } = mutation
 
   const toggle = useCallback(
     (change: FileChange) => {
-      if (change.kind === 'unmerged') return
+      if (isConflict(change)) return
       const action = stagingState(change) === 'staged' ? 'unstage' : 'stage'
       mutate({ action, paths: [change.path] })
     },
@@ -111,7 +137,6 @@ export function useStaging(root: string, changes: readonly FileChange[]): Stagin
     toggle,
     stageAll,
     canStageAll: stageable.length > 0,
-    error: mutation.error,
-    pending: mutation.isPending
+    error
   }
 }

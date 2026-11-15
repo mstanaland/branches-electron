@@ -95,7 +95,29 @@ describe('optimistic updates', () => {
         expect.objectContaining({ path: 'a.txt', index: 'modified', worktree: 'unmodified' })
       ])
     )
-    expect(result.current.pending).toBe(true)
+    expect(result.current.error).toBeNull()
+  })
+
+  it('rolls back only the rows it changed, leaving another request in flight alone', async () => {
+    // a.txt fails, but only after b.txt has been staged optimistically behind it, so a
+    // rollback of the whole status would wrongly untick b.txt as well.
+    api.stageFiles.mockImplementation((_root, paths) =>
+      paths.includes('a.txt')
+        ? new Promise<void>((_resolve, reject) =>
+            setTimeout(() => reject(new ApiError({ code: 'COMMAND_FAILED', message: 'no' })), 0)
+          )
+        : new Promise<void>(() => {})
+    )
+    const { result, cached } = renderStaging([change('a.txt'), change('b.txt')])
+
+    act(() => result.current.toggle(change('a.txt')))
+    act(() => result.current.toggle(change('b.txt')))
+
+    await waitFor(() => expect(result.current.error?.message).toBe('no'))
+    expect(cached()).toEqual([
+      expect.objectContaining({ path: 'a.txt', index: 'unmodified', worktree: 'modified' }),
+      expect.objectContaining({ path: 'b.txt', index: 'modified', worktree: 'unmodified' })
+    ])
   })
 
   it('puts the change back and reports the error when staging fails', async () => {
@@ -108,6 +130,23 @@ describe('optimistic updates', () => {
     expect(cached()).toEqual([
       expect.objectContaining({ path: 'a.txt', index: 'unmodified', worktree: 'modified' })
     ])
+  })
+})
+
+describe('refetching', () => {
+  it('invalidates the status and the diffs of the paths it staged, and no others', async () => {
+    api.stageFiles.mockResolvedValue()
+    const { client, result } = renderStaging([change('a.txt'), change('b.txt')])
+    client.setQueryData(keys.diff(ROOT, 'a.txt', null), { staged: null, unstaged: null })
+    client.setQueryData(keys.diff(ROOT, 'b.txt', null), { staged: null, unstaged: null })
+
+    act(() => result.current.toggle(change('a.txt')))
+
+    await waitFor(() =>
+      expect(client.getQueryState(keys.diff(ROOT, 'a.txt', null))?.isInvalidated).toBe(true)
+    )
+    expect(client.getQueryState(keys.diff(ROOT, 'b.txt', null))?.isInvalidated).toBe(false)
+    expect(client.getQueryState(keys.status(ROOT))?.isInvalidated).toBe(true)
   })
 })
 

@@ -1,6 +1,12 @@
 import { ArrowRight, GitBranch } from 'lucide-react'
 import { useMemo } from 'react'
-import { changedSide, sortChanges, splitPath, stagingState } from '../../../shared/changes'
+import {
+  changedSide,
+  isConflict,
+  sortChanges,
+  splitPath,
+  stagingState
+} from '../../../shared/changes'
 import type { FileChange } from '../../../shared/git'
 import {
   describeError,
@@ -39,7 +45,7 @@ function ChangeName({ change }: { change: FileChange }): React.JSX.Element {
 }
 
 function Badges({ change }: { change: FileChange }): React.JSX.Element {
-  if (change.kind === 'unmerged') {
+  if (isConflict(change)) {
     return <StatusBadge status="unmerged" side="unstaged" />
   }
   if (change.kind === 'untracked') {
@@ -66,7 +72,7 @@ function ChangeRow({
   onSelect: (path: string) => void
   onToggleStaged: (change: FileChange) => void
 }): React.JSX.Element {
-  const conflict = change.kind === 'unmerged'
+  const conflict = isConflict(change)
   const state = stagingState(change)
 
   const content = (
@@ -87,7 +93,7 @@ function ChangeRow({
             aria-label={`${change.path}: ${state === 'partial' ? 'partially staged' : state}`}
             checked={state === 'staged'}
             indeterminate={state === 'partial'}
-            onClick={() => onToggleStaged(change)}
+            onCheckedChange={() => onToggleStaged(change)}
           />
         )}
       </span>

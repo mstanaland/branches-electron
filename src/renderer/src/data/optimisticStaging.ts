@@ -1,4 +1,4 @@
-import { changedSide } from '../../../shared/changes'
+import { changedSide, isConflict } from '../../../shared/changes'
 import type { FileChange } from '../../../shared/git'
 
 /**
@@ -10,7 +10,7 @@ import type { FileChange } from '../../../shared/git'
  * A conflict is returned unchanged: conflicts aren't staged from the list.
  */
 export function predictStaged(change: FileChange): FileChange {
-  if (change.kind === 'unmerged') return change
+  if (isConflict(change)) return change
   if (change.kind === 'untracked') {
     return { ...change, index: 'added', worktree: 'unmodified', kind: 'ordinary' }
   }
@@ -24,7 +24,7 @@ export function predictStaged(change: FileChange): FileChange {
 }
 
 export function predictUnstaged(change: FileChange): FileChange {
-  if (change.kind === 'unmerged') return change
+  if (isConflict(change)) return change
   if (change.kind === 'untracked') return change
   // A staged new file goes back to being untracked, not a change with an unstaged side.
   if (change.index === 'added') {

@@ -1,4 +1,4 @@
-import { readFile, rm } from 'node:fs/promises'
+import { readFile, rename, rm } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { stageFiles, unstageFiles } from './staging'
@@ -88,6 +88,74 @@ describe('unstageFiles in a repository with no commits', () => {
   })
 })
 
+describe('renames', () => {
+  it('stages a rename as one entry, and unstages it back to a deletion and an untracked file', async () => {
+    const repo = await createRepoWithCommit()
+    // Renamed in the work tree, not with `git mv`, so nothing is staged yet: the list shows
+    // this as a deletion and an untracked file, and staging both is what makes it a rename.
+    await rename(join(repo.root, 'README.md'), join(repo.root, 'docs.md'))
+
+    await stageFiles(repo.root, ['docs.md', 'README.md'])
+    expect(await repo.git('diff', '--cached', '--name-status', '-M')).toContain('R100')
+
+    await unstageFiles(repo.root, ['docs.md', 'README.md'])
+
+    expect(await code(repo, 'README.md')).toBe(' D')
+    expect(await code(repo, 'docs.md')).toBe('??')
+  })
+})
+
+describe('conflicts', () => {
+  it('marks a conflicted path resolved when it is staged', async () => {
+    const repo = await conflictedRepo()
+    expect(await code(repo, 'f.txt')).toBe('UU')
+
+    await stageFiles(repo.root, ['f.txt'])
+
+    expect(await code(repo, 'f.txt')).toBe('M ')
+  })
+
+  it('drops a conflicted path from the index when it is unstaged', async () => {
+    const repo = await conflictedRepo()
+
+    await unstageFiles(repo.root, ['f.txt'])
+
+    expect(await code(repo, 'f.txt')).toBe(' M')
+  })
+})
+
+describe('detached HEAD', () => {
+  it('stages and unstages against the detached commit', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.write('second.txt')
+    await repo.commit('second')
+    await repo.git('checkout', '--detach', 'HEAD')
+    await repo.write('README.md', 'changed\n')
+
+    await stageFiles(repo.root, ['README.md'])
+    expect(await code(repo, 'README.md')).toBe('M ')
+
+    await unstageFiles(repo.root, ['README.md'])
+    expect(await code(repo, 'README.md')).toBe(' M')
+  })
+})
+
+/** A repository stopped mid-merge, with f.txt left unmerged. */
+async function conflictedRepo() {
+  const repo = await createRepo()
+  await repo.write('f.txt', 'base\n')
+  await repo.commit('base')
+  await repo.git('checkout', '-q', '-b', 'other')
+  await repo.write('f.txt', 'theirs\n')
+  await repo.commit('theirs')
+  await repo.git('checkout', '-q', 'main')
+  await repo.write('f.txt', 'ours\n')
+  await repo.commit('ours')
+  // The merge is meant to fail: that is what leaves the conflict behind.
+  await repo.git('merge', 'other').catch(() => {})
+  return repo
+}
+
 /** Names git could read as options or pathspec patterns if they weren't passed literally. */
 const awkwardNames = ['a file.txt', '-dash.txt', '--cached', '[a].md', 'star*.txt', 'what?.log']
 
@@ -105,17 +173,22 @@ describe('awkward paths', () => {
     expect(await code(repo, name)).toBe('??')
   })
 
-  it('stages a file named like a pathspec in a repository with no commits', async () => {
-    const repo = await createRepo()
-    await repo.write('star*.txt')
-    await repo.write('starry.txt')
+  // The no-commits branch of unstageFiles is a different git command, so it gets its own pass.
+  it.each(awkwardNames)(
+    'stages and unstages a file named %s in a repository with no commits',
+    async (name) => {
+      const repo = await createRepo()
+      await repo.write(name)
+      await repo.write('other.txt')
 
-    await stageFiles(repo.root, ['star*.txt'])
-    expect(await code(repo, 'starry.txt')).toBe('??')
+      await stageFiles(repo.root, [name])
+      expect(await code(repo, name)).toBe('A ')
+      expect(await code(repo, 'other.txt')).toBe('??')
 
-    await unstageFiles(repo.root, ['star*.txt'])
-    expect(await code(repo, 'star*.txt')).toBe('??')
-  })
+      await unstageFiles(repo.root, [name])
+      expect(await code(repo, name)).toBe('??')
+    }
+  )
 })
 
 describe('overlapping writes', () => {

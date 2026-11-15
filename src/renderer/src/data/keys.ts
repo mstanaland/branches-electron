@@ -9,5 +9,17 @@ export const keys = {
   diffs: (root: string) => ['repository', root, 'diff'] as const,
   /** `originalPath` is part of the key because it changes what git is asked for (a rename). */
   diff: (root: string, path: string, originalPath: string | null) =>
-    [...keys.diffs(root), path, originalPath] as const
+    [...keys.diffs(root), path, originalPath] as const,
+  /**
+   * True for a cached diff of one of `paths`, so callers can invalidate just those without
+   * knowing each change's `originalPath`. Keeps the key's layout in this file.
+   */
+  isDiffOfAny: (root: string, paths: Iterable<string>) => {
+    const wanted = new Set(paths)
+    const prefix = keys.diffs(root)
+    return (queryKey: readonly unknown[]): boolean =>
+      queryKey.length === prefix.length + 2 &&
+      prefix.every((part, index) => queryKey[index] === part) &&
+      wanted.has(queryKey[prefix.length] as string)
+  }
 }
