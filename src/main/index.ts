@@ -1,8 +1,9 @@
-import { app, BrowserWindow, shell } from 'electron'
+import { app, BrowserWindow, Menu, shell } from 'electron'
 import { join } from 'node:path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { getGitExecutable } from './git'
 import { registerIpc } from './ipc'
+import { createMenuTemplate } from './menu'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -47,6 +48,16 @@ void app.whenReady().then(() => {
   getGitExecutable().catch((error: unknown) => console.error('Could not locate git:', error))
 
   registerIpc()
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      createMenuTemplate({
+        appName: app.name,
+        // The renderer owns the open flow and the active repository, so it is told to run it.
+        openRepository: () =>
+          BrowserWindow.getFocusedWindow()?.webContents.send('menu:open-repository')
+      })
+    )
+  )
   createWindow()
 
   app.on('activate', () => {

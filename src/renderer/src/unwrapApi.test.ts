@@ -10,6 +10,8 @@ function bridgeReturning(result: unknown): BranchesApi {
     openRepository: respond,
     listRepositories: respond,
     removeRepository: respond,
+    showRepositoryMenu: respond,
+    confirmRemoveMissingRepository: respond,
     getStatus: respond,
     listBranches: respond
   }

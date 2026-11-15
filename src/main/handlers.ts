@@ -8,12 +8,18 @@ export interface HandlerDeps {
   store: RepositoryStore
   /** Shows the folder picker. Resolves null if the user cancels. */
   pickFolder: () => Promise<string | null>
+  /** Pops up the repository's context menu. Resolves true if the user chose Remove from List. */
+  showRepositoryMenu: (repository: SavedRepository) => Promise<boolean>
+  /** Asks whether to remove a missing repository. Resolves true if the user confirmed. */
+  confirmRemoval: (repository: SavedRepository) => Promise<boolean>
 }
 
 export interface Handlers {
   openRepository: () => Promise<string | null>
   listRepositories: () => Promise<SavedRepository[]>
   removeRepository: (root: string) => Promise<void>
+  showRepositoryMenu: (root: string) => Promise<boolean>
+  confirmRemoveMissingRepository: (root: string) => Promise<boolean>
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
 }
@@ -39,6 +45,24 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     })
   }
 
+  /** Asks the user about a saved repository and removes it if they agree. */
+  async function removeIfAgreed(
+    root: string,
+    ask: (repository: SavedRepository) => Promise<boolean>
+  ): Promise<boolean> {
+    const repository = (await deps.store.list()).find((saved) => saved.root === root)
+    if (!repository) {
+      throw new ApiError({
+        code: 'REPOSITORY_NOT_OPEN',
+        message: `${root} is not a saved repository.`
+      })
+    }
+    if (!(await ask(repository))) return false
+    openRoots.delete(root)
+    await deps.store.remove(root)
+    return true
+  }
+
   return {
     async openRepository() {
       const folder = await deps.pickFolder()
@@ -56,6 +80,8 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       openRoots.delete(root)
       await deps.store.remove(root)
     },
+    showRepositoryMenu: (root) => removeIfAgreed(root, deps.showRepositoryMenu),
+    confirmRemoveMissingRepository: (root) => removeIfAgreed(root, deps.confirmRemoval),
     async getStatus(root) {
       await assertOpen(root)
       return getStatus(root)

@@ -1,34 +1,24 @@
-import { useMutation } from '@tanstack/react-query'
-import { api } from './api'
+import { Sidebar } from './components/Sidebar'
+import { useRepositories, useSelection } from './data'
 import styles from './App.module.css'
 
 function App(): React.JSX.Element {
-  // TEMPORARY: proves the bridge works end to end. The sidebar tickets replace this.
-  const open = useMutation({
-    mutationFn: async () => {
-      const root = await api.openRepository()
-      if (root === null) return null
-      const [status, branches] = await Promise.all([api.getStatus(root), api.listBranches(root)])
-      console.log('opened', root, { status, branches })
-      return root
-    },
-    onError: (error) => console.error('open failed', error)
-  })
+  const { activeRoot } = useSelection()
+  const repositories = useRepositories()
+  const active = repositories.data?.find((repository) => repository.root === activeRoot)
 
   return (
     <div className={styles.app}>
       <aside className={styles.sidebar}>
         <div className={styles.titlebar} />
-        <p className={styles.sectionLabel}>Branches</p>
+        <Sidebar />
       </aside>
       <main className={styles.content}>
         <div className={styles.titlebar} />
         <div className={styles.empty}>
-          <h1>Branches</h1>
-          <p>Open a repository to get started.</p>
-          <button type="button" onClick={() => open.mutate()}>
-            Open repository… (temporary)
-          </button>
+          {/* Placeholder: the changed-files tickets fill this pane. */}
+          <h1>{active ? active.name : 'Branches'}</h1>
+          <p>{active ? active.root : 'Open a repository to get started.'}</p>
         </div>
       </main>
     </div>
