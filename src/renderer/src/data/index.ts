@@ -1,5 +1,7 @@
 export { describeError } from './apiErrorInfo'
 export type { ErrorInfo } from './apiErrorInfo'
+export { useFolderExpansion } from './collapsedFolders'
+export type { FolderExpansion } from './collapsedFolders'
 export { keys } from './keys'
 export { useBranches, useRepositories, useStatus } from './queries'
 export { useConfirmRemoveMissing, useRepositoryMenu } from './removal'

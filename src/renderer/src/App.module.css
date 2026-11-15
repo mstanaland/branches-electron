@@ -5,9 +5,12 @@
 }
 
 .sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--color-sidebar);
   border-right: 1px solid var(--color-border);
-  padding: 0 12px;
+  padding: 0 12px 12px;
 }
 
 /* Space for the inset traffic lights; dragging here moves the window. */

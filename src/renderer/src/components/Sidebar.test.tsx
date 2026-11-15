@@ -2,7 +2,7 @@
 import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
-import type { SavedRepository } from '../../../shared/git'
+import type { RepositoryStatus, SavedRepository } from '../../../shared/git'
 import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
 
@@ -27,10 +27,35 @@ const repo = (name: string, missing = false): SavedRepository => ({
   missing
 })
 
+const status = (): RepositoryStatus => ({
+  branch: 'main',
+  headOid: 'abc1234',
+  detached: false,
+  upstream: null,
+  ahead: 0,
+  behind: 0,
+  changes: []
+})
+
+/** The options, reopening the list first if it has collapsed behind the active repository. */
+async function showList(): Promise<HTMLElement[]> {
+  await waitFor(() =>
+    expect(
+      screen.queryAllByRole('option').length +
+        screen.queryAllByRole('button', { expanded: false }).length
+    ).toBeGreaterThan(0)
+  )
+  const header = screen.queryByRole('button', { expanded: false })
+  if (header) fireEvent.click(header)
+  return screen.findAllByRole('option')
+}
+
 beforeEach(() => {
   vi.resetAllMocks()
   localStorage.clear()
   api.onOpenRepositoryRequested.mockReturnValue(() => {})
+  api.getStatus.mockResolvedValue(status())
+  api.listBranches.mockResolvedValue([])
 })
 
 afterEach(cleanup)
@@ -68,23 +93,29 @@ describe('repository list', () => {
 
     fireEvent.click(await screen.findByRole('option', { name: 'beta' }))
 
+    // The list folds away behind the active repository; reopening shows who is selected.
+    expect(screen.getByRole('button', { name: /beta/ })).toBeTruthy()
+    await showList()
     expect(screen.getByRole('option', { name: 'beta' }).getAttribute('aria-selected')).toBe('true')
     expect(screen.getByRole('option', { name: 'alpha' }).getAttribute('aria-selected')).toBe(
       'false'
     )
   })
 
-  it('shows the repository that was active last launch as selected', async () => {
+  it('reopens the repository that was active last launch, with the list folded away', async () => {
     localStorage.setItem('branches.activeRoot', '/repos/alpha')
     api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
     renderWithProviders(<Sidebar />)
 
-    const alpha = await screen.findByRole('option', { name: 'alpha' })
+    const header = await screen.findByRole('button', { name: /alpha/ })
 
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('listbox')).toBeNull()
+    const [alpha] = await showList()
     expect(alpha.getAttribute('aria-selected')).toBe('true')
   })
 
-  it('makes a repository opened from the button active and shows it in the list', async () => {
+  it('makes a repository opened from the button active and folds the list away', async () => {
     api.listRepositories.mockResolvedValueOnce([repo('alpha')])
     api.openRepository.mockResolvedValue('/repos/beta')
     renderWithProviders(<Sidebar />)
@@ -93,15 +124,16 @@ describe('repository list', () => {
     api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
     fireEvent.click(screen.getByRole('button', { name: 'Open repository…' }))
 
-    const beta = await screen.findByRole('option', { name: 'beta' })
-    await waitFor(() => expect(beta.getAttribute('aria-selected')).toBe('true'))
+    const header = await screen.findByRole('button', { name: /beta/ })
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('listbox')).toBeNull()
   })
 })
 
 async function listWithThree(): Promise<HTMLElement[]> {
   api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta'), repo('gamma')])
   renderWithProviders(<Sidebar />)
-  return screen.findAllByRole('option')
+  return showList()
 }
 
 describe('keyboard', () => {
@@ -144,7 +176,7 @@ describe('keyboard', () => {
 
     fireEvent.keyDown(beta, { key: 'Enter' })
 
-    expect(beta.getAttribute('aria-selected')).toBe('true')
+    expect(screen.getByRole('button', { name: /beta/ })).toBeTruthy()
   })
 })
 
@@ -208,7 +240,8 @@ describe('missing repositories', () => {
     api.listRepositories.mockResolvedValue([repo('alpha'), repo('gone', true)])
     api.confirmRemoveMissingRepository.mockResolvedValue(true)
     renderWithProviders(<Sidebar />)
-    const gone = await screen.findByRole('option', { name: 'gone' })
+    await showList()
+    const gone = screen.getByRole('option', { name: 'gone' })
     expect(gone.getAttribute('aria-selected')).toBe('true')
 
     api.listRepositories.mockResolvedValue([repo('alpha')])
@@ -236,7 +269,8 @@ describe('context menu', () => {
     api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
     api.showRepositoryMenu.mockResolvedValue(true)
     renderWithProviders(<Sidebar />)
-    const beta = await screen.findByRole('option', { name: 'beta' })
+    await showList()
+    const beta = screen.getByRole('option', { name: 'beta' })
 
     api.listRepositories.mockResolvedValue([repo('alpha')])
     fireEvent.contextMenu(beta)
@@ -283,5 +317,183 @@ describe('errors', () => {
     expect((await screen.findByRole('alert')).textContent).toBe(
       'That folder is not a git repository.'
     )
+  })
+})
+
+describe('collapsible repository list', () => {
+  it('stays open while no repository is active, with no header', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    renderWithProviders(<Sidebar />)
+
+    expect(await screen.findAllByRole('option')).toHaveLength(2)
+    expect(screen.queryByRole('button', { expanded: false })).toBeNull()
+    expect(screen.queryByRole('button', { expanded: true })).toBeNull()
+  })
+
+  it('folds into a header naming the active repository when one is chosen', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    renderWithProviders(<Sidebar />)
+
+    fireEvent.click(await screen.findByRole('option', { name: 'alpha' }))
+
+    const header = screen.getByRole('button', { name: /alpha/ })
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('reopens from the header, and folds again when the header is clicked again', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    renderWithProviders(<Sidebar />)
+    const header = await screen.findByRole('button', { name: /alpha/ })
+
+    fireEvent.click(header)
+    expect(header.getAttribute('aria-expanded')).toBe('true')
+    expect(screen.getAllByRole('option')).toHaveLength(2)
+
+    fireEvent.click(header)
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('switches repository from the reopened list and folds away again', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    renderWithProviders(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: /alpha/ }))
+
+    fireEvent.click(screen.getByRole('option', { name: 'beta' }))
+
+    const header = screen.getByRole('button', { name: /beta/ })
+    expect(header.getAttribute('aria-expanded')).toBe('false')
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('folds away when the already-active repository is chosen again', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    renderWithProviders(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: /alpha/ }))
+
+    fireEvent.click(screen.getByRole('option', { name: 'alpha' }))
+
+    expect(screen.queryByRole('listbox')).toBeNull()
+  })
+
+  it('folds away when Open repository… picks the repository that is already active', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    api.openRepository.mockResolvedValue('/repos/alpha')
+    renderWithProviders(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: /alpha/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open repository…' }))
+
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
+  })
+
+  it('folds away when Cmd+O picks the repository that is already active', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    const listeners: Array<() => void> = []
+    api.onOpenRepositoryRequested.mockImplementation((listener) => {
+      listeners.push(listener)
+      return () => {}
+    })
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    api.openRepository.mockResolvedValue('/repos/alpha')
+    renderWithProviders(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: /alpha/ }))
+
+    listeners[0]()
+
+    await waitFor(() => expect(screen.queryByRole('listbox')).toBeNull())
+  })
+
+  it('stays open when the folder picker is cancelled', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    api.openRepository.mockResolvedValue(null)
+    renderWithProviders(<Sidebar />)
+    fireEvent.click(await screen.findByRole('button', { name: /alpha/ }))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Open repository…' }))
+
+    await waitFor(() => expect(api.openRepository).toHaveBeenCalledOnce())
+    expect(screen.getAllByRole('option')).toHaveLength(2)
+  })
+
+  it('opens the list again when the active repository is removed from it', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/beta')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    api.showRepositoryMenu.mockResolvedValue(true)
+    renderWithProviders(<Sidebar />)
+    await showList()
+
+    api.listRepositories.mockResolvedValue([repo('alpha')])
+    fireEvent.contextMenu(screen.getByRole('option', { name: 'beta' }))
+
+    expect(await screen.findByRole('option', { name: 'alpha' })).toBeTruthy()
+    expect(screen.queryByRole('button', { expanded: false })).toBeNull()
+  })
+
+  it('shows a missing active repository as missing in the header', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/gone')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('gone', true)])
+    renderWithProviders(<Sidebar />)
+
+    const header = await screen.findByRole('button', { name: /gone/ })
+
+    expect(header.getAttribute('data-missing')).toBe('true')
+    expect(header.getAttribute('title')).toMatch(/can.t be found/i)
+  })
+
+  it('lists the repositories rather than a header when the remembered one is not saved', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/unknown')
+    api.listRepositories.mockResolvedValue([repo('alpha')])
+    renderWithProviders(<Sidebar />)
+
+    expect(await screen.findByRole('option', { name: 'alpha' })).toBeTruthy()
+    expect(screen.queryByRole('button', { expanded: false })).toBeNull()
+  })
+})
+
+describe('branch tree', () => {
+  it('shows the active repository’s branches below the list', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/alpha')
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta')])
+    api.listBranches.mockResolvedValue([
+      {
+        name: 'feature/login',
+        isCurrent: true,
+        shortOid: 'abc1234',
+        upstream: null,
+        upstreamGone: false,
+        ahead: 0,
+        behind: 0
+      }
+    ])
+    renderWithProviders(<Sidebar />)
+
+    expect(await screen.findByRole('treeitem', { name: 'feature/login' })).toBeTruthy()
+    expect(api.listBranches).toHaveBeenCalledWith('/repos/alpha')
+  })
+
+  it('shows no tree while no repository is active', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha')])
+    renderWithProviders(<Sidebar />)
+    await screen.findByRole('option', { name: 'alpha' })
+
+    expect(screen.queryByRole('tree')).toBeNull()
+    expect(api.listBranches).not.toHaveBeenCalled()
+  })
+
+  it('shows no tree, and asks git nothing, for a missing active repository', async () => {
+    localStorage.setItem('branches.activeRoot', '/repos/gone')
+    api.listRepositories.mockResolvedValue([repo('gone', true)])
+    renderWithProviders(<Sidebar />)
+    await screen.findByRole('button', { name: /gone/ })
+
+    expect(screen.queryByRole('tree')).toBeNull()
+    expect(api.listBranches).not.toHaveBeenCalled()
   })
 })
