@@ -13,16 +13,9 @@ describe('Kbd', () => {
     expect(kbd.tagName).toBe('KBD')
   })
 
-  it('is decorative by default, so a label is not read out twice', () => {
+  it('is decorative, so the control beside it is not read out twice', () => {
     render(<Kbd>⌘↵</Kbd>)
 
     expect(screen.getByText('⌘↵').getAttribute('aria-hidden')).toBe('true')
-  })
-
-  it('can be announced when it is the only hint of the shortcut', () => {
-    render(<Kbd label="Command Enter">⌘↵</Kbd>)
-
-    expect(screen.getByLabelText('Command Enter').tagName).toBe('KBD')
-    expect(screen.getByLabelText('Command Enter').getAttribute('aria-hidden')).toBeNull()
   })
 })

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react'
 import { describeError, useCommit, useDraft } from '../data'
-import type { StageAll } from '../data/staging'
+import type { StageAll } from '../data'
 import { Button, Kbd, TextField, Tooltip } from '../ui'
 import shared from './shared.module.css'
 import styles from './CommitForm.module.css'
@@ -52,17 +52,42 @@ export function CommitForm({
     if (!hasDescription) setExpanded(false)
   }, [hasDescription, setExpanded])
 
-  // The pointer going elsewhere is what collapses the form. A click inside it — Stage All,
-  // the padding, either field — leaves it alone, and so does a click that starts here.
+  // Set when the pointer went down outside the form while the form still held focus. The
+  // browser is about to move focus off; the collapse waits for that, so both halves of the
+  // rule — focus has left, and the pointer went elsewhere — are true before it happens.
+  const pointerWentOutside = useRef(false)
+
+  // A click inside the form — Stage All, the padding, either field — never collapses it.
   useEffect(() => {
     function onPointerDown(event: PointerEvent): void {
       const form = formRef.current
-      if (form === null || form.contains(event.target as Node)) return
+      if (form === null) return
+      if (form.contains(event.target as Node)) {
+        pointerWentOutside.current = false
+        return
+      }
+      if (form.contains(document.activeElement)) {
+        pointerWentOutside.current = true
+        return
+      }
       collapseIfEmpty()
     }
     document.addEventListener('pointerdown', onPointerDown)
     return () => document.removeEventListener('pointerdown', onPointerDown)
   }, [collapseIfEmpty])
+
+  const onBlur = useCallback(
+    (event: React.FocusEvent<HTMLFormElement>) => {
+      const form = formRef.current
+      // Focus only moved between the form's own controls.
+      if (form !== null && form.contains(event.relatedTarget)) return
+      // Tabbing out on its own leaves the form open: the pointer never went anywhere.
+      if (!pointerWentOutside.current) return
+      pointerWentOutside.current = false
+      collapseIfEmpty()
+    },
+    [collapseIfEmpty]
+  )
 
   const runCommit = useCallback(() => {
     if (!canCommit) return
@@ -82,6 +107,7 @@ export function CommitForm({
       ref={formRef}
       aria-label="Commit"
       className={styles.form}
+      onBlur={onBlur}
       onSubmit={(event) => {
         event.preventDefault()
         runCommit()

@@ -93,6 +93,40 @@ describe('expanding and collapsing', () => {
     expect(screen.queryByRole('textbox', { name: 'Commit description' })).toBeNull()
   })
 
+  it('waits for focus to follow the pointer out before collapsing', () => {
+    renderForm()
+    const field = subject()
+    act(() => field.focus())
+    const outside = screen.getByRole('button', { name: 'Outside' })
+
+    // The pointer went elsewhere, but focus is still in the form: the browser moves it next.
+    fireEvent.pointerDown(outside)
+    expect(description()).toBeTruthy()
+
+    fireEvent.blur(field, { relatedTarget: outside })
+    expect(screen.queryByRole('textbox', { name: 'Commit description' })).toBeNull()
+  })
+
+  it('stays expanded when focus leaves by keyboard, with the pointer going nowhere', () => {
+    renderForm()
+    const field = subject()
+    act(() => field.focus())
+
+    fireEvent.blur(field, { relatedTarget: screen.getByRole('button', { name: 'Outside' }) })
+
+    expect(description()).toBeTruthy()
+  })
+
+  it('stays expanded while focus moves between its own fields', () => {
+    renderForm()
+    const field = subject()
+    act(() => field.focus())
+
+    fireEvent.blur(field, { relatedTarget: description() })
+
+    expect(description()).toBeTruthy()
+  })
+
   it('stays expanded on an outside click once a description has been typed', () => {
     renderForm()
     fireEvent.focus(subject())

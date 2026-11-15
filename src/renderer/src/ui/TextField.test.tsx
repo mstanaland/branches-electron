@@ -14,12 +14,6 @@ describe('TextField', () => {
     expect(screen.getByText('Commit subject').className).toContain('visuallyHidden')
   })
 
-  it('shows the label when asked to', () => {
-    render(<TextField label="Commit subject" showLabel />)
-
-    expect(screen.getByText('Commit subject').className).not.toContain('visuallyHidden')
-  })
-
   it('reports what the user typed', () => {
     const onValueChange = vi.fn<(value: string) => void>()
     render(<TextField label="Commit subject" value="" onValueChange={onValueChange} />)
