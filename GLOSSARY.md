@@ -1,6 +1,7 @@
 # Branches
 
 A Mac git client: a GUI for viewing and changing the state of git repositories on the user's machine.
+ssss
 
 ## Language
 
@@ -43,6 +44,10 @@ _Avoid_: New file, unversioned
 **Conflict**:
 A change where a merge left the path unmerged. Flagged in the list and sorted first.
 _Avoid_: Unmerged file
+
+**Stage all**:
+The one control that stages every change at once, conflicts excluded. It reads **Stage All**, or **Unstage All** once all of that set is staged, and always acts — it is never disabled, and it is absent when there is nothing it could act on.
+_Avoid_: Select all, check all, a separate Unstage All control
 
 ### Committing
 

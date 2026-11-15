@@ -18,16 +18,31 @@ interface Rollback {
   before: Map<string, FileChange>
 }
 
+/** The two faces of the single stage-all button. */
+export type StageAllLabel = 'Stage All' | 'Unstage All'
+
+/**
+ * The stage-all button, resolved: the words to show and the one thing clicking it does.
+ * They travel together so the label can be reworded without changing what the click does.
+ */
+export interface StageAll {
+  label: StageAllLabel
+  run: () => void
+}
+
 export interface StagingActions {
   /**
    * Stages the change, or unstages it if it is already fully staged — so the row's checkbox
    * reads as expected: empty stages, checked unstages, and partially staged stages the rest.
    */
   toggle: (change: FileChange) => void
-  /** Stages every change in the repository except conflicts. */
-  stageAll: () => void
-  /** False when there is nothing left to stage, so "Stage All" can be disabled. */
-  canStageAll: boolean
+  /**
+   * The stage-all button: it stages every change in the repository except conflicts, or
+   * unstages that same set once all of it is staged. Null when there is nothing it could
+   * act on — an empty repository, or one whose only changes are conflicts — so the pane
+   * leaves it out rather than showing a button that would do nothing.
+   */
+  stageAll: StageAll | null
   /** The last failure, already rolled back, or null. Cleared when a new request starts. */
   error: ApiError | null
 }
@@ -45,14 +60,12 @@ function predicted(
   }
 }
 
-/** What "Stage All" would stage: everything with an unstaged side, conflicts excluded. */
-function stageableChanges(changes: readonly FileChange[]): string[] {
-  return changes
-    .filter(
-      (change) =>
-        !isConflict(change) && change.kind !== 'ignored' && stagingState(change) !== 'staged'
-    )
-    .map((change) => change.path)
+/**
+ * The changes the stage-all button acts on in either direction: everything but conflicts,
+ * which can't be staged as they are, and ignored files, which aren't shown.
+ */
+function stageAllCandidates(changes: readonly FileChange[]): FileChange[] {
+  return changes.filter((change) => !isConflict(change) && change.kind !== 'ignored')
 }
 
 /**
@@ -116,7 +129,16 @@ export function useStaging(root: string, changes: readonly FileChange[]): Stagin
     }
   })
 
-  const stageable = stageableChanges(changes)
+  const candidates = stageAllCandidates(changes)
+  // What "Stage All" would stage: anything not already wholly in the index, a partially
+  // staged change included, so clicking it stages the remainder.
+  const stageable = candidates
+    .filter((change) => stagingState(change) !== 'staged')
+    .map((change) => change.path)
+  // Nothing left to stage, so the button turns around and unstages the whole set. Every
+  // candidate is wholly staged in that case, which is why they are all fair game.
+  const unstaging = candidates.length > 0 && stageable.length === 0
+  const paths = unstaging ? candidates.map((change) => change.path) : stageable
   const { mutate } = mutation
 
   const toggle = useCallback(
@@ -128,15 +150,13 @@ export function useStaging(root: string, changes: readonly FileChange[]): Stagin
     [mutate]
   )
 
-  const stageAll = useCallback(() => {
-    if (stageable.length === 0) return
-    mutate({ action: 'stage', paths: stageable })
-  }, [mutate, stageable])
+  const run = useCallback(() => {
+    mutate({ action: unstaging ? 'unstage' : 'stage', paths })
+  }, [mutate, unstaging, paths])
 
   return {
     toggle,
-    stageAll,
-    canStageAll: stageable.length > 0,
+    stageAll: paths.length === 0 ? null : { label: unstaging ? 'Unstage All' : 'Stage All', run },
     error
   }
 }
