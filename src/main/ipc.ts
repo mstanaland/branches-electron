@@ -76,6 +76,11 @@ export function registerIpc(): void {
   ipcMain.handle('repository:branches', (_event, root: string) =>
     settle(() => handlers.listBranches(root))
   )
+  ipcMain.handle(
+    'repository:diff',
+    (_event, root: string, path: string, originalPath: string | null) =>
+      settle(() => handlers.getDiff(root, path, originalPath))
+  )
   ipcMain.handle('branch:checkout', (_event, root: string, name: string) =>
     settle(() => handlers.checkoutBranch(root, name))
   )

@@ -1,9 +1,18 @@
 import { ApiError } from '../shared/apiError'
-import type { Branch, BranchMenuAction, RepositoryStatus, SavedRepository } from '../shared/git'
+import type {
+  Branch,
+  BranchMenuAction,
+  ChangeDiff,
+  RepositoryStatus,
+  SavedRepository
+} from '../shared/git'
+import { assertRelativePath } from '../shared/path'
+import { assertInsideRoot } from './assertInsideRoot'
 import {
   checkoutBranch,
   isRepositoryRoot,
   listBranches,
+  getDiff,
   getStatus,
   resolveRepositoryRoot
 } from './git'
@@ -30,6 +39,7 @@ export interface Handlers {
   confirmRemoveMissingRepository: (root: string) => Promise<boolean>
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
+  getDiff: (root: string, path: string, originalPath: string | null) => Promise<ChangeDiff>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
 }
@@ -99,6 +109,13 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listBranches(root) {
       await assertOpen(root)
       return listBranches(root)
+    },
+    async getDiff(root, path, originalPath) {
+      await assertOpen(root)
+      assertRelativePath(path)
+      if (originalPath !== null) assertRelativePath(originalPath)
+      await assertInsideRoot(root, path)
+      return getDiff(root, path, originalPath)
     },
     async checkoutBranch(root, name) {
       await assertOpen(root)

@@ -2,7 +2,7 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
-import type { Branch, RepositoryStatus, SavedRepository } from '../../../shared/git'
+import type { Branch, ChangeDiff, RepositoryStatus, SavedRepository } from '../../../shared/git'
 import type { UnwrappedApi } from '../unwrapApi'
 import { createTestQueryClient, queryWrapper } from './testUtils'
 
@@ -11,11 +11,12 @@ const api = vi.hoisted(() => ({
   listRepositories: vi.fn<UnwrappedApi['listRepositories']>(),
   removeRepository: vi.fn<UnwrappedApi['removeRepository']>(),
   getStatus: vi.fn<UnwrappedApi['getStatus']>(),
-  listBranches: vi.fn<UnwrappedApi['listBranches']>()
+  listBranches: vi.fn<UnwrappedApi['listBranches']>(),
+  getDiff: vi.fn<UnwrappedApi['getDiff']>()
 }))
 vi.mock('../api', () => ({ api }))
 
-import { useBranches, useRepositories, useStatus } from './queries'
+import { useBranches, useDiff, useRepositories, useStatus } from './queries'
 
 const status = (branch: string): RepositoryStatus => ({
   branch,
@@ -106,6 +107,45 @@ describe('useBranches', () => {
     const { result } = renderHook(() => useBranches('/repos/a'), { wrapper })
     await waitFor(() => expect(result.current.data).toEqual(branches))
     expect(api.listBranches).toHaveBeenCalledWith('/repos/a')
+  })
+})
+
+describe('useDiff', () => {
+  const diff: ChangeDiff = { staged: null, unstaged: { binary: true } }
+
+  it('loads the diff of one path, passing the original path of a rename', async () => {
+    api.getDiff.mockResolvedValue(diff)
+    const { result } = renderHook(() => useDiff('/repos/a', 'new.txt', 'old.txt'), {
+      wrapper: queryWrapper(createTestQueryClient())
+    })
+
+    await waitFor(() => expect(result.current.data).toEqual(diff))
+    expect(api.getDiff).toHaveBeenCalledWith('/repos/a', 'new.txt', 'old.txt')
+  })
+
+  it('does not call git without a repository or without a path', () => {
+    const wrapper = queryWrapper(createTestQueryClient())
+    const noRoot = renderHook(() => useDiff(null, 'a.txt', null), { wrapper })
+    const noPath = renderHook(() => useDiff('/repos/a', null, null), { wrapper })
+
+    expect(noRoot.result.current.fetchStatus).toBe('idle')
+    expect(noPath.result.current.fetchStatus).toBe('idle')
+    expect(api.getDiff).not.toHaveBeenCalled()
+  })
+
+  it('keeps a separate result for each path', async () => {
+    api.getDiff.mockImplementation(async (_root, path) => ({
+      staged: null,
+      unstaged: { binary: false, hunks: [], truncated: path === 'b.txt' }
+    }))
+    const wrapper = queryWrapper(createTestQueryClient())
+    const a = renderHook(() => useDiff('/repos/a', 'a.txt', null), { wrapper })
+    const b = renderHook(() => useDiff('/repos/a', 'b.txt', null), { wrapper })
+
+    await waitFor(() => expect(a.result.current.data).toBeDefined())
+    await waitFor(() => expect(b.result.current.data).toBeDefined())
+    expect(a.result.current.data?.unstaged).toMatchObject({ truncated: false })
+    expect(b.result.current.data?.unstaged).toMatchObject({ truncated: true })
   })
 })
 

@@ -1,4 +1,4 @@
-import { mkdir, rm } from 'node:fs/promises'
+import { mkdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SavedRepository } from '../shared/git'
@@ -335,5 +335,62 @@ describe('showBranchMenu', () => {
       code: 'REPOSITORY_NOT_OPEN'
     })
     expect(shown).toBe(false)
+  })
+})
+
+async function openedRepo() {
+  const repo = await createRepoWithCommit()
+  await repo.write('README.md', 'changed\n')
+  const handlers = handlersChoosing(repo.root)
+  await handlers.openRepository()
+  return { repo, handlers }
+}
+
+describe('getDiff', () => {
+  it('returns the diff of a file in an opened repository', async () => {
+    const { repo, handlers } = await openedRepo()
+
+    const diff = await handlers.getDiff(repo.root, 'README.md', null)
+
+    expect(diff.staged).toBeNull()
+    expect(diff.unstaged).toMatchObject({ binary: false })
+  })
+
+  it('rejects a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(
+      handlersChoosing(null).getDiff(repo.root, 'README.md', null)
+    ).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+
+  it.each(['../outside.txt', '/etc/passwd', 'a/../../b', ''])(
+    'rejects the path %j before it reaches git',
+    async (path) => {
+      const { repo, handlers } = await openedRepo()
+
+      await expect(handlers.getDiff(repo.root, path, null)).rejects.toMatchObject({
+        code: 'INVALID_PATH'
+      })
+    }
+  )
+
+  it('rejects a path through a folder that is symlinked outside the repository', async () => {
+    const { repo, handlers } = await openedRepo()
+    await symlink(await makeTempDir(), join(repo.root, 'escape'))
+
+    await expect(handlers.getDiff(repo.root, 'escape/secret.txt', null)).rejects.toMatchObject({
+      code: 'INVALID_PATH'
+    })
+  })
+
+  it('rejects an original path that points outside the repository', async () => {
+    const { repo, handlers } = await openedRepo()
+
+    await expect(handlers.getDiff(repo.root, 'README.md', '../old.txt')).rejects.toMatchObject({
+      code: 'INVALID_PATH'
+    })
   })
 })

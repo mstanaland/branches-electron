@@ -12,7 +12,8 @@ export function useCheckoutBranch(root: string) {
     onSuccess: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.status(root) }),
-        queryClient.invalidateQueries({ queryKey: keys.branches(root) })
+        queryClient.invalidateQueries({ queryKey: keys.branches(root) }),
+        queryClient.invalidateQueries({ queryKey: keys.diffs(root) })
       ])
     }
   })

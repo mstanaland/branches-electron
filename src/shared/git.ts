@@ -64,3 +64,35 @@ export interface SavedRepository {
   /** True when the folder no longer exists or is no longer a repository root. Never auto-deleted. */
   missing: boolean
 }
+
+/** One line of a diff. Added lines have no old number; removed lines have no new number. */
+export interface DiffLine {
+  kind: 'context' | 'added' | 'removed'
+  oldNumber: number | null
+  newNumber: number | null
+  /** The line without its +, - or space prefix. */
+  text: string
+  /** True when git marked this line "\ No newline at end of file". */
+  noNewline: boolean
+}
+
+export interface DiffHunk {
+  /** The `@@ -1,3 +1,4 @@ …` line. */
+  header: string
+  lines: DiffLine[]
+}
+
+/**
+ * A parsed diff of one file on one side. A rename with no edits or a mode-only change has
+ * no hunks. `truncated` means the diff was cut short because it was very large.
+ */
+export type FileDiff = { binary: true } | { binary: false; hunks: DiffHunk[]; truncated: boolean }
+
+/**
+ * What differs for one change. Each side is null when it has no diff: a partially staged
+ * change has both, an untracked file only `unstaged`.
+ */
+export interface ChangeDiff {
+  staged: FileDiff | null
+  unstaged: FileDiff | null
+}

@@ -24,3 +24,15 @@ export function useBranches(root: string | null) {
     enabled: root !== null
   })
 }
+
+/**
+ * The staged and unstaged diffs of one change in the active repository. Idle while there is no
+ * repository or no path. `originalPath` is the path a renamed file came from, else null.
+ */
+export function useDiff(root: string | null, path: string | null, originalPath: string | null) {
+  return useQuery({
+    queryKey: keys.diff(root ?? '', path ?? '', originalPath),
+    queryFn: () => api.getDiff(root as string, path as string, originalPath),
+    enabled: root !== null && path !== null
+  })
+}

@@ -1,0 +1,72 @@
+.scroller {
+  overflow-x: auto;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius);
+}
+
+.diff {
+  width: 100%;
+  min-width: max-content;
+  border-collapse: collapse;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  line-height: 18px;
+}
+
+.hunk td {
+  padding: 2px 8px;
+  color: var(--color-text-muted);
+  background: var(--diff-hunk-bg);
+}
+
+.gutter {
+  width: 1%;
+  min-width: 44px;
+  padding: 0 8px;
+  color: var(--color-text-muted);
+  text-align: right;
+  white-space: nowrap;
+  user-select: none;
+  background: var(--diff-gutter-bg);
+}
+
+.sign {
+  width: 1%;
+  padding: 0 4px;
+  color: var(--color-text-muted);
+  text-align: center;
+  user-select: none;
+}
+
+.code {
+  padding: 0 8px 0 0;
+  white-space: pre;
+  user-select: text;
+}
+
+.marker {
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+.marker::before {
+  content: '\\ ';
+}
+
+.line[data-kind='added'] > .sign,
+.line[data-kind='added'] > .code {
+  background: var(--diff-added-bg);
+}
+
+.line[data-kind='removed'] > .sign,
+.line[data-kind='removed'] > .code {
+  background: var(--diff-removed-bg);
+}
+
+.line[data-kind='added'] > .gutter {
+  background: var(--diff-added-gutter-bg);
+}
+
+.line[data-kind='removed'] > .gutter {
+  background: var(--diff-removed-gutter-bg);
+}

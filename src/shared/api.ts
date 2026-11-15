@@ -1,4 +1,4 @@
-import type { Branch, BranchMenuAction, RepositoryStatus, SavedRepository } from './git'
+import type { Branch, BranchMenuAction, ChangeDiff, RepositoryStatus, SavedRepository } from './git'
 import type { ApiResult } from './result'
 
 /**
@@ -30,6 +30,16 @@ export interface BranchesApi {
   getStatus: (root: string) => Promise<ApiResult<RepositoryStatus>>
   /** `root` must be a saved repository or one the user opened this session. */
   listBranches: (root: string) => Promise<ApiResult<Branch[]>>
+  /**
+   * The staged and unstaged diffs of one change. `path` is relative to the repository root
+   * and must not climb out of it. For a renamed file pass `originalPath` (else null) so the
+   * staged side shows a rename. `root` must be a saved repository or one opened this session.
+   */
+  getDiff: (
+    root: string,
+    path: string,
+    originalPath: string | null
+  ) => Promise<ApiResult<ChangeDiff>>
   /**
    * Switches to an existing local branch. Fails with `CHECKOUT_BLOCKED_BY_CHANGES`, whose
    * `files` lists what stands in the way, when local changes would be overwritten.

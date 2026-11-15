@@ -1,4 +1,5 @@
 import { ChangedFiles } from './components/ChangedFiles'
+import { DiffView } from './components/DiffView'
 import { Sidebar } from './components/Sidebar'
 import { useRepositories, useSelection } from './data'
 import styles from './App.module.css'
@@ -17,7 +18,10 @@ function App(): React.JSX.Element {
       <main className={styles.content}>
         <div className={styles.titlebar} />
         {active ? (
-          <ChangedFiles key={active.root} root={active.root} />
+          <div className={styles.split}>
+            <ChangedFiles key={active.root} root={active.root} />
+            <DiffView key={active.root} root={active.root} />
+          </div>
         ) : (
           <div className={styles.empty}>
             <h1>Branches</h1>

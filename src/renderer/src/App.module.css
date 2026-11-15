@@ -25,6 +25,13 @@
   min-width: 0;
 }
 
+.split {
+  display: grid;
+  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
 .empty {
   flex: 1;
   display: grid;

@@ -20,6 +20,8 @@ const api: WindowApi = {
   },
   getStatus: (root) => ipcRenderer.invoke('repository:status', root),
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
+  getDiff: (root, path, originalPath) =>
+    ipcRenderer.invoke('repository:diff', root, path, originalPath),
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name)
 }

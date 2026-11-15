@@ -32,6 +32,13 @@
   --badge-warning-text: #7a5200;
   --badge-info-bg: #dce9fb;
   --badge-info-text: #0a4fa8;
+
+  --diff-added-bg: #e6f6ea;
+  --diff-added-gutter-bg: #cdeed6;
+  --diff-removed-bg: #fdeceb;
+  --diff-removed-gutter-bg: #f9d5d2;
+  --diff-hunk-bg: #eef3fb;
+  --diff-gutter-bg: #f7f7f9;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -58,6 +65,13 @@
     --badge-warning-text: #f2cd72;
     --badge-info-bg: #1b3556;
     --badge-info-text: #9cc6ff;
+
+    --diff-added-bg: #17301f;
+    --diff-added-gutter-bg: #1f4229;
+    --diff-removed-bg: #3a1c1a;
+    --diff-removed-gutter-bg: #522724;
+    --diff-hunk-bg: #1c2a40;
+    --diff-gutter-bg: #232325;
   }
 }
 
