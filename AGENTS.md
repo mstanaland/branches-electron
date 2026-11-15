@@ -32,7 +32,10 @@ A Mac git client. Electron + React + TypeScript, built with electron-vite and pn
 
 - Server state (anything from git) goes through TanStack Query (`useQuery`, `useMutation`). Mutations invalidate the queries they affect.
 - Styling is CSS modules (`*.module.css`) plus `src/renderer/src/styles/global.css`. Use the CSS variables in `global.css` for colors; support light and dark mode.
-- No CSS-in-JS and no UI component libraries without asking first.
+- Build screens from the components in `src/renderer/src/ui/`, which wrap Base UI (`@base-ui/react`). Import Base UI only inside `ui/`. Add a wrapper when a ticket first needs one. See `docs/adr/0004-ui-layer-wraps-base-ui.md`.
+- Icons come from `lucide-react`, imported by name. One `LucideProvider` sets the default size and stroke. Icons are decorative: put meaning in text or `aria-label`.
+- Keep OS-level surfaces (application menu, context menus, simple confirms) native and driven from main. Use Base UI for in-window dialogs, popovers and tooltips. See `docs/adr/0003-native-os-surfaces-base-ui-in-window.md`.
+- Ask before adding a UI library other than Base UI and `lucide-react`. No CSS-in-JS.
 
 ## Testing
 

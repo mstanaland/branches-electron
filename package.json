@@ -24,7 +24,9 @@
     "postinstall": "install-electron && electron-builder install-app-deps"
   },
   "dependencies": {
-    "@electron-toolkit/utils": "^4.0.0"
+    "@base-ui/react": "^1.9.0",
+    "@electron-toolkit/utils": "^4.0.0",
+    "lucide-react": "^1.72.0"
   },
   "devDependencies": {
     "@electron-toolkit/tsconfig": "^2.0.0",
