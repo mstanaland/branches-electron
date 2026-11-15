@@ -18,6 +18,10 @@ _Avoid_: Bookmark, favorite
 The one saved repository the user is currently viewing, if any. Remembered across launches.
 _Avoid_: Current repository, selected repository
 
+**Missing repository**:
+A saved repository whose folder no longer exists or is no longer a repository root. Flagged every time the list is read, never removed automatically.
+_Avoid_: Broken, deleted, orphaned
+
 ### Changes
 
 **Change**:
