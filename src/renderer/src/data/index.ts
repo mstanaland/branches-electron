@@ -1,3 +1,4 @@
+export { useBranchMenu, useCheckoutBranch } from './checkout'
 export { describeError } from './apiErrorInfo'
 export type { ErrorInfo } from './apiErrorInfo'
 export { useFolderExpansion } from './collapsedFolders'

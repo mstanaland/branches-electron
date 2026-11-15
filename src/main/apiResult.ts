@@ -6,6 +6,7 @@ export function toApiError(error: unknown): ApiErrorData {
   if (error instanceof ApiError || error instanceof GitError) {
     const data: ApiErrorData = { code: error.code, message: error.message }
     if (error.stderr) data.stderr = error.stderr
+    if (error.files?.length) data.files = [...error.files]
     return data
   }
   return { code: 'UNKNOWN', message: error instanceof Error ? error.message : String(error) }

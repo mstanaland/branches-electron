@@ -31,6 +31,17 @@ export function registerIpc(): void {
           callback: () => setImmediate(() => resolve(false))
         })
       }),
+    showBranchMenu: (branch) =>
+      new Promise((resolve) => {
+        const menu = Menu.buildFromTemplate([
+          { label: 'Check out', enabled: !branch.isCurrent, click: () => resolve('checkout') }
+        ])
+        menu.popup({
+          window: BrowserWindow.getFocusedWindow() ?? undefined,
+          // Same as the repository menu: let a click land before treating the close as a dismissal.
+          callback: () => setImmediate(() => resolve(null))
+        })
+      }),
     confirmRemoval: async (repository) => {
       const options = {
         type: 'question' as const,
@@ -64,5 +75,11 @@ export function registerIpc(): void {
   )
   ipcMain.handle('repository:branches', (_event, root: string) =>
     settle(() => handlers.listBranches(root))
+  )
+  ipcMain.handle('branch:checkout', (_event, root: string, name: string) =>
+    settle(() => handlers.checkoutBranch(root, name))
+  )
+  ipcMain.handle('branch:menu', (_event, root: string, name: string) =>
+    settle(() => handlers.showBranchMenu(root, name))
   )
 }

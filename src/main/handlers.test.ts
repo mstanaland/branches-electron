@@ -11,7 +11,8 @@ afterAll(cleanupTestRepos)
 /** Menu and dialog stand-ins for a user who dismisses everything. */
 const dismissed = {
   showRepositoryMenu: async () => false,
-  confirmRemoval: async () => false
+  confirmRemoval: async () => false,
+  showBranchMenu: async () => null
 }
 
 let storeDir = ''
@@ -247,5 +248,92 @@ describe('confirmRemoveMissingRepository', () => {
     await expect(handlers.confirmRemoveMissingRepository('/nowhere')).rejects.toMatchObject({
       code: 'REPOSITORY_NOT_OPEN'
     })
+  })
+})
+
+describe('checkoutBranch', () => {
+  it('switches the opened repository to another branch', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'work')
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await handlers.checkoutBranch(repo.root, 'work')
+
+    expect((await repo.git('branch', '--show-current')).trim()).toBe('work')
+  })
+
+  it('rejects a repository that was never opened, and leaves it alone', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'work')
+
+    await expect(handlersChoosing(null).checkoutBranch(repo.root, 'work')).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+    expect((await repo.git('branch', '--show-current')).trim()).toBe('main')
+  })
+})
+
+async function opened(repo: { root: string }, extra: Partial<HandlerDeps>) {
+  const filePath = join(storeDir, `repositories-${storeCount++}.json`)
+  const handlers = createHandlers({
+    pickFolder: async () => repo.root,
+    store: createRepositoryStore({ filePath }),
+    ...dismissed,
+    ...extra
+  })
+  await handlers.openRepository()
+  return handlers
+}
+
+describe('showBranchMenu', () => {
+  it('offers the menu for a branch and returns what the user chose', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'work')
+    const shown: { name: string; isCurrent: boolean }[] = []
+    const handlers = await opened(repo, {
+      showBranchMenu: async (branch) => {
+        shown.push(branch)
+        return 'checkout'
+      }
+    })
+
+    await expect(handlers.showBranchMenu(repo.root, 'work')).resolves.toBe('checkout')
+    expect(shown).toEqual([{ name: 'work', isCurrent: false }])
+  })
+
+  it('tells the menu when the branch is the current one', async () => {
+    const repo = await createRepoWithCommit()
+    const shown: { name: string; isCurrent: boolean }[] = []
+    const handlers = await opened(repo, {
+      showBranchMenu: async (branch) => {
+        shown.push(branch)
+        return null
+      }
+    })
+
+    await expect(handlers.showBranchMenu(repo.root, 'main')).resolves.toBeNull()
+    expect(shown).toEqual([{ name: 'main', isCurrent: true }])
+  })
+
+  it('rejects a repository that was never opened, without showing a menu', async () => {
+    const repo = await createRepoWithCommit()
+    let shown = false
+    const guarded = createHandlers({
+      pickFolder: async () => null,
+      store: createRepositoryStore({
+        filePath: join(storeDir, `repositories-${storeCount++}.json`)
+      }),
+      ...dismissed,
+      showBranchMenu: async () => {
+        shown = true
+        return null
+      }
+    })
+
+    await expect(guarded.showBranchMenu(repo.root, 'main')).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+    expect(shown).toBe(false)
   })
 })

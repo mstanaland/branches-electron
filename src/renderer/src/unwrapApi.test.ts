@@ -13,7 +13,9 @@ function bridgeReturning(result: unknown): BranchesApi {
     showRepositoryMenu: respond,
     confirmRemoveMissingRepository: respond,
     getStatus: respond,
-    listBranches: respond
+    listBranches: respond,
+    checkoutBranch: respond,
+    showBranchMenu: respond
   }
 }
 
@@ -49,5 +51,19 @@ describe('unwrapApi', () => {
     await unwrapApi(raw).listBranches('/repo')
 
     expect(seen).toEqual([['/repo']])
+  })
+
+  it('keeps the files of a blocked checkout on the ApiError', async () => {
+    const api = unwrapApi(
+      bridgeReturning({
+        ok: false,
+        error: { code: 'CHECKOUT_BLOCKED_BY_CHANGES', message: 'blocked', files: ['a.txt'] }
+      })
+    )
+
+    await expect(api.checkoutBranch('/repo', 'work')).rejects.toMatchObject({
+      code: 'CHECKOUT_BLOCKED_BY_CHANGES',
+      files: ['a.txt']
+    })
   })
 })

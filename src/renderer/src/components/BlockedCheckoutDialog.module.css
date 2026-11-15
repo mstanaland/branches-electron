@@ -1,0 +1,12 @@
+.files {
+  margin: 0;
+  padding: 6px 10px;
+  overflow-y: auto;
+  list-style: none;
+  user-select: text;
+  background: var(--color-hover);
+  border-radius: var(--radius);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  overflow-wrap: anywhere;
+}

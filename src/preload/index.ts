@@ -19,7 +19,9 @@ const api: WindowApi = {
     }
   },
   getStatus: (root) => ipcRenderer.invoke('repository:status', root),
-  listBranches: (root) => ipcRenderer.invoke('repository:branches', root)
+  listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
+  checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
+  showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name)
 }
 
 contextBridge.exposeInMainWorld('api', api)

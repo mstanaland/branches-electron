@@ -93,3 +93,22 @@
   text-overflow: ellipsis;
   font-weight: 600;
 }
+
+.spinner {
+  flex: none;
+  color: var(--color-text-muted);
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Static under reduced motion: the icon alone says something is happening. */
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

@@ -1,12 +1,21 @@
-import { ChevronDown, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react'
 import { useId, useMemo } from 'react'
+import { ApiError } from '../../../shared/apiError'
 import type { BranchTreeNode } from '../../../shared/branchTree'
 import { buildBranchTree, containsCurrentBranch } from '../../../shared/branchTree'
 import type { Branch } from '../../../shared/git'
 import type { FolderExpansion } from '../data'
 import { useTreeNavigation } from './useTreeNavigation'
 import type { TreeNavigation } from './useTreeNavigation'
-import { describeError, useBranches, useFolderExpansion, useStatus } from '../data'
+import {
+  describeError,
+  useBranches,
+  useBranchMenu,
+  useCheckoutBranch,
+  useFolderExpansion,
+  useStatus
+} from '../data'
+import { BlockedCheckoutDialog } from './BlockedCheckoutDialog'
 import { AheadBehind, Badge, aheadBehindLabel } from '../ui'
 import shared from './shared.module.css'
 import styles from './BranchTree.module.css'
@@ -17,13 +26,24 @@ interface LevelProps {
   parentPath: string | null
   expansion: FolderExpansion
   navigation: TreeNavigation
+  actions: BranchActions
+}
+
+/** What the tree does with a branch, and which one it is busy with. */
+interface BranchActions {
+  /** Name of the branch being checked out, or null. */
+  checkingOut: string | null
+  checkout: (name: string) => void
+  /** Opens the native context menu for the branch. */
+  showMenu: (name: string) => void
 }
 
 function BranchRow({
   node,
   level,
   parentPath,
-  navigation
+  navigation,
+  actions
 }: LevelProps & { node: BranchTreeNode }): React.JSX.Element {
   const branch = node.branch as Branch
   const markersId = useId()
@@ -39,7 +59,13 @@ function BranchRow({
       aria-level={level}
       aria-current={branch.isCurrent ? 'true' : undefined}
       aria-describedby={description ? markersId : undefined}
+      aria-busy={actions.checkingOut === branch.name ? 'true' : undefined}
       className={styles.item}
+      onDoubleClick={() => actions.checkout(branch.name)}
+      onContextMenu={(event) => {
+        event.preventDefault()
+        actions.showMenu(branch.name)
+      }}
       {...navigation.itemProps(node, parentPath)}
     >
       <div className={styles.row}>
@@ -47,6 +73,9 @@ function BranchRow({
           {branch.isCurrent && <span className={styles.currentDot} />}
         </span>
         <span className={branch.isCurrent ? styles.currentName : styles.name}>{node.name}</span>
+        {actions.checkingOut === branch.name && (
+          <LoaderCircle role="img" aria-label="Checking out" className={styles.spinner} />
+        )}
         {description && (
           <span className={styles.markers}>
             {/* What screen readers hear; the visible badges below are for sighted users. */}
@@ -71,7 +100,8 @@ function FolderRow({
   level,
   parentPath,
   expansion,
-  navigation
+  navigation,
+  actions
 }: LevelProps & { node: BranchTreeNode }): React.JSX.Element {
   const expanded = expansion.isExpanded(node.path)
 
@@ -100,6 +130,7 @@ function FolderRow({
           parentPath={node.path}
           expansion={expansion}
           navigation={navigation}
+          actions={actions}
         />
       )}
     </li>
@@ -135,9 +166,33 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
   const status = useStatus(root)
   const expansion = useFolderExpansion(root)
   const tree = useMemo(() => buildBranchTree(branches.data ?? []), [branches.data])
-  const navigation = useTreeNavigation(tree, expansion)
+  const checkout = useCheckoutBranch(root)
+  const menu = useBranchMenu(root)
 
-  const error = describeError(branches.error ?? status.error)
+  const checkingOut = checkout.isPending ? checkout.variables : null
+  const actions: BranchActions = {
+    checkingOut,
+    checkout: (name) => {
+      // The current branch needs no switch; a second switch waits until this one is done.
+      if (checkingOut !== null || name === status.data?.branch) return
+      checkout.mutate(name)
+    },
+    showMenu: (name) =>
+      menu.mutate(name, {
+        onSuccess: (choice) => {
+          if (choice === 'checkout') actions.checkout(name)
+        }
+      })
+  }
+  const navigation = useTreeNavigation(tree, expansion, actions.checkout)
+
+  const blocked =
+    checkout.error instanceof ApiError && checkout.error.code === 'CHECKOUT_BLOCKED_BY_CHANGES'
+      ? checkout.error
+      : null
+  const error = describeError(
+    branches.error ?? status.error ?? (blocked ? null : checkout.error) ?? menu.error
+  )
   // "Repository not found" is the main pane's job; the tree just stays out of the way.
   if (error?.notARepository) return null
 
@@ -159,8 +214,14 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
           parentPath={null}
           expansion={expansion}
           navigation={navigation}
+          actions={actions}
         />
       )}
+      <BlockedCheckoutDialog
+        branch={blocked ? (checkout.variables ?? null) : null}
+        files={blocked?.files ?? []}
+        onClose={checkout.reset}
+      />
     </section>
   )
 }

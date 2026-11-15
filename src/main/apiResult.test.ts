@@ -24,6 +24,18 @@ describe('toApiError', () => {
     expect(data).toEqual({ code: 'GIT_NOT_FOUND', message: 'git was not found on this computer.' })
   })
 
+  it('keeps the files of a blocked checkout', () => {
+    const error = new GitError('CHECKOUT_BLOCKED_BY_CHANGES', 'blocked', {
+      files: ['a.txt', 'b c.txt']
+    })
+
+    expect(toApiError(error)).toEqual({
+      code: 'CHECKOUT_BLOCKED_BY_CHANGES',
+      message: 'blocked',
+      files: ['a.txt', 'b c.txt']
+    })
+  })
+
   it('passes an ApiError through', () => {
     const error = new ApiError({ code: 'INVALID_PATH', message: '../x points outside.' })
 

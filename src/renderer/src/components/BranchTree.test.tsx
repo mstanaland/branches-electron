@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../../../shared/apiError'
 import type { Branch, RepositoryStatus } from '../../../shared/git'
 import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
@@ -13,6 +14,8 @@ const api = vi.hoisted(() => ({
   confirmRemoveMissingRepository: vi.fn<RendererApi['confirmRemoveMissingRepository']>(),
   getStatus: vi.fn<RendererApi['getStatus']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
+  checkoutBranch: vi.fn<RendererApi['checkoutBranch']>(),
+  showBranchMenu: vi.fn<RendererApi['showBranchMenu']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>()
 }))
 vi.mock('../api', () => ({ api }))
@@ -427,5 +430,163 @@ describe('keyboard', () => {
 
     press('feature', ' ')
     expect(item('feature').getAttribute('aria-expanded')).toBe('true')
+  })
+})
+
+const twoBranches = (): Branch[] => [branch('main', { isCurrent: true }), branch('work')]
+
+/** The branch row's own element, which is what the user double-clicks. */
+const row = (name: string): HTMLElement => screen.getByRole('treeitem', { name })
+
+describe('checking out', () => {
+  it('checks out a branch on double-click, then refreshes status and branches', async () => {
+    showBranches(twoBranches())
+    api.checkoutBranch.mockResolvedValue(undefined)
+    await screen.findByRole('tree')
+    const statusCalls = api.getStatus.mock.calls.length
+    const branchCalls = api.listBranches.mock.calls.length
+
+    fireEvent.doubleClick(row('work'))
+
+    await waitFor(() => expect(api.checkoutBranch).toHaveBeenCalledWith(ROOT, 'work'))
+    await waitFor(() => {
+      expect(api.getStatus.mock.calls.length).toBeGreaterThan(statusCalls)
+      expect(api.listBranches.mock.calls.length).toBeGreaterThan(branchCalls)
+    })
+  })
+
+  it('checks out the focused branch with Enter', async () => {
+    showBranches(twoBranches())
+    api.checkoutBranch.mockResolvedValue(undefined)
+    await screen.findByRole('tree')
+
+    row('work').focus()
+    fireEvent.keyDown(row('work'), { key: 'Enter' })
+
+    await waitFor(() => expect(api.checkoutBranch).toHaveBeenCalledWith(ROOT, 'work'))
+  })
+
+  it('does nothing when the current branch is double-clicked', async () => {
+    showBranches(twoBranches())
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('main'))
+
+    expect(api.checkoutBranch).not.toHaveBeenCalled()
+  })
+
+  it('does not check out anything when a folder is double-clicked', async () => {
+    showBranches([branch('main', { isCurrent: true }), branch('feature/login')])
+    api.checkoutBranch.mockResolvedValue(undefined)
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('feature'))
+
+    expect(api.checkoutBranch).not.toHaveBeenCalled()
+  })
+
+  it('shows progress on the row being checked out, and ignores another double-click meanwhile', async () => {
+    showBranches([...twoBranches(), branch('other')])
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.checkoutBranch.mockReturnValue(promise)
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('work'))
+
+    await waitFor(() => expect(row('work').getAttribute('aria-busy')).toBe('true'))
+    expect(within(row('work')).getByRole('img', { name: 'Checking out' })).toBeTruthy()
+    expect(row('other').getAttribute('aria-busy')).toBeNull()
+
+    fireEvent.doubleClick(row('other'))
+    expect(api.checkoutBranch).toHaveBeenCalledTimes(1)
+
+    await act(async () => finish())
+    await waitFor(() => expect(row('work').getAttribute('aria-busy')).toBeNull())
+  })
+
+  it('lists the files in a dialog when local changes block the checkout', async () => {
+    showBranches(twoBranches())
+    api.checkoutBranch.mockRejectedValue(
+      new ApiError({
+        code: 'CHECKOUT_BLOCKED_BY_CHANGES',
+        message: 'blocked',
+        files: ['README.md', 'my docs/a b.txt']
+      })
+    )
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('work'))
+
+    const dialog = await screen.findByRole('dialog', { name: /can’t switch to work/i })
+    expect(
+      within(dialog)
+        .getAllByRole('listitem')
+        .map((entry) => entry.textContent)
+    ).toEqual(['README.md', 'my docs/a b.txt'])
+    expect(screen.queryByRole('alert')).toBeNull()
+    expect(within(dialog).queryByRole('button', { name: /stash|discard/i })).toBeNull()
+  })
+
+  it('closes the blocked dialog, and the user can try again', async () => {
+    showBranches(twoBranches())
+    api.checkoutBranch.mockRejectedValueOnce(
+      new ApiError({ code: 'CHECKOUT_BLOCKED_BY_CHANGES', message: 'blocked', files: ['a.txt'] })
+    )
+    api.checkoutBranch.mockResolvedValueOnce(undefined)
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('work'))
+    const dialog = await screen.findByRole('dialog')
+    fireEvent.click(within(dialog).getByRole('button', { name: 'OK' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+
+    fireEvent.doubleClick(row('work'))
+    await waitFor(() => expect(api.checkoutBranch).toHaveBeenCalledTimes(2))
+  })
+
+  it('shows any other failure as an alert', async () => {
+    showBranches(twoBranches())
+    api.checkoutBranch.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'git switch failed: boom' })
+    )
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('work'))
+
+    expect((await screen.findByRole('alert')).textContent).toContain('boom')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+})
+
+describe('branch context menu', () => {
+  it('opens the native menu for the right-clicked branch', async () => {
+    showBranches(twoBranches())
+    api.showBranchMenu.mockResolvedValue(null)
+    await screen.findByRole('tree')
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'work' }))
+
+    await waitFor(() => expect(api.showBranchMenu).toHaveBeenCalledWith(ROOT, 'work'))
+    expect(api.checkoutBranch).not.toHaveBeenCalled()
+  })
+
+  it('checks out the branch when the user chooses "Check out"', async () => {
+    showBranches(twoBranches())
+    api.showBranchMenu.mockResolvedValue('checkout')
+    api.checkoutBranch.mockResolvedValue(undefined)
+    await screen.findByRole('tree')
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'work' }))
+
+    await waitFor(() => expect(api.checkoutBranch).toHaveBeenCalledWith(ROOT, 'work'))
+  })
+
+  it('has no menu on a folder', async () => {
+    showBranches([branch('main', { isCurrent: true }), branch('feature/login')])
+    await screen.findByRole('tree')
+
+    fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'feature' }))
+
+    expect(api.showBranchMenu).not.toHaveBeenCalled()
   })
 })

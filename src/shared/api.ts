@@ -1,4 +1,4 @@
-import type { Branch, RepositoryStatus, SavedRepository } from './git'
+import type { Branch, BranchMenuAction, RepositoryStatus, SavedRepository } from './git'
 import type { ApiResult } from './result'
 
 /**
@@ -30,6 +30,18 @@ export interface BranchesApi {
   getStatus: (root: string) => Promise<ApiResult<RepositoryStatus>>
   /** `root` must be a saved repository or one the user opened this session. */
   listBranches: (root: string) => Promise<ApiResult<Branch[]>>
+  /**
+   * Switches to an existing local branch. Fails with `CHECKOUT_BLOCKED_BY_CHANGES`, whose
+   * `files` lists what stands in the way, when local changes would be overwritten.
+   * `root` must be a saved repository or one the user opened this session.
+   */
+  checkoutBranch: (root: string, name: string) => Promise<ApiResult<void>>
+  /**
+   * Pops up the native context menu for a branch. Resolves with what the user chose, or null
+   * if they dismissed it. It only reports the choice; the renderer then makes the call, so it
+   * can show progress and errors.
+   */
+  showBranchMenu: (root: string, name: string) => Promise<ApiResult<BranchMenuAction | null>>
 }
 
 /**

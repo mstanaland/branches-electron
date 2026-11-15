@@ -30,7 +30,9 @@ function visibleNodes(nodes: BranchTreeNode[], expansion: FolderExpansion): Bran
  */
 export function useTreeNavigation(
   tree: BranchTreeNode[],
-  expansion: FolderExpansion
+  expansion: FolderExpansion,
+  /** Called with a branch's name when the user presses Enter on it. */
+  onActivateBranch: (name: string) => void
 ): TreeNavigation {
   const elements = useRef(new Map<string, HTMLElement>())
   const [focusedPath, setFocusedPath] = useState<string | null>(null)
@@ -80,6 +82,7 @@ export function useTreeNavigation(
           case 'Enter':
           case ' ':
             if (isFolder) expansion.setExpanded(node.path, !expansion.isExpanded(node.path))
+            else if (event.key === 'Enter' && node.branch) onActivateBranch(node.branch.name)
             break
           default:
             handled = false

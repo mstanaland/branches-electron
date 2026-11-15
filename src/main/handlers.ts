@@ -1,6 +1,12 @@
 import { ApiError } from '../shared/apiError'
-import type { Branch, RepositoryStatus, SavedRepository } from '../shared/git'
-import { isRepositoryRoot, listBranches, getStatus, resolveRepositoryRoot } from './git'
+import type { Branch, BranchMenuAction, RepositoryStatus, SavedRepository } from '../shared/git'
+import {
+  checkoutBranch,
+  isRepositoryRoot,
+  listBranches,
+  getStatus,
+  resolveRepositoryRoot
+} from './git'
 import type { RepositoryStore } from './repositoryStore'
 
 export interface HandlerDeps {
@@ -12,6 +18,8 @@ export interface HandlerDeps {
   showRepositoryMenu: (repository: SavedRepository) => Promise<boolean>
   /** Asks whether to remove a missing repository. Resolves true if the user confirmed. */
   confirmRemoval: (repository: SavedRepository) => Promise<boolean>
+  /** Pops up a branch's context menu. Resolves with the user's choice, or null if dismissed. */
+  showBranchMenu: (branch: Pick<Branch, 'name' | 'isCurrent'>) => Promise<BranchMenuAction | null>
 }
 
 export interface Handlers {
@@ -22,6 +30,8 @@ export interface Handlers {
   confirmRemoveMissingRepository: (root: string) => Promise<boolean>
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
+  checkoutBranch: (root: string, name: string) => Promise<void>
+  showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
 }
 
 /**
@@ -89,6 +99,15 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listBranches(root) {
       await assertOpen(root)
       return listBranches(root)
+    },
+    async checkoutBranch(root, name) {
+      await assertOpen(root)
+      await checkoutBranch(root, name)
+    },
+    async showBranchMenu(root, name) {
+      await assertOpen(root)
+      const branch = (await listBranches(root)).find((candidate) => candidate.name === name)
+      return deps.showBranchMenu({ name, isCurrent: branch?.isCurrent ?? false })
     }
   }
 }

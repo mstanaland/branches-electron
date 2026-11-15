@@ -50,6 +50,9 @@ export interface Branch {
   behind: number
 }
 
+/** What a user can choose from a branch's context menu. */
+export type BranchMenuAction = 'checkout'
+
 /** A repository in the user's saved list (see GLOSSARY.md). */
 export interface SavedRepository {
   /** Symlink-resolved top level of the work tree; the identity (ADR 0001). */
