@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
 import type { RepositoryStatus, SavedRepository } from '../../../shared/git'
@@ -48,6 +48,14 @@ async function showList(): Promise<HTMLElement[]> {
   const header = screen.queryByRole('button', { expanded: false })
   if (header) fireEvent.click(header)
   return screen.findAllByRole('option')
+}
+
+/** Moves focus the way a keyboard user does, which is what opens a tooltip on focus. */
+async function focusWithKeyboard(element: HTMLElement): Promise<void> {
+  await act(async () => {
+    fireEvent.keyDown(document.body, { key: 'Tab' })
+    element.focus()
+  })
 }
 
 beforeEach(() => {
@@ -181,7 +189,7 @@ describe('keyboard', () => {
 })
 
 describe('missing repositories', () => {
-  it('shows them dimmed with a tooltip, and still lists them', async () => {
+  it('shows them dimmed with a folder-x icon, and still lists them', async () => {
     api.listRepositories.mockResolvedValue([repo('alpha'), repo('gone', true)])
     renderWithProviders(<Sidebar />)
 
@@ -189,9 +197,31 @@ describe('missing repositories', () => {
     const alpha = screen.getByRole('option', { name: 'alpha' })
 
     expect(gone.getAttribute('data-missing')).toBe('true')
-    expect(gone.getAttribute('title')).toMatch(/can.t be found/i)
+    expect(gone.querySelector('.lucide-folder-x')).not.toBeNull()
     expect(alpha.getAttribute('data-missing')).toBeNull()
-    expect(alpha.getAttribute('title')).toBeNull()
+    expect(alpha.querySelector('.lucide-folder-x')).toBeNull()
+  })
+
+  it('explains in a tooltip, on focus, how to remove one', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('gone', true)])
+    renderWithProviders(<Sidebar />)
+    const gone = await screen.findByRole('option', { name: 'gone' })
+
+    await focusWithKeyboard(gone)
+
+    expect(
+      await screen.findByText(/gone can.t be found\. Click to remove it from the list\./)
+    ).toBeTruthy()
+  })
+
+  it('has no tooltip on a repository that is there', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha'), repo('gone', true)])
+    renderWithProviders(<Sidebar />)
+    const alpha = await screen.findByRole('option', { name: 'alpha' })
+
+    await focusWithKeyboard(alpha)
+
+    expect(screen.queryByText(/can.t be found/)).toBeNull()
   })
 
   it('offers to remove one when it is clicked, instead of making it active', async () => {
@@ -444,7 +474,10 @@ describe('collapsible repository list', () => {
     const header = await screen.findByRole('button', { name: /gone/ })
 
     expect(header.getAttribute('data-missing')).toBe('true')
-    expect(header.getAttribute('title')).toMatch(/can.t be found/i)
+    expect(header.querySelector('.lucide-folder-x')).not.toBeNull()
+
+    await focusWithKeyboard(header)
+    expect(await screen.findByText(/gone can.t be found/)).toBeTruthy()
   })
 
   it('lists the repositories rather than a header when the remembered one is not saved', async () => {

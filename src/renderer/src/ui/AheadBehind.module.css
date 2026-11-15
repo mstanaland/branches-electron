@@ -1,0 +1,11 @@
+.counts {
+  display: inline-flex;
+  gap: 6px;
+  color: var(--color-text-muted);
+  font-size: 11px;
+}
+
+.count {
+  display: inline-flex;
+  align-items: center;
+}

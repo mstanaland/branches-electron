@@ -1,3 +1,4 @@
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { useId, useMemo } from 'react'
 import type { BranchTreeNode } from '../../../shared/branchTree'
 import { buildBranchTree, containsCurrentBranch } from '../../../shared/branchTree'
@@ -6,16 +7,9 @@ import type { FolderExpansion } from '../data'
 import { useTreeNavigation } from './useTreeNavigation'
 import type { TreeNavigation } from './useTreeNavigation'
 import { describeError, useBranches, useFolderExpansion, useStatus } from '../data'
+import { AheadBehind, Badge, aheadBehindLabel } from '../ui'
+import shared from './shared.module.css'
 import styles from './BranchTree.module.css'
-
-/** "2 ahead, 1 behind", or null when the branch is level with its upstream. */
-function aheadBehindLabel(branch: Branch): string | null {
-  const parts = [
-    branch.ahead > 0 ? `${branch.ahead} ahead` : null,
-    branch.behind > 0 ? `${branch.behind} behind` : null
-  ].filter((part) => part !== null)
-  return parts.length > 0 ? parts.join(', ') : null
-}
 
 interface LevelProps {
   level: number
@@ -33,7 +27,7 @@ function BranchRow({
 }: LevelProps & { node: BranchTreeNode }): React.JSX.Element {
   const branch = node.branch as Branch
   const markersId = useId()
-  const aheadBehind = aheadBehindLabel(branch)
+  const aheadBehind = aheadBehindLabel(branch.ahead, branch.behind)
   const description = [aheadBehind, branch.upstreamGone ? 'Upstream gone' : null]
     .filter((part) => part !== null)
     .join(', ')
@@ -50,7 +44,7 @@ function BranchRow({
     >
       <div className={styles.row}>
         <span className={styles.chevron} aria-hidden="true">
-          {branch.isCurrent && <span className={styles.currentMark} />}
+          {branch.isCurrent && <span className={styles.currentDot} />}
         </span>
         <span className={branch.isCurrent ? styles.currentName : styles.name}>{node.name}</span>
         {description && (
@@ -59,17 +53,11 @@ function BranchRow({
             <span id={markersId} hidden>
               {description}
             </span>
-            {aheadBehind !== null && (
-              <span role="img" aria-label={aheadBehind} className={styles.counts}>
-                {branch.ahead > 0 && `↑${branch.ahead}`}
-                {branch.ahead > 0 && branch.behind > 0 && ' '}
-                {branch.behind > 0 && `↓${branch.behind}`}
-              </span>
-            )}
+            <AheadBehind ahead={branch.ahead} behind={branch.behind} />
             {branch.upstreamGone && (
-              <span role="img" aria-label="Upstream gone" className={styles.gone}>
+              <Badge variant="destructive" role="img" aria-label="Upstream gone">
                 gone
-              </span>
+              </Badge>
             )}
           </span>
         )}
@@ -98,7 +86,7 @@ function FolderRow({
     >
       <div className={styles.row} onClick={() => expansion.setExpanded(node.path, !expanded)}>
         <span className={styles.chevron} aria-hidden="true">
-          {expanded ? '▾' : '▸'}
+          {expanded ? <ChevronDown /> : <ChevronRight />}
         </span>
         <span className={styles.name}>{node.name}</span>
         {!expanded && containsCurrentBranch(node) && (
@@ -156,7 +144,7 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
   return (
     <section className={styles.branches} aria-label="Branches">
       {error && (
-        <p role="alert" className={styles.error}>
+        <p role="alert" className={shared.error}>
           {error.message}
         </p>
       )}

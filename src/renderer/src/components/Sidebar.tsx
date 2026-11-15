@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { ChevronDown, ChevronRight, FolderX } from 'lucide-react'
 import { api } from '../api'
 import {
   describeError,
@@ -8,7 +9,9 @@ import {
   useRepositoryMenu,
   useSelection
 } from '../data'
+import { Button, EmptyState, Tooltip } from '../ui'
 import { BranchTree } from './BranchTree'
+import shared from './shared.module.css'
 import styles from './Sidebar.module.css'
 
 /**
@@ -55,37 +58,31 @@ export function Sidebar(): React.JSX.Element {
     open.error ?? menu.error ?? confirmRemoval.error ?? repositories.error
   )
 
-  const openButton = (
-    <button type="button" className={styles.openButton} onClick={openRepository}>
-      Open repository…
-    </button>
-  )
+  const openButton = <Button onClick={openRepository}>Open repository…</Button>
 
   return (
     <div className={styles.sidebar}>
       <nav className={styles.repositories} aria-label="Repositories">
         {active ? (
-          <button
-            type="button"
-            className={styles.header}
-            aria-expanded={listOpen}
-            data-missing={active.missing ? 'true' : undefined}
-            title={active.missing ? `${active.name} can’t be found.` : undefined}
-            onClick={() => setReopenedFor(listOpen ? null : active.root)}
-          >
-            <span className={styles.headerName}>{active.name}</span>
-            <span className={styles.chevron} aria-hidden="true">
-              {listOpen ? '▾' : '▸'}
-            </span>
-          </button>
+          <Tooltip content={active.missing ? `${active.name} can’t be found.` : null}>
+            <Button
+              variant="quiet"
+              className={styles.header}
+              aria-expanded={listOpen}
+              aria-description={active.missing ? `${active.name} can’t be found.` : undefined}
+              data-missing={active.missing ? 'true' : undefined}
+              onClick={() => setReopenedFor(listOpen ? null : active.root)}
+            >
+              {active.missing && <FolderX />}
+              <span className={styles.headerName}>{active.name}</span>
+              {listOpen ? <ChevronDown /> : <ChevronRight />}
+            </Button>
+          </Tooltip>
         ) : (
           <h2 className={styles.heading}>Repositories</h2>
         )}
         {saved !== undefined && saved.length === 0 && (
-          <div className={styles.empty}>
-            <p>No repositories yet.</p>
-            {openButton}
-          </div>
+          <EmptyState title="No repositories yet." action={openButton} />
         )}
         {saved !== undefined && saved.length > 0 && listOpen && (
           <>
@@ -99,41 +96,42 @@ export function Sidebar(): React.JSX.Element {
                     setReopenedFor(null)
                   }
                 }
+                const missingMessage = repository.missing
+                  ? `${repository.name} can’t be found. Click to remove it from the list.`
+                  : null
                 return (
-                  <li
-                    key={repository.root}
-                    role="option"
-                    aria-selected={repository.root === activeRoot}
-                    tabIndex={repository.root === tabStopRoot ? 0 : -1}
-                    className={styles.row}
-                    data-missing={repository.missing ? 'true' : undefined}
-                    title={
-                      repository.missing
-                        ? `${repository.name} can’t be found. Click to remove it from the list.`
-                        : undefined
-                    }
-                    onClick={choose}
-                    onContextMenu={(event) => {
-                      event.preventDefault()
-                      menu.mutate(repository.root)
-                    }}
-                    onFocus={() => setFocusedRoot(repository.root)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter' || event.key === ' ') {
+                  <Tooltip key={repository.root} content={missingMessage}>
+                    <li
+                      role="option"
+                      aria-selected={repository.root === activeRoot}
+                      aria-description={missingMessage ?? undefined}
+                      tabIndex={repository.root === tabStopRoot ? 0 : -1}
+                      className={styles.row}
+                      data-missing={repository.missing ? 'true' : undefined}
+                      onClick={choose}
+                      onContextMenu={(event) => {
                         event.preventDefault()
-                        choose()
-                      } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
-                        event.preventDefault()
-                        const sibling =
-                          event.key === 'ArrowDown'
-                            ? event.currentTarget.nextElementSibling
-                            : event.currentTarget.previousElementSibling
-                        if (sibling instanceof HTMLElement) sibling.focus()
-                      }
-                    }}
-                  >
-                    {repository.name}
-                  </li>
+                        menu.mutate(repository.root)
+                      }}
+                      onFocus={() => setFocusedRoot(repository.root)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault()
+                          choose()
+                        } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+                          event.preventDefault()
+                          const sibling =
+                            event.key === 'ArrowDown'
+                              ? event.currentTarget.nextElementSibling
+                              : event.currentTarget.previousElementSibling
+                          if (sibling instanceof HTMLElement) sibling.focus()
+                        }
+                      }}
+                    >
+                      {repository.missing && <FolderX />}
+                      <span className={styles.rowName}>{repository.name}</span>
+                    </li>
+                  </Tooltip>
                 )
               })}
             </ul>
@@ -141,7 +139,7 @@ export function Sidebar(): React.JSX.Element {
           </>
         )}
         {error && (
-          <p role="alert" className={styles.error}>
+          <p role="alert" className={shared.error}>
             {error.message}
           </p>
         )}

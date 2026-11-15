@@ -1,0 +1,16 @@
+.emptyState {
+  display: grid;
+  justify-items: start;
+  gap: 8px;
+  padding: 4px;
+  color: var(--color-text-muted);
+}
+
+.title,
+.detail {
+  margin: 0;
+}
+
+.title {
+  color: var(--color-text);
+}

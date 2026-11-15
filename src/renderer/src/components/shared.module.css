@@ -1,0 +1,5 @@
+/* Styles used by more than one sidebar component. */
+.error {
+  margin: 0 4px;
+  color: var(--color-danger);
+}
