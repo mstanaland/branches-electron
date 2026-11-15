@@ -5,8 +5,11 @@ import { createRoot } from 'react-dom/client'
 import { LucideProvider } from 'lucide-react'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import App from './App'
-import { SelectionProvider } from './data'
+import { SelectionProvider, installWindowFocusListener } from './data'
 import { TooltipProvider } from './ui'
+
+// Electron keeps a background window "visible", so TanStack's own focus detection never fires.
+installWindowFocusListener()
 
 const queryClient = new QueryClient({
   defaultOptions: {
