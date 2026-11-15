@@ -1,32 +1,42 @@
 import { ApiError } from '../shared/apiError'
-import type { Branch, RepositoryStatus } from '../shared/git'
-import { listBranches, getStatus, resolveRepositoryRoot } from './git'
+import type { Branch, RepositoryStatus, SavedRepository } from '../shared/git'
+import { isRepositoryRoot, listBranches, getStatus, resolveRepositoryRoot } from './git'
+import type { RepositoryStore } from './repositoryStore'
 
 export interface HandlerDeps {
+  /** Saved repositories. Their roots are allowed without being reopened. */
+  store: RepositoryStore
   /** Shows the folder picker. Resolves null if the user cancels. */
   pickFolder: () => Promise<string | null>
 }
 
 export interface Handlers {
   openRepository: () => Promise<string | null>
+  listRepositories: () => Promise<SavedRepository[]>
+  removeRepository: (root: string) => Promise<void>
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
 }
 
 /**
  * The logic behind `window.api`, as plain functions so it can be tested without Electron.
- * Git only runs against repositories the user opened through `openRepository`.
+ * Git only runs against repositories the user opened through `openRepository`, this session
+ * or earlier (saved repositories).
  */
 export function createHandlers(deps: HandlerDeps): Handlers {
   const openRoots = new Set<string>()
 
-  function assertOpen(root: string): void {
-    if (!openRoots.has(root)) {
-      throw new ApiError({
-        code: 'REPOSITORY_NOT_OPEN',
-        message: `${root} has not been opened in this session.`
-      })
+  async function assertOpen(root: string): Promise<void> {
+    if (openRoots.has(root)) return
+    // A saved root is trusted only while it is still a repository root; then it is remembered.
+    if ((await deps.store.has(root)) && (await isRepositoryRoot(root))) {
+      openRoots.add(root)
+      return
     }
+    throw new ApiError({
+      code: 'REPOSITORY_NOT_OPEN',
+      message: `${root} has not been opened in this session.`
+    })
   }
 
   return {
@@ -35,14 +45,23 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       if (folder === null) return null
       const root = await resolveRepositoryRoot(folder)
       openRoots.add(root)
+      // Remembering the repository is a convenience; failing to save must not block opening it.
+      await deps.store.add(root).catch((error: unknown) => {
+        console.error('Could not save repository list:', error)
+      })
       return root
     },
+    listRepositories: () => deps.store.list(),
+    removeRepository: async (root) => {
+      openRoots.delete(root)
+      await deps.store.remove(root)
+    },
     async getStatus(root) {
-      assertOpen(root)
+      await assertOpen(root)
       return getStatus(root)
     },
     async listBranches(root) {
-      assertOpen(root)
+      await assertOpen(root)
       return listBranches(root)
     }
   }

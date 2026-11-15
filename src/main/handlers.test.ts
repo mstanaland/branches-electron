@@ -1,14 +1,25 @@
-import { mkdir } from 'node:fs/promises'
+import { mkdir, rm } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { createHandlers } from './handlers'
+import { createRepositoryStore } from './repositoryStore'
 import { cleanupTestRepos, createRepoWithCommit, makeTempDir } from './git/test-repo'
 
 afterAll(cleanupTestRepos)
 
+let storeDir = ''
+let storeCount = 0
+beforeAll(async () => {
+  storeDir = await makeTempDir()
+})
+
 /** Handlers whose folder picker "chooses" the given folder, or cancels when given null. */
 function handlersChoosing(folder: string | null): ReturnType<typeof createHandlers> {
-  return createHandlers({ pickFolder: async () => folder })
+  const filePath = join(storeDir, `repositories-${storeCount++}.json`)
+  return createHandlers({
+    pickFolder: async () => folder,
+    store: createRepositoryStore({ filePath })
+  })
 }
 
 describe('openRepository', () => {
@@ -89,6 +100,50 @@ describe('getStatus and listBranches', () => {
     await handlersChoosing(repo.root).openRepository()
 
     await expect(handlersChoosing(null).getStatus(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+})
+
+function handlersSharing(store: ReturnType<typeof createRepositoryStore>, folder: string | null) {
+  return createHandlers({ pickFolder: async () => folder, store })
+}
+const newStore = (): ReturnType<typeof createRepositoryStore> =>
+  createRepositoryStore({ filePath: join(storeDir, `shared-${storeCount++}.json`) })
+
+describe('saved repositories', () => {
+  it('lists an opened repository, and allows it again in a new session', async () => {
+    const repo = await createRepoWithCommit()
+    const store = newStore()
+    await handlersSharing(store, repo.root).openRepository()
+
+    const restarted = handlersSharing(store, null)
+
+    expect((await restarted.listRepositories()).map((r) => r.root)).toEqual([repo.root])
+    await expect(restarted.getStatus(repo.root)).resolves.toMatchObject({ detached: false })
+  })
+
+  it('does not trust a saved root that is no longer a repository', async () => {
+    const repo = await createRepoWithCommit()
+    const store = newStore()
+    await handlersSharing(store, repo.root).openRepository()
+    await rm(join(repo.root, '.git'), { recursive: true })
+
+    await expect(handlersSharing(store, null).getStatus(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+
+  it('revokes access when a repository is removed', async () => {
+    const repo = await createRepoWithCommit()
+    const store = newStore()
+    const handlers = handlersSharing(store, repo.root)
+    await handlers.openRepository()
+
+    await handlers.removeRepository(repo.root)
+
+    expect(await handlers.listRepositories()).toEqual([])
+    await expect(handlers.getStatus(repo.root)).rejects.toMatchObject({
       code: 'REPOSITORY_NOT_OPEN'
     })
   })

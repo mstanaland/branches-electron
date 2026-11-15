@@ -5,6 +5,8 @@ import type { BranchesApi } from '../shared/api'
 // Results travel as plain data; the renderer turns failures into ApiErrors (see unwrapApi).
 const api: BranchesApi = {
   openRepository: () => ipcRenderer.invoke('repository:open'),
+  listRepositories: () => ipcRenderer.invoke('repository:list'),
+  removeRepository: (root) => ipcRenderer.invoke('repository:remove', root),
   getStatus: (root) => ipcRenderer.invoke('repository:status', root),
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root)
 }

@@ -21,3 +21,13 @@ export async function resolveRepositoryRoot(folder: string): Promise<string> {
     throw error
   }
 }
+
+/** True when `root` is an existing folder that is itself the top level of a git work tree. */
+export async function isRepositoryRoot(root: string): Promise<boolean> {
+  try {
+    return (await resolveRepositoryRoot(root)) === root
+  } catch (error) {
+    if (error instanceof GitError && error.code !== 'GIT_NOT_FOUND') return false
+    throw error
+  }
+}

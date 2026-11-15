@@ -49,3 +49,15 @@ export interface Branch {
   ahead: number
   behind: number
 }
+
+/** A repository in the user's saved list (see GLOSSARY.md). */
+export interface SavedRepository {
+  /** Symlink-resolved top level of the work tree; the identity (ADR 0001). */
+  root: string
+  /** Defaults to the root's folder name. */
+  name: string
+  /** ISO 8601 timestamp. */
+  lastOpenedAt: string
+  /** True when the folder no longer exists or is no longer a repository root. Never auto-deleted. */
+  missing: boolean
+}

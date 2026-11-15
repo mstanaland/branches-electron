@@ -6,7 +6,13 @@ import { unwrapApi } from './unwrapApi'
 /** A bridge whose every call resolves with the given result, as `window.api` does. */
 function bridgeReturning(result: unknown): BranchesApi {
   const respond = async (): Promise<never> => result as never
-  return { openRepository: respond, getStatus: respond, listBranches: respond }
+  return {
+    openRepository: respond,
+    listRepositories: respond,
+    removeRepository: respond,
+    getStatus: respond,
+    listBranches: respond
+  }
 }
 
 describe('unwrapApi', () => {
