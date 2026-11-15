@@ -1,0 +1,124 @@
+.pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  gap: 8px;
+  min-height: 0;
+  padding: 0 12px 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.branch {
+  font-weight: 600;
+}
+
+.upstream {
+  color: var(--color-text-muted);
+}
+
+.list {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+/* Rows far off screen skip layout and paint, which keeps a 5,000-file list responsive. */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 26px;
+  padding: 0 4px;
+  border-radius: var(--radius);
+  content-visibility: auto;
+  contain-intrinsic-size: auto 26px;
+}
+
+.row:hover {
+  background: var(--color-hover);
+}
+
+.row[data-conflict='true'] {
+  background: var(--badge-destructive-bg);
+}
+
+.check {
+  display: flex;
+  flex: none;
+  width: 14px;
+}
+
+.content {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  height: 100%;
+  padding: 0 4px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radius);
+}
+
+button.content[aria-pressed='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+button.content[aria-pressed='true'] .folder {
+  color: inherit;
+  opacity: 0.8;
+}
+
+button.content:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
+}
+
+/* Two fixed-width slots would misalign single badges, so badges just sit left of the name. */
+.badges {
+  display: flex;
+  flex: none;
+  gap: 3px;
+  min-width: 40px;
+}
+
+.path {
+  display: flex;
+  flex: 1;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.folder {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--color-text-muted);
+  text-overflow: ellipsis;
+}
+
+.arrow {
+  flex: none;
+  color: var(--color-text-muted);
+}

@@ -1,3 +1,4 @@
+import { ChangedFiles } from './components/ChangedFiles'
 import { Sidebar } from './components/Sidebar'
 import { useRepositories, useSelection } from './data'
 import styles from './App.module.css'
@@ -15,11 +16,14 @@ function App(): React.JSX.Element {
       </aside>
       <main className={styles.content}>
         <div className={styles.titlebar} />
-        <div className={styles.empty}>
-          {/* Placeholder: the changed-files tickets fill this pane. */}
-          <h1>{active ? active.name : 'Branches'}</h1>
-          <p>{active ? active.root : 'Open a repository to get started.'}</p>
-        </div>
+        {active ? (
+          <ChangedFiles key={active.root} root={active.root} />
+        ) : (
+          <div className={styles.empty}>
+            <h1>Branches</h1>
+            <p>Open a repository to get started.</p>
+          </div>
+        )}
       </main>
     </div>
   )
