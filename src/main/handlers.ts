@@ -14,7 +14,9 @@ import {
   listBranches,
   getDiff,
   getStatus,
-  resolveRepositoryRoot
+  resolveRepositoryRoot,
+  stageFiles,
+  unstageFiles
 } from './git'
 import type { RepositoryStore } from './repositoryStore'
 
@@ -40,6 +42,8 @@ export interface Handlers {
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
   getDiff: (root: string, path: string, originalPath: string | null) => Promise<ChangeDiff>
+  stageFiles: (root: string, paths: readonly string[]) => Promise<void>
+  unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
 }
@@ -83,6 +87,18 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     return true
   }
 
+  /**
+   * Checks a staging request before any of it reaches git, so one bad path stages nothing.
+   *
+   * Unlike `getDiff` this doesn't need `assertInsideRoot`: git refuses a pathspec that is
+   * "beyond a symbolic link" itself, and checking every path would mean a `realpath` per file
+   * on a repository-wide Stage All.
+   */
+  async function assertStageable(root: string, paths: readonly string[]): Promise<void> {
+    await assertOpen(root)
+    for (const path of paths) assertRelativePath(path)
+  }
+
   return {
     async openRepository() {
       const folder = await deps.pickFolder()
@@ -116,6 +132,14 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       if (originalPath !== null) assertRelativePath(originalPath)
       await assertInsideRoot(root, path)
       return getDiff(root, path, originalPath)
+    },
+    async stageFiles(root, paths) {
+      await assertStageable(root, paths)
+      await stageFiles(root, paths)
+    },
+    async unstageFiles(root, paths) {
+      await assertStageable(root, paths)
+      await unstageFiles(root, paths)
     },
     async checkoutBranch(root, name) {
       await assertOpen(root)

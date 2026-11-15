@@ -9,6 +9,8 @@ import { renderWithProviders } from '../data/testUtils'
 
 const api = vi.hoisted(() => ({
   getStatus: vi.fn<RendererApi['getStatus']>(),
+  stageFiles: vi.fn<RendererApi['stageFiles']>(),
+  unstageFiles: vi.fn<RendererApi['unstageFiles']>(),
   listRepositories: vi.fn<RendererApi['listRepositories']>(),
   confirmRemoveMissingRepository: vi.fn<RendererApi['confirmRemoveMissingRepository']>()
 }))
@@ -278,4 +280,103 @@ describe('large lists', () => {
 
     expect(await screen.findAllByRole('listitem', {}, { timeout: 10000 })).toHaveLength(5000)
   }, 20000)
+})
+
+/** The row checkbox for one path. */
+const box = (path: string): HTMLElement => screen.getByRole('checkbox', { name: new RegExp(path) })
+
+describe('staging', () => {
+  it('stages an unstaged change when its checkbox is clicked', async () => {
+    api.getStatus.mockResolvedValue(status([change('a.txt')]))
+    api.stageFiles.mockResolvedValue()
+    renderPane()
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /a\.txt/ }))
+
+    await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['a.txt']))
+  })
+
+  it('unstages a staged change when its checkbox is clicked', async () => {
+    api.getStatus.mockResolvedValue(
+      status([change('a.txt', { index: 'modified', worktree: 'unmodified' })])
+    )
+    api.unstageFiles.mockResolvedValue()
+    renderPane()
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /a\.txt/ }))
+
+    await waitFor(() => expect(api.unstageFiles).toHaveBeenCalledWith(ROOT, ['a.txt']))
+  })
+
+  it('stages the rest of a partially staged change', async () => {
+    api.getStatus.mockResolvedValue(
+      status([change('a.txt', { index: 'modified', worktree: 'modified' })])
+    )
+    api.stageFiles.mockResolvedValue()
+    renderPane()
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /a\.txt/ }))
+
+    await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['a.txt']))
+  })
+
+  it('ticks the checkbox before git answers and unticks it if git refuses', async () => {
+    api.getStatus.mockResolvedValue(status([change('a.txt')]))
+    api.stageFiles.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'index locked' })
+    )
+    renderPane()
+
+    fireEvent.click(await screen.findByRole('checkbox', { name: /a\.txt/ }))
+
+    expect((await screen.findByRole('alert')).textContent).toContain('index locked')
+    await waitFor(() => expect(box('a.txt').getAttribute('aria-checked')).toBe('false'))
+  })
+
+  it('stages the selected row on Space, without changing the selection', async () => {
+    api.getStatus.mockResolvedValue(status([change('a.txt')]))
+    api.stageFiles.mockResolvedValue()
+    renderPane()
+
+    const row = await screen.findByRole('button', { name: /a\.txt/ })
+    fireEvent.click(row)
+    fireEvent.keyDown(row, { key: ' ' })
+
+    await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['a.txt']))
+    expect(screen.getByLabelText('selected path').textContent).toBe('a.txt')
+  })
+
+  it('stages every change except conflicts from the header', async () => {
+    api.getStatus.mockResolvedValue(
+      status([
+        change('a.txt'),
+        change('b.txt', { kind: 'unmerged', index: 'unmerged', worktree: 'unmerged' }),
+        change('c.txt', { index: null, worktree: null, kind: 'untracked' })
+      ])
+    )
+    api.stageFiles.mockResolvedValue()
+    renderPane()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Stage All' }))
+
+    await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['a.txt', 'c.txt']))
+  })
+
+  it('disables Stage All when everything is staged already', async () => {
+    api.getStatus.mockResolvedValue(
+      status([change('a.txt', { index: 'modified', worktree: 'unmodified' })])
+    )
+    renderPane()
+
+    const button = await screen.findByRole('button', { name: 'Stage All' })
+    await waitFor(() => expect(button.hasAttribute('disabled')).toBe(true))
+  })
+
+  it('offers no Stage All button for a clean repository', async () => {
+    api.getStatus.mockResolvedValue(status([]))
+    renderPane()
+
+    expect(await screen.findByText('No changes')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Stage All' })).toBeNull()
+  })
 })

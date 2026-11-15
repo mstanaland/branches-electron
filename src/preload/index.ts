@@ -22,6 +22,8 @@ const api: WindowApi = {
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
   getDiff: (root, path, originalPath) =>
     ipcRenderer.invoke('repository:diff', root, path, originalPath),
+  stageFiles: (root, paths) => ipcRenderer.invoke('repository:stage', root, paths),
+  unstageFiles: (root, paths) => ipcRenderer.invoke('repository:unstage', root, paths),
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name)
 }

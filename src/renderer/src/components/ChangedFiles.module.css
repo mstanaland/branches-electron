@@ -19,6 +19,11 @@
   font-weight: 600;
 }
 
+/* Pushed to the right-hand end of the header, away from the branch details. */
+.stageAll {
+  margin-left: auto;
+}
+
 .upstream {
   color: var(--color-text-muted);
 }

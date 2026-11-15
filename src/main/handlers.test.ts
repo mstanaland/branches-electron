@@ -394,3 +394,58 @@ describe('getDiff', () => {
     })
   })
 })
+
+describe('stageFiles and unstageFiles', () => {
+  it('stages and unstages changes in an opened repository', async () => {
+    const { handlers, repo } = await openedRepo()
+
+    await handlers.stageFiles(repo.root, ['README.md'])
+    expect((await handlers.getStatus(repo.root)).changes).toEqual([
+      expect.objectContaining({ path: 'README.md', index: 'modified', worktree: 'unmodified' })
+    ])
+
+    await handlers.unstageFiles(repo.root, ['README.md'])
+    expect((await handlers.getStatus(repo.root)).changes).toEqual([
+      expect.objectContaining({ path: 'README.md', index: 'unmodified', worktree: 'modified' })
+    ])
+  })
+
+  it('rejects a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = handlersChoosing(null)
+
+    await expect(handlers.stageFiles(repo.root, ['README.md'])).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+    await expect(handlers.unstageFiles(repo.root, ['README.md'])).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+
+  it.each(['../outside.txt', '/etc/passwd', 'a/../../b', ''])(
+    'rejects the path %j before it reaches git',
+    async (path) => {
+      const { repo, handlers } = await openedRepo()
+
+      await expect(handlers.stageFiles(repo.root, [path])).rejects.toMatchObject({
+        code: 'INVALID_PATH'
+      })
+      await expect(handlers.unstageFiles(repo.root, [path])).rejects.toMatchObject({
+        code: 'INVALID_PATH'
+      })
+    }
+  )
+
+  it('rejects the whole batch when one path is bad, staging nothing', async () => {
+    const { repo, handlers } = await openedRepo()
+    await repo.write('good.txt')
+
+    await expect(
+      handlers.stageFiles(repo.root, ['good.txt', '../outside.txt'])
+    ).rejects.toMatchObject({ code: 'INVALID_PATH' })
+    const changes = await handlers.getStatus(repo.root)
+    expect(changes.changes).toContainEqual(
+      expect.objectContaining({ path: 'good.txt', kind: 'untracked' })
+    )
+  })
+})
