@@ -13,6 +13,7 @@ let stubGit: string
 let differingGit: string
 let chattyGit: string
 let echoingGit: string
+let envPrintingGit: string
 
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'branches-run-'))
@@ -35,6 +36,10 @@ beforeAll(async () => {
   echoingGit = join(dir, 'echoing-git')
   await writeFile(echoingGit, '#!/bin/sh\ncat\n')
   await chmod(echoingGit, 0o755)
+  // Prints the environment it was started with, so we can see what runGit set.
+  envPrintingGit = join(dir, 'env-printing-git')
+  await writeFile(envPrintingGit, '#!/bin/sh\nprintenv\n')
+  await chmod(envPrintingGit, 0o755)
 })
 
 afterAll(() => rm(dir, { recursive: true, force: true }))
@@ -118,6 +123,32 @@ describe('runGit', () => {
     await expect(runGit('/some/root', ['diff'])).rejects.toMatchObject({
       stdout: 'differences\n'
     })
+  })
+
+  it('leaves a repository\u2019s own ssh command in place', async () => {
+    vi.mocked(getGitExecutable).mockResolvedValue({ path: envPrintingGit, version: '2.43.0' })
+
+    const { stdout } = await runGit('/some/root', ['fetch'])
+
+    // Overriding it here would beat `core.sshCommand`, and with it the identity the remote needs.
+    expect(stdout).not.toContain('GIT_SSH_COMMAND=')
+  })
+
+  it('leaves git no way to ask for credentials, so a fetch fails instead of hanging', async () => {
+    vi.mocked(getGitExecutable).mockResolvedValue({ path: envPrintingGit, version: '2.43.0' })
+
+    const { stdout } = await runGit('/some/root', ['fetch'])
+    const env = new Map(
+      stdout
+        .split('\n')
+        .filter((line) => line.includes('='))
+        .map((line) => [line.slice(0, line.indexOf('=')), line.slice(line.indexOf('=') + 1)])
+    )
+
+    expect(env.get('GIT_TERMINAL_PROMPT')).toBe('0')
+    expect(env.get('GIT_ASKPASS')).toBe('echo')
+    expect(env.get('SSH_ASKPASS')).toBe('echo')
+    expect(env.get('SSH_ASKPASS_REQUIRE')).toBe('never')
   })
 
   it('does not truncate output that fits within maxOutput', async () => {

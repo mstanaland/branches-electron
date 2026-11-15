@@ -62,6 +62,12 @@ export interface BranchesApi {
    */
   checkoutBranch: (root: string, name: string) => Promise<ApiResult<void>>
   /**
+   * Tells main which repository the user is looking at, so it can keep that one's
+   * remote-tracking refs current with a periodic `git fetch`. Pass null when none is active.
+   * `root` must be a saved repository or one the user opened this session.
+   */
+  setActiveRepository: (root: string | null) => Promise<ApiResult<void>>
+  /**
    * Pops up the native context menu for a branch. Resolves with what the user chose, or null
    * if they dismissed it. It only reports the choice; the renderer then makes the call, so it
    * can show progress and errors.
@@ -76,6 +82,11 @@ export interface BranchesApi {
 export interface BranchesEvents {
   /** The user chose File > Open Repository… (Cmd+O). Returns a function that unsubscribes. */
   onOpenRepositoryRequested: (listener: () => void) => () => void
+  /**
+   * A background fetch moved, added or pruned a remote-tracking ref in `root`, so the
+   * ahead/behind counts the renderer is showing are stale. Returns an unsubscribe function.
+   */
+  onRemoteRefsChanged: (listener: (root: string) => void) => () => void
 }
 
 /** Everything the preload exposes as `window.api`. */

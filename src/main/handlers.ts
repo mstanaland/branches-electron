@@ -32,6 +32,11 @@ export interface HandlerDeps {
   confirmRemoval: (repository: SavedRepository) => Promise<boolean>
   /** Pops up a branch's context menu. Resolves with the user's choice, or null if dismissed. */
   showBranchMenu: (branch: Pick<Branch, 'name' | 'isCurrent'>) => Promise<BranchMenuAction | null>
+  /**
+   * Told which repository the user is looking at, so background work — the periodic fetch —
+   * follows along.
+   */
+  setActiveRepository: (root: string | null) => void
 }
 
 export interface Handlers {
@@ -46,6 +51,7 @@ export interface Handlers {
   stageFiles: (root: string, paths: readonly string[]) => Promise<void>
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
   commit: (root: string, message: string) => Promise<void>
+  setActiveRepository: (root: string | null) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
 }
@@ -146,6 +152,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async commit(root, message) {
       await assertOpen(root)
       await commit(root, message)
+    },
+    async setActiveRepository(root) {
+      // null is always allowed: it only stops background work.
+      if (root !== null) await assertOpen(root)
+      deps.setActiveRepository(root)
     },
     async checkoutBranch(root, name) {
       await assertOpen(root)

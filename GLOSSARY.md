@@ -76,6 +76,10 @@ _Avoid_: Ref, head
 The remote branch a local branch tracks. It can be **gone** when it no longer exists on the remote.
 _Avoid_: Tracking branch, remote branch
 
+**Background fetch**:
+The periodic `git fetch --prune` main runs for the active repository while the window is focused, so **upstream** positions stay current. Quiet: it never reports a failure to the user.
+_Avoid_: Auto fetch, polling, sync
+
 **Current branch**:
 The branch HEAD points at. Absent when HEAD is detached.
 _Avoid_: Active branch ("active" belongs to repositories)

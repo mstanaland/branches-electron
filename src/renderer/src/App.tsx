@@ -1,12 +1,13 @@
 import { ChangedFiles } from './components/ChangedFiles'
 import { DiffView } from './components/DiffView'
 import { Sidebar } from './components/Sidebar'
-import { useRepositories, useSelection } from './data'
+import { useBackgroundFetch, useRepositories, useSelection } from './data'
 import styles from './App.module.css'
 
 function App(): React.JSX.Element {
   const { activeRoot } = useSelection()
   const repositories = useRepositories()
+  useBackgroundFetch()
   const active = repositories.data?.find((repository) => repository.root === activeRoot)
 
   return (

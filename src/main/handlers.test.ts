@@ -8,11 +8,12 @@ import { cleanupTestRepos, createRepoWithCommit, makeTempDir } from './git/test-
 
 afterAll(cleanupTestRepos)
 
-/** Menu and dialog stand-ins for a user who dismisses everything. */
+/** Stand-ins for a user who dismisses every menu and dialog, and for background work. */
 const dismissed = {
   showRepositoryMenu: async () => false,
   confirmRemoval: async () => false,
-  showBranchMenu: async () => null
+  showBranchMenu: async () => null,
+  setActiveRepository: () => {}
 }
 
 let storeDir = ''
@@ -476,5 +477,48 @@ describe('commit', () => {
     await expect(handlers.commit(repo.root, 'Nothing staged')).rejects.toMatchObject({
       code: 'COMMAND_FAILED'
     })
+  })
+})
+
+/** Handlers that record what they are told the active repository is. */
+function handlersRecordingActive(folder: string | null) {
+  const active: (string | null)[] = []
+  const filePath = join(storeDir, `repositories-${storeCount++}.json`)
+  const handlers = createHandlers({
+    pickFolder: async () => folder,
+    store: createRepositoryStore({ filePath }),
+    ...dismissed,
+    setActiveRepository: (root) => active.push(root)
+  })
+  return { handlers, active }
+}
+
+describe('setActiveRepository', () => {
+  it('passes on a repository the user opened', async () => {
+    const repo = await createRepoWithCommit()
+    const { handlers, active } = handlersRecordingActive(repo.root)
+    await handlers.openRepository()
+
+    await handlers.setActiveRepository(repo.root)
+
+    expect(active).toEqual([repo.root])
+  })
+
+  it('passes on null without checking anything, so background work can always be stopped', async () => {
+    const { handlers, active } = handlersRecordingActive(null)
+
+    await handlers.setActiveRepository(null)
+
+    expect(active).toEqual([null])
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+    const { handlers, active } = handlersRecordingActive(null)
+
+    await expect(handlers.setActiveRepository(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+    expect(active).toEqual([])
   })
 })

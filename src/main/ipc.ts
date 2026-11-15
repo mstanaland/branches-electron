@@ -1,14 +1,36 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
 import { join } from 'node:path'
 import { settle } from './apiResult'
+import { createFetchScheduler } from './fetchScheduler'
+import { fetchRemote, hasRemote } from './git'
 import { createHandlers } from './handlers'
 import { createRepositoryStore } from './repositoryStore'
+
+/** Sends an event to every open window. Single-window today, but nothing here assumes that. */
+function broadcast(channel: string, ...args: unknown[]): void {
+  for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, ...args)
+}
 
 /** Registers the handlers behind `window.api`. Logic lives in handlers.ts. */
 export function registerIpc(): void {
   const store = createRepositoryStore({
     filePath: join(app.getPath('userData'), 'repositories.json')
   })
+
+  // Keeps the active repository's remote-tracking refs current so ahead/behind counts notice
+  // work merged elsewhere, where there is no local change for anything to watch.
+  const fetchScheduler = createFetchScheduler({
+    hasRemote,
+    fetch: fetchRemote,
+    onRefsChanged: (root) => broadcast('repository:remote-refs-changed', root)
+  })
+  // No network traffic from a backgrounded app.
+  fetchScheduler.setFocused(BrowserWindow.getFocusedWindow() !== null)
+  app.on('browser-window-focus', () => fetchScheduler.setFocused(true))
+  app.on('browser-window-blur', () =>
+    fetchScheduler.setFocused(BrowserWindow.getFocusedWindow() !== null)
+  )
+  app.on('will-quit', () => fetchScheduler.stop())
   const handlers = createHandlers({
     store,
     pickFolder: async () => {
@@ -42,6 +64,7 @@ export function registerIpc(): void {
           callback: () => setImmediate(() => resolve(null))
         })
       }),
+    setActiveRepository: (root) => fetchScheduler.setActiveRepository(root),
     confirmRemoval: async (repository) => {
       const options = {
         type: 'question' as const,
@@ -89,6 +112,9 @@ export function registerIpc(): void {
   )
   ipcMain.handle('repository:commit', (_event, root: string, message: string) =>
     settle(() => handlers.commit(root, message))
+  )
+  ipcMain.handle('repository:set-active', (_event, root: string | null) =>
+    settle(() => handlers.setActiveRepository(root))
   )
   ipcMain.handle('branch:checkout', (_event, root: string, name: string) =>
     settle(() => handlers.checkoutBranch(root, name))

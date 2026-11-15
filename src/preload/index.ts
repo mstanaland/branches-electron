@@ -18,6 +18,14 @@ const api: WindowApi = {
       ipcRenderer.removeListener('menu:open-repository', forward)
     }
   },
+  onRemoteRefsChanged: (listener) => {
+    // Wrap it so the IPC event object never reaches the renderer.
+    const forward = (_event: unknown, root: string): void => listener(root)
+    ipcRenderer.on('repository:remote-refs-changed', forward)
+    return () => {
+      ipcRenderer.removeListener('repository:remote-refs-changed', forward)
+    }
+  },
   getStatus: (root) => ipcRenderer.invoke('repository:status', root),
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
   getDiff: (root, path, originalPath) =>
@@ -25,6 +33,7 @@ const api: WindowApi = {
   stageFiles: (root, paths) => ipcRenderer.invoke('repository:stage', root, paths),
   unstageFiles: (root, paths) => ipcRenderer.invoke('repository:unstage', root, paths),
   commit: (root, message) => ipcRenderer.invoke('repository:commit', root, message),
+  setActiveRepository: (root) => ipcRenderer.invoke('repository:set-active', root),
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name)
 }

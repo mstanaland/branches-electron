@@ -5,7 +5,11 @@ import { unwrapApi, type UnwrappedApi } from './unwrapApi'
 export type RendererApi = UnwrappedApi & BranchesEvents
 
 // Events aren't calls, so they bypass `unwrapApi`, which would wrap them in a promise.
-const { onOpenRepositoryRequested, ...calls } = window.api
+const { onOpenRepositoryRequested, onRemoteRefsChanged, ...calls } = window.api
 
 /** Use this, not `window.api`: failed calls reject with an `ApiError` you can check `.code` on. */
-export const api: RendererApi = { ...unwrapApi(calls), onOpenRepositoryRequested }
+export const api: RendererApi = {
+  ...unwrapApi(calls),
+  onOpenRepositoryRequested,
+  onRemoteRefsChanged
+}

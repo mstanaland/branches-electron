@@ -52,8 +52,18 @@ export async function runGit(
         maxBuffer: options.maxOutput ?? MAX_BUFFER,
         env: {
           ...process.env,
-          // Never block waiting for a credential prompt nobody can see.
+          // Never block waiting for a credential prompt nobody can see. Between them these
+          // turn a repository that wants credentials — a background fetch over https or ssh —
+          // into a fast failure rather than a child process waiting on a terminal that
+          // isn't there. `echo` answers every prompt with nothing, which git treats as a
+          // refused credential.
           GIT_TERMINAL_PROMPT: '0',
+          GIT_ASKPASS: 'echo',
+          SSH_ASKPASS: 'echo',
+          // `never` stops ssh reaching for a graphical passphrase prompt. GIT_SSH_COMMAND is
+          // deliberately left alone: setting it here would override a repository's
+          // `core.sshCommand`, and with it the identity or proxy the remote needs.
+          SSH_ASKPASS_REQUIRE: 'never',
           // Keep git's messages in English so stderr checks are stable.
           LC_ALL: 'C'
         }

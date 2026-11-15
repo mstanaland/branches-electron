@@ -1,3 +1,4 @@
+export { useBackgroundFetch } from './backgroundFetch'
 export { useBranchMenu, useCheckoutBranch } from './checkout'
 export { buildCommitMessage, useCommit } from './commit'
 export type { CommitMessage } from './commit'
