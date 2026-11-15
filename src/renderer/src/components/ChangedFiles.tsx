@@ -2,7 +2,13 @@ import { ArrowRight, GitBranch } from 'lucide-react'
 import { useMemo } from 'react'
 import { changedSide, sortChanges, splitPath, stagingState } from '../../../shared/changes'
 import type { FileChange } from '../../../shared/git'
-import { describeError, useConfirmRemoveMissing, useSelection, useStatus } from '../data'
+import {
+  describeError,
+  useConfirmRemoveMissing,
+  useSelection,
+  useStaging,
+  useStatus
+} from '../data'
 import { AheadBehind, Button, Checkbox, EmptyState } from '../ui'
 import { StatusBadge } from './StatusBadge'
 import shared from './shared.module.css'
@@ -52,11 +58,13 @@ function Badges({ change }: { change: FileChange }): React.JSX.Element {
 function ChangeRow({
   change,
   selected,
-  onSelect
+  onSelect,
+  onToggleStaged
 }: {
   change: FileChange
   selected: boolean
   onSelect: (path: string) => void
+  onToggleStaged: (change: FileChange) => void
 }): React.JSX.Element {
   const conflict = change.kind === 'unmerged'
   const state = stagingState(change)
@@ -73,13 +81,13 @@ function ChangeRow({
   return (
     <li className={styles.row} data-conflict={conflict ? 'true' : undefined}>
       <span className={styles.check}>
+        {/* A conflict has to be resolved before it can be staged, so it has no checkbox. */}
         {!conflict && (
-          // Display only: the staging ticket wires this up.
           <Checkbox
             aria-label={`${change.path}: ${state === 'partial' ? 'partially staged' : state}`}
             checked={state === 'staged'}
             indeterminate={state === 'partial'}
-            readOnly
+            onClick={() => onToggleStaged(change)}
           />
         )}
       </span>
@@ -91,6 +99,13 @@ function ChangeRow({
           className={styles.content}
           aria-pressed={selected}
           onClick={() => onSelect(change.path)}
+          onKeyDown={(event) => {
+            // Space stages or unstages the row instead of re-selecting it, which is what
+            // activating the button would otherwise do.
+            if (event.key !== ' ') return
+            event.preventDefault()
+            onToggleStaged(change)
+          }}
         >
           {content}
         </button>
@@ -107,7 +122,8 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
 
   const data = status.data
   const changes = useMemo(() => (data ? sortChanges(data.changes) : []), [data])
-  const error = describeError(status.error ?? confirmRemoval.error)
+  const staging = useStaging(root, changes)
+  const error = describeError(status.error ?? confirmRemoval.error ?? staging.error)
 
   if (error?.notARepository) {
     return (
@@ -131,6 +147,15 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
           </span>
           {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
           <AheadBehind ahead={data.ahead} behind={data.behind} />
+          {changes.length > 0 && (
+            <Button
+              className={styles.stageAll}
+              onClick={staging.stageAll}
+              disabled={!staging.canStageAll}
+            >
+              Stage All
+            </Button>
+          )}
         </header>
       )}
       {error && (
@@ -147,6 +172,7 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
               change={change}
               selected={change.path === selectedPath}
               onSelect={setSelectedPath}
+              onToggleStaged={staging.toggle}
             />
           ))}
         </ul>

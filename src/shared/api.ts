@@ -41,6 +41,14 @@ export interface BranchesApi {
     originalPath: string | null
   ) => Promise<ApiResult<ChangeDiff>>
   /**
+   * Puts whole changes into the index. Each path is relative to the repository root and must
+   * not climb out of it; an empty list does nothing. `root` must be a saved repository or one
+   * the user opened this session.
+   */
+  stageFiles: (root: string, paths: readonly string[]) => Promise<ApiResult<void>>
+  /** Takes whole changes back out of the index, leaving the work tree alone. Same path rules. */
+  unstageFiles: (root: string, paths: readonly string[]) => Promise<ApiResult<void>>
+  /**
    * Switches to an existing local branch. Fails with `CHECKOUT_BLOCKED_BY_CHANGES`, whose
    * `files` lists what stands in the way, when local changes would be overwritten.
    * `root` must be a saved repository or one the user opened this session.
