@@ -12,6 +12,7 @@ let dir: string
 let stubGit: string
 let differingGit: string
 let chattyGit: string
+let echoingGit: string
 
 beforeAll(async () => {
   dir = await mkdtemp(join(tmpdir(), 'branches-run-'))
@@ -30,6 +31,10 @@ beforeAll(async () => {
     '#!/bin/sh\ni=0\nwhile [ $i -lt 500 ]; do echo "line $i"; i=$((i+1)); done\n'
   )
   await chmod(chattyGit, 0o755)
+  // Echoes whatever it is given on stdin, so we can see what runGit wrote there.
+  echoingGit = join(dir, 'echoing-git')
+  await writeFile(echoingGit, '#!/bin/sh\ncat\n')
+  await chmod(echoingGit, 0o755)
 })
 
 afterAll(() => rm(dir, { recursive: true, force: true }))
@@ -89,6 +94,30 @@ describe('runGit', () => {
     expect(result.truncated).toBe(true)
     expect(result.stdout.length).toBeGreaterThan(0)
     expect(result.stdout.length).toBeLessThanOrEqual(1000)
+  })
+
+  it('writes `input` to git on stdin', async () => {
+    vi.mocked(getGitExecutable).mockResolvedValue({ path: echoingGit, version: '2.43.0' })
+
+    const { stdout } = await runGit('/some/root', ['commit', '-F', '-'], {
+      input: "Subject\n\nA description with a 'quote' and a $dollar.\n"
+    })
+
+    expect(stdout).toBe("Subject\n\nA description with a 'quote' and a $dollar.\n")
+  })
+
+  it('closes stdin when there is no input, so git never waits on it', async () => {
+    vi.mocked(getGitExecutable).mockResolvedValue({ path: echoingGit, version: '2.43.0' })
+
+    await expect(runGit('/some/root', ['status'])).resolves.toMatchObject({ stdout: '' })
+  })
+
+  it('carries what git printed on both streams on a failure', async () => {
+    vi.mocked(getGitExecutable).mockResolvedValue({ path: differingGit, version: '2.43.0' })
+
+    await expect(runGit('/some/root', ['diff'])).rejects.toMatchObject({
+      stdout: 'differences\n'
+    })
   })
 
   it('does not truncate output that fits within maxOutput', async () => {

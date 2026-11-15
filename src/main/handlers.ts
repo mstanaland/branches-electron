@@ -10,6 +10,7 @@ import { assertRelativePath } from '../shared/path'
 import { assertInsideRoot } from './assertInsideRoot'
 import {
   checkoutBranch,
+  commit,
   isRepositoryRoot,
   listBranches,
   getDiff,
@@ -44,6 +45,7 @@ export interface Handlers {
   getDiff: (root: string, path: string, originalPath: string | null) => Promise<ChangeDiff>
   stageFiles: (root: string, paths: readonly string[]) => Promise<void>
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
+  commit: (root: string, message: string) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
 }
@@ -140,6 +142,10 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async unstageFiles(root, paths) {
       await assertStageable(root, paths)
       await unstageFiles(root, paths)
+    },
+    async commit(root, message) {
+      await assertOpen(root)
+      await commit(root, message)
     },
     async checkoutBranch(root, name) {
       await assertOpen(root)

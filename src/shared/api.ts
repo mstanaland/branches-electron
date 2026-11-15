@@ -49,6 +49,13 @@ export interface BranchesApi {
   /** Takes whole changes back out of the index, leaving the work tree alone. Same path rules. */
   unstageFiles: (root: string, paths: readonly string[]) => Promise<ApiResult<void>>
   /**
+   * Commits what is in the index with `message` — its first line is the commit subject, the
+   * rest the commit description. Hooks run, and a hook or signing failure comes back as
+   * `COMMAND_FAILED` with what git printed, so the form can show it. `root` must be a saved
+   * repository or one the user opened this session.
+   */
+  commit: (root: string, message: string) => Promise<ApiResult<void>>
+  /**
    * Switches to an existing local branch. Fails with `CHECKOUT_BLOCKED_BY_CHANGES`, whose
    * `files` lists what stands in the way, when local changes would be overwritten.
    * `root` must be a saved repository or one the user opened this session.

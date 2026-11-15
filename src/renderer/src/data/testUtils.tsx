@@ -1,6 +1,7 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { render } from '@testing-library/react'
 import type { ReactNode } from 'react'
+import { TooltipProvider } from '../ui'
 import { SelectionProvider } from './selection'
 
 /** A fresh client per test, configured like main.tsx but without retries or caching between tests. */
@@ -24,7 +25,9 @@ function providers(client: QueryClient) {
   return function Providers({ children }: { children: ReactNode }): React.JSX.Element {
     return (
       <QueryClientProvider client={client}>
-        <SelectionProvider>{children}</SelectionProvider>
+        <SelectionProvider>
+          <TooltipProvider>{children}</TooltipProvider>
+        </SelectionProvider>
       </QueryClientProvider>
     )
   }

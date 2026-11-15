@@ -449,3 +449,32 @@ describe('stageFiles and unstageFiles', () => {
     )
   })
 })
+
+describe('commit', () => {
+  it('commits what is staged in an opened repository', async () => {
+    const { repo, handlers } = await openedRepo()
+    await handlers.stageFiles(repo.root, ['README.md'])
+
+    await handlers.commit(repo.root, 'Change the README')
+
+    expect((await handlers.getStatus(repo.root)).changes).toEqual([])
+    expect(await repo.git('log', '-1', '--format=%s')).toBe('Change the README\n')
+  })
+
+  it('rejects a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = handlersChoosing(null)
+
+    await expect(handlers.commit(repo.root, 'Nope')).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+
+  it('surfaces git refusing an empty index', async () => {
+    const { repo, handlers } = await openedRepo()
+
+    await expect(handlers.commit(repo.root, 'Nothing staged')).rejects.toMatchObject({
+      code: 'COMMAND_FAILED'
+    })
+  })
+})

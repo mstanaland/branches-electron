@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { FileChange } from './git'
-import { sortChanges, splitPath, stagingState } from './changes'
+import { hasStagedChanges, sortChanges, splitPath, stagingState } from './changes'
 
 const change = (overrides: Partial<FileChange> & { path: string }): FileChange => ({
   originalPath: null,
@@ -89,5 +89,35 @@ describe('splitPath', () => {
 
   it('keeps spaces', () => {
     expect(splitPath('my docs/a b.txt')).toEqual({ folder: 'my docs/', name: 'a b.txt' })
+  })
+})
+
+describe('hasStagedChanges', () => {
+  it('is false for a clean repository', () => {
+    expect(hasStagedChanges([])).toBe(false)
+  })
+
+  it('is false when every change is only in the work tree', () => {
+    expect(hasStagedChanges([change({ path: 'a.txt' }), change({ path: 'b.txt' })])).toBe(false)
+  })
+
+  it('is true for a fully staged change', () => {
+    const staged = change({ path: 'a.txt', index: 'modified', worktree: 'unmodified' })
+    expect(hasStagedChanges([staged])).toBe(true)
+  })
+
+  it('is true for a partially staged change, whose staged side would be committed', () => {
+    const partial = change({ path: 'a.txt', index: 'modified', worktree: 'modified' })
+    expect(hasStagedChanges([partial])).toBe(true)
+  })
+
+  it('is false for an untracked file, which has no staged side', () => {
+    const untracked = change({ path: 'a.txt', index: null, worktree: null, kind: 'untracked' })
+    expect(hasStagedChanges([untracked])).toBe(false)
+  })
+
+  it('is false for a conflict, which cannot be committed as it is', () => {
+    const conflict = change({ path: 'a.txt', index: 'added', worktree: 'added', kind: 'unmerged' })
+    expect(hasStagedChanges([conflict])).toBe(false)
   })
 })

@@ -1,4 +1,8 @@
 export { useBranchMenu, useCheckoutBranch } from './checkout'
+export { buildCommitMessage, useCommit } from './commit'
+export type { CommitMessage } from './commit'
+export { useDraft } from './drafts'
+export type { Draft, DraftState } from './drafts'
 export { describeError } from './apiErrorInfo'
 export type { ErrorInfo } from './apiErrorInfo'
 export { useFolderExpansion } from './collapsedFolders'

@@ -1,0 +1,13 @@
+.kbd {
+  display: inline-flex;
+  align-items: center;
+  min-width: 18px;
+  padding: 0 4px;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 16px;
+  color: inherit;
+  background: var(--color-hover);
+  border-radius: 4px;
+  opacity: 0.85;
+}
