@@ -44,6 +44,24 @@ _Avoid_: New file, unversioned
 A change where a merge left the path unmerged. Flagged in the list and sorted first.
 _Avoid_: Unmerged file
 
+### Committing
+
+**Commit form**:
+Where the user writes and sends a commit.
+_Avoid_: Commit box, commit area, commit panel
+
+**Commit subject**:
+The first line of a commit message.
+_Avoid_: Summary, title, headline
+
+**Commit description**:
+The rest of a commit message, below the subject. Optional.
+_Avoid_: Body, long description, extended description
+
+**Draft**:
+A commit subject and description the user has typed but not committed. One per repository, lost when the app quits.
+_Avoid_: Pending message, unsent commit
+
 ### Branches
 
 **Branch**:
