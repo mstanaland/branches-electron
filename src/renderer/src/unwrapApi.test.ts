@@ -17,6 +17,7 @@ function bridgeReturning(result: unknown): BranchesApi {
     getDiff: respond,
     stageFiles: respond,
     unstageFiles: respond,
+    commit: respond,
     checkoutBranch: respond,
     showBranchMenu: respond
   }

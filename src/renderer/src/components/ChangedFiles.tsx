@@ -1,7 +1,8 @@
 import { ArrowRight, GitBranch } from 'lucide-react'
-import { useMemo } from 'react'
+import { useCallback, useMemo, useRef } from 'react'
 import {
   changedSide,
+  hasStagedChanges,
   isConflict,
   sortChanges,
   splitPath,
@@ -16,6 +17,7 @@ import {
   useStatus
 } from '../data'
 import { AheadBehind, Button, Checkbox, EmptyState } from '../ui'
+import { CommitForm } from './CommitForm'
 import { StatusBadge } from './StatusBadge'
 import shared from './shared.module.css'
 import styles from './ChangedFiles.module.css'
@@ -130,6 +132,15 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
   const changes = useMemo(() => (data ? sortChanges(data.changes) : []), [data])
   const staging = useStaging(root, changes)
   const error = describeError(status.error ?? confirmRemoval.error ?? staging.error)
+  const listRef = useRef<HTMLUListElement>(null)
+
+  // Focus has to leave the commit form once a commit lands, or focusing the subject would
+  // expand the form again right after it closed. With nothing left to list there is no list
+  // to focus, so the form simply gives focus up.
+  const focusChanges = useCallback(() => {
+    if (listRef.current !== null) listRef.current.focus()
+    else if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
+  }, [])
 
   if (error?.notARepository) {
     return (
@@ -146,19 +157,23 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
   return (
     <div className={styles.pane}>
       {data && (
-        <header className={styles.header}>
-          <GitBranch />
-          <span className={styles.branch}>
-            {data.branch ?? `Detached at ${data.headOid ?? 'no commits'}`}
-          </span>
-          {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
-          <AheadBehind ahead={data.ahead} behind={data.behind} />
-          {staging.stageAll && (
-            <Button className={styles.stageAll} onClick={staging.stageAll.run}>
-              {staging.stageAll.label}
-            </Button>
-          )}
-        </header>
+        <>
+          <header className={styles.header}>
+            <GitBranch />
+            <span className={styles.branch}>
+              {data.branch ?? `Detached at ${data.headOid ?? 'no commits'}`}
+            </span>
+            {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
+            <AheadBehind ahead={data.ahead} behind={data.behind} />
+          </header>
+          {/* Pinned above the list, so a long list never scrolls Commit out of view. */}
+          <CommitForm
+            root={root}
+            hasStaged={hasStagedChanges(changes)}
+            stageAll={staging.stageAll}
+            onCommitted={focusChanges}
+          />
+        </>
       )}
       {error && (
         <p role="alert" className={shared.error}>
@@ -167,7 +182,7 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
       )}
       {data && changes.length === 0 && <EmptyState title="No changes" />}
       {changes.length > 0 && (
-        <ul className={styles.list} aria-label="Changes">
+        <ul ref={listRef} className={styles.list} aria-label="Changes" tabIndex={-1}>
           {changes.map((change) => (
             <ChangeRow
               key={change.path}

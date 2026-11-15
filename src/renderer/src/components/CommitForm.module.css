@@ -1,0 +1,19 @@
+.form {
+  display: flex;
+  flex-direction: column;
+  flex: none;
+  gap: 6px;
+  padding: 0 4px 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+/* Commit sits at the right-hand end, away from Stage All. */
+.commit {
+  margin-left: auto;
+}

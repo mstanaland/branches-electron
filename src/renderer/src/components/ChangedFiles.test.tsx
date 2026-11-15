@@ -1,15 +1,18 @@
 // @vitest-environment jsdom
 import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
+import { useState } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
 import type { FileChange, RepositoryStatus } from '../../../shared/git'
 import type { RendererApi } from '../api'
 import { useSelection } from '../data'
+import { clearAllDrafts } from '../data/drafts'
 import { renderWithProviders } from '../data/testUtils'
 
 const api = vi.hoisted(() => ({
   getStatus: vi.fn<RendererApi['getStatus']>(),
   stageFiles: vi.fn<RendererApi['stageFiles']>(),
+  commit: vi.fn<RendererApi['commit']>(),
   unstageFiles: vi.fn<RendererApi['unstageFiles']>(),
   listRepositories: vi.fn<RendererApi['listRepositories']>(),
   confirmRemoveMissingRepository: vi.fn<RendererApi['confirmRemoveMissingRepository']>()
@@ -61,6 +64,7 @@ function renderPane() {
 beforeEach(() => {
   vi.resetAllMocks()
   localStorage.clear()
+  clearAllDrafts()
 })
 
 afterEach(cleanup)
@@ -419,5 +423,96 @@ describe('staging', () => {
     expect(await screen.findByText('No changes')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Stage All' })).toBeNull()
     expect(screen.queryByRole('button', { name: 'Unstage All' })).toBeNull()
+  })
+})
+
+describe('the commit form', () => {
+  it('is shown for a clean repository, and for one with no commits yet', async () => {
+    api.getStatus.mockResolvedValue(status([], { branch: 'main', headOid: null }))
+    renderPane()
+
+    expect(await screen.findByRole('form', { name: 'Commit' })).toBeTruthy()
+  })
+
+  it('holds the Stage All button, which has left the pane header', async () => {
+    api.getStatus.mockResolvedValue(status([change('a.txt')]))
+    renderPane()
+
+    const form = await screen.findByRole('form', { name: 'Commit' })
+    expect(within(form).getByRole('button', { name: 'Stage All' })).toBeTruthy()
+    const header = screen.getByText('main').closest('header') as HTMLElement
+    expect(within(header).queryByRole('button', { name: 'Stage All' })).toBeNull()
+  })
+
+  it('sits above the changes list', async () => {
+    api.getStatus.mockResolvedValue(status([change('a.txt')]))
+    renderPane()
+
+    const form = await screen.findByRole('form', { name: 'Commit' })
+    const list = screen.getByRole('list', { name: 'Changes' })
+    expect(form.compareDocumentPosition(list) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
+  })
+
+  it('keeps a repository’s draft through a switch to another repository and back', async () => {
+    api.getStatus.mockResolvedValue(status([change('a.txt')]))
+    const OTHER = '/repos/other'
+    function Switcher(): React.JSX.Element {
+      const [root, setRoot] = useState(ROOT)
+      return (
+        <>
+          {/* Keyed on the root, as App does, so the pane remounts on a switch. */}
+          <ChangedFiles key={root} root={root} />
+          <button type="button" onClick={() => setRoot(root === ROOT ? OTHER : ROOT)}>
+            Switch
+          </button>
+        </>
+      )
+    }
+    renderWithProviders(<Switcher />)
+
+    const subject = await screen.findByRole('textbox', { name: 'Commit subject' })
+    fireEvent.focus(subject)
+    fireEvent.change(subject, { target: { value: 'A draft subject' } })
+    fireEvent.change(screen.getByRole('textbox', { name: 'Commit description' }), {
+      target: { value: 'And its description.' }
+    })
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('textbox', { name: 'Commit subject' }) as HTMLInputElement).value
+      ).toBe('')
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: 'Switch' }))
+
+    await waitFor(() =>
+      expect(
+        (screen.getByRole('textbox', { name: 'Commit subject' }) as HTMLInputElement).value
+      ).toBe('A draft subject')
+    )
+    // The description was not empty, so the form came back expanded, with it intact.
+    expect(
+      (screen.getByRole('textbox', { name: 'Commit description' }) as HTMLTextAreaElement).value
+    ).toBe('And its description.')
+  })
+
+  it('moves focus to the changes list once a commit lands', async () => {
+    const staged = change('staged.txt', { index: 'modified', worktree: 'unmodified' })
+    const left = change('left.txt')
+    api.getStatus.mockResolvedValueOnce(status([staged, left]))
+    // After the commit only the unstaged change is left, so there is still a list to focus.
+    api.getStatus.mockResolvedValue(status([left]))
+    api.commit.mockResolvedValue()
+    renderPane()
+
+    const subject = await screen.findByRole('textbox', { name: 'Commit subject' })
+    fireEvent.change(subject, { target: { value: 'Commit the staged file' } })
+    fireEvent.click(screen.getByRole('button', { name: /^Commit/ }))
+
+    await waitFor(() => expect(api.commit).toHaveBeenCalledWith(ROOT, 'Commit the staged file\n'))
+    await waitFor(() =>
+      expect(document.activeElement).toBe(screen.getByRole('list', { name: 'Changes' }))
+    )
   })
 })

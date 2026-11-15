@@ -10,6 +10,8 @@ export class GitError extends Error {
   readonly args: readonly string[]
   readonly exitCode: number | null
   readonly stderr: string
+  /** What git wrote to stdout before failing. Hook output often lands here, not on stderr. */
+  readonly stdout: string
   /** For CHECKOUT_BLOCKED_BY_CHANGES: the files that stand in the way. Empty otherwise. */
   readonly files: readonly string[]
 
@@ -20,6 +22,7 @@ export class GitError extends Error {
       args?: readonly string[]
       exitCode?: number | null
       stderr?: string
+      stdout?: string
       files?: readonly string[]
     } = {}
   ) {
@@ -29,6 +32,7 @@ export class GitError extends Error {
     this.args = details.args ?? []
     this.exitCode = details.exitCode ?? null
     this.stderr = details.stderr ?? ''
+    this.stdout = details.stdout ?? ''
     this.files = details.files ?? []
   }
 }

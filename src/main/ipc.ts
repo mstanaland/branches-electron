@@ -87,6 +87,9 @@ export function registerIpc(): void {
   ipcMain.handle('repository:unstage', (_event, root: string, paths: readonly string[]) =>
     settle(() => handlers.unstageFiles(root, paths))
   )
+  ipcMain.handle('repository:commit', (_event, root: string, message: string) =>
+    settle(() => handlers.commit(root, message))
+  )
   ipcMain.handle('branch:checkout', (_event, root: string, name: string) =>
     settle(() => handlers.checkoutBranch(root, name))
   )

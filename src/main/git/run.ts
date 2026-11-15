@@ -16,6 +16,12 @@ export interface RunGitOptions {
   okExitCodes?: readonly number[]
   /** Stop git once it has written this many bytes, and return what came first, truncated. */
   maxOutput?: number
+  /**
+   * Written to git's stdin, which is then closed. Use it for anything that would otherwise
+   * be an argument git might log, truncate or mis-read — a commit message, for instance,
+   * which `-F -` reads from here verbatim.
+   */
+  input?: string
 }
 
 /**
@@ -38,7 +44,7 @@ export async function runGit(
   const git = await getGitExecutable()
 
   return new Promise((resolve, reject) => {
-    execFile(
+    const child = execFile(
       git.path,
       fullArgs,
       {
@@ -68,13 +74,18 @@ export async function runGit(
           return
         }
         reject(
-          new GitError('COMMAND_FAILED', `git ${args[0] ?? ''} failed: ${stderr.trim()}`, {
-            args,
-            exitCode,
-            stderr
-          })
+          new GitError(
+            'COMMAND_FAILED',
+            // Hooks and git itself both report on stdout at times (a rejected `pre-commit`,
+            // "nothing to commit"), so fall back to it rather than failing with no reason.
+            `git ${args[0] ?? ''} failed: ${stderr.trim() || stdout.trim()}`,
+            { args, exitCode, stderr, stdout }
+          )
         )
       }
     )
+
+    // Always closed, so a command that reads stdin (`commit -F -`) never waits forever.
+    child.stdin?.end(options.input ?? '')
   })
 }

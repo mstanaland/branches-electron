@@ -25,6 +25,14 @@ export function stagingState(change: FileChange): StagingState {
   return staged ? 'staged' : 'unstaged'
 }
 
+/**
+ * Whether anything at all is in the index, so there is something to commit. A partially
+ * staged change counts: its staged side would go into the commit.
+ */
+export function hasStagedChanges(changes: readonly FileChange[]): boolean {
+  return changes.some((change) => stagingState(change) !== 'unstaged')
+}
+
 const conflictRank = (change: FileChange): number => (isConflict(change) ? 0 : 1)
 
 /** The list the user sees: conflicts first, then by path. Ignored files are left out. */

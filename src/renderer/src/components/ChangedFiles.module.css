@@ -12,16 +12,10 @@
   align-items: center;
   gap: 6px;
   padding: 0 4px 8px;
-  border-bottom: 1px solid var(--color-border);
 }
 
 .branch {
   font-weight: 600;
-}
-
-/* Pushed to the right-hand end of the header, away from the branch details. */
-.stageAll {
-  margin-left: auto;
 }
 
 .upstream {
@@ -34,7 +28,14 @@
   margin: 0;
   padding: 0;
   overflow-y: auto;
+  border-radius: var(--radius);
   list-style: none;
+}
+
+/* The list takes focus after a commit, so a keyboard user can see where they landed. */
+.list:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
 }
 
 /* Rows far off screen skip layout and paint, which keeps a 5,000-file list responsive. */
