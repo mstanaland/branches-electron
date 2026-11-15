@@ -362,14 +362,54 @@ describe('staging', () => {
     await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['a.txt', 'c.txt']))
   })
 
-  it('disables Stage All when everything is staged already', async () => {
+  it('offers Unstage All, never disabled, when everything is staged already', async () => {
     api.getStatus.mockResolvedValue(
-      status([change('a.txt', { index: 'modified', worktree: 'unmodified' })])
+      status([
+        change('a.txt', { index: 'modified', worktree: 'unmodified' }),
+        change('b.txt', { kind: 'unmerged', index: 'unmerged', worktree: 'unmerged' }),
+        change('c.txt', { index: 'added', worktree: 'unmodified' })
+      ])
+    )
+    api.unstageFiles.mockResolvedValue()
+    renderPane()
+
+    const button = await screen.findByRole('button', { name: 'Unstage All' })
+    expect(button.hasAttribute('disabled')).toBe(false)
+    expect(screen.queryByRole('button', { name: 'Stage All' })).toBeNull()
+
+    fireEvent.click(button)
+
+    await waitFor(() => expect(api.unstageFiles).toHaveBeenCalledWith(ROOT, ['a.txt', 'c.txt']))
+  })
+
+  it('offers no stage-all button when the only changes are conflicts', async () => {
+    api.getStatus.mockResolvedValue(
+      status([change('b.txt', { kind: 'unmerged', index: 'unmerged', worktree: 'unmerged' })])
     )
     renderPane()
 
+    // The row is there — a conflict has no row button, so it is found by its name.
+    expect(await screen.findByText('b.txt')).toBeTruthy()
+    expect(screen.queryByRole('button', { name: 'Stage All' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Unstage All' })).toBeNull()
+  })
+
+  it('keeps Stage All while a change is partially staged, and stages the remainder', async () => {
+    api.getStatus.mockResolvedValue(
+      status([
+        change('a.txt', { index: 'modified', worktree: 'unmodified' }),
+        change('b.txt', { index: 'modified', worktree: 'modified' })
+      ])
+    )
+    api.stageFiles.mockResolvedValue()
+    renderPane()
+
     const button = await screen.findByRole('button', { name: 'Stage All' })
-    await waitFor(() => expect(button.hasAttribute('disabled')).toBe(true))
+    expect(button.hasAttribute('disabled')).toBe(false)
+
+    fireEvent.click(button)
+
+    await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['b.txt']))
   })
 
   it('offers no Stage All button for a clean repository', async () => {
@@ -378,5 +418,6 @@ describe('staging', () => {
 
     expect(await screen.findByText('No changes')).toBeTruthy()
     expect(screen.queryByRole('button', { name: 'Stage All' })).toBeNull()
+    expect(screen.queryByRole('button', { name: 'Unstage All' })).toBeNull()
   })
 })

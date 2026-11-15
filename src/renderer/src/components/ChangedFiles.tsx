@@ -153,13 +153,9 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
           </span>
           {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
           <AheadBehind ahead={data.ahead} behind={data.behind} />
-          {changes.length > 0 && (
-            <Button
-              className={styles.stageAll}
-              onClick={staging.stageAll}
-              disabled={!staging.canStageAll}
-            >
-              Stage All
+          {staging.stageAll && (
+            <Button className={styles.stageAll} onClick={staging.stageAll.run}>
+              {staging.stageAll.label}
             </Button>
           )}
         </header>

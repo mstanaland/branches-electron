@@ -160,19 +160,17 @@ describe('stageAll', () => {
       change('d.txt', { kind: 'ignored', index: null, worktree: null })
     ])
 
-    act(() => result.current.stageAll())
+    act(() => result.current.stageAll?.run())
 
     await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['a.txt', 'c.txt']))
   })
 
-  it('does nothing when every change is a conflict', () => {
+  it('offers no button at all when every change is a conflict', () => {
     const { result } = renderStaging([
       change('b.txt', { kind: 'unmerged', index: 'unmerged', worktree: 'unmerged' })
     ])
 
-    expect(result.current.canStageAll).toBe(false)
-    act(() => result.current.stageAll())
-    expect(api.stageFiles).not.toHaveBeenCalled()
+    expect(result.current.stageAll).toBeNull()
   })
 
   it('leaves an already fully staged change out', async () => {
@@ -182,8 +180,73 @@ describe('stageAll', () => {
       change('b.txt')
     ])
 
-    act(() => result.current.stageAll())
+    act(() => result.current.stageAll?.run())
 
     await waitFor(() => expect(api.stageFiles).toHaveBeenCalledWith(ROOT, ['b.txt']))
+  })
+})
+
+describe('unstaging everything', () => {
+  it('unstages every staged change, conflicts untouched', async () => {
+    api.unstageFiles.mockResolvedValue()
+    const { result } = renderStaging([
+      change('a.txt', { index: 'modified', worktree: 'unmodified' }),
+      change('b.txt', { kind: 'unmerged', index: 'unmerged', worktree: 'unmerged' }),
+      change('c.txt', { index: 'added', worktree: 'unmodified' }),
+      change('d.txt', { kind: 'ignored', index: null, worktree: null })
+    ])
+
+    act(() => result.current.stageAll?.run())
+
+    await waitFor(() => expect(api.unstageFiles).toHaveBeenCalledWith(ROOT, ['a.txt', 'c.txt']))
+  })
+
+  it('puts the rows back when git refuses', async () => {
+    api.unstageFiles.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'index locked' })
+    )
+    const { result, cached } = renderStaging([
+      change('a.txt', { index: 'modified', worktree: 'unmodified' })
+    ])
+
+    act(() => result.current.stageAll?.run())
+
+    await waitFor(() => expect(result.current.error?.message).toBe('index locked'))
+    expect(cached()[0]).toMatchObject({ index: 'modified', worktree: 'unmodified' })
+  })
+})
+
+describe('the stage-all label', () => {
+  it('reads "Stage All" while anything is unstaged', () => {
+    const { result } = renderStaging([change('a.txt')])
+
+    expect(result.current.stageAll?.label).toBe('Stage All')
+  })
+
+  it('flips to "Unstage All" once every change is fully staged', () => {
+    const { result } = renderStaging([
+      change('a.txt', { index: 'modified', worktree: 'unmodified' }),
+      change('b.txt', { index: 'added', worktree: 'unmodified' })
+    ])
+
+    expect(result.current.stageAll?.label).toBe('Unstage All')
+  })
+
+  it('stays at "Stage All" when a change is only partially staged', () => {
+    const { result } = renderStaging([
+      change('a.txt', { index: 'modified', worktree: 'unmodified' }),
+      change('b.txt', { index: 'modified', worktree: 'modified' })
+    ])
+
+    expect(result.current.stageAll?.label).toBe('Stage All')
+  })
+
+  it('ignores ignored changes when deciding the label', () => {
+    const { result } = renderStaging([
+      change('a.txt', { index: 'modified', worktree: 'unmodified' }),
+      change('d.txt', { kind: 'ignored', index: null, worktree: null })
+    ])
+
+    expect(result.current.stageAll?.label).toBe('Unstage All')
   })
 })
