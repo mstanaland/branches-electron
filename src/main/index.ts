@@ -1,7 +1,8 @@
-import { app, BrowserWindow, ipcMain, shell } from 'electron'
+import { app, BrowserWindow, shell } from 'electron'
 import { join } from 'node:path'
 import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { getGitExecutable } from './git'
+import { registerIpc } from './ipc'
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -33,10 +34,6 @@ function createWindow(): void {
   } else {
     void mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
   }
-}
-
-function registerIpc(): void {
-  ipcMain.handle('app:version', () => app.getVersion())
 }
 
 void app.whenReady().then(() => {

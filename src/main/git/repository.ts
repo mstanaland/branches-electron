@@ -8,7 +8,8 @@ import { runGit } from './run'
 export async function resolveRepositoryRoot(folder: string): Promise<string> {
   try {
     const { stdout } = await runGit(folder, ['rev-parse', '--show-toplevel'])
-    return stdout.trim()
+    // Strip only git's trailing newline: a folder name can legitimately end in a space.
+    return stdout.replace(/\r?\n$/, '')
   } catch (error) {
     if (error instanceof GitError && error.code === 'COMMAND_FAILED') {
       throw new GitError('NOT_A_REPOSITORY', `${folder} is not inside a git repository.`, {

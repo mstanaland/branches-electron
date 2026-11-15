@@ -1,10 +1,18 @@
-import { useQuery } from '@tanstack/react-query'
+import { useMutation } from '@tanstack/react-query'
+import { api } from './api'
 import styles from './App.module.css'
 
 function App(): React.JSX.Element {
-  const { data: version } = useQuery({
-    queryKey: ['app-version'],
-    queryFn: () => window.api.appVersion()
+  // TEMPORARY: proves the bridge works end to end. The sidebar tickets replace this.
+  const open = useMutation({
+    mutationFn: async () => {
+      const root = await api.openRepository()
+      if (root === null) return null
+      const [status, branches] = await Promise.all([api.getStatus(root), api.listBranches(root)])
+      console.log('opened', root, { status, branches })
+      return root
+    },
+    onError: (error) => console.error('open failed', error)
   })
 
   return (
@@ -18,7 +26,9 @@ function App(): React.JSX.Element {
         <div className={styles.empty}>
           <h1>Branches</h1>
           <p>Open a repository to get started.</p>
-          {version && <p className={styles.version}>v{version}</p>}
+          <button type="button" onClick={() => open.mutate()}>
+            Open repository… (temporary)
+          </button>
         </div>
       </main>
     </div>

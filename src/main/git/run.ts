@@ -10,14 +10,18 @@ export interface GitResult {
 }
 
 /**
- * Runs `git -C <root> --no-optional-locks <args...>` without a shell.
+ * Runs `git -C <root> --no-optional-locks --literal-pathspecs <args...>` without a shell.
  *
  * `--no-optional-locks` keeps read commands like `status` from taking
  * `.git/index.lock`, so this app never blocks the user's other git tools.
+ *
+ * `--literal-pathspecs` makes a file named `*.txt` or `[a].md` match only itself, never
+ * other files or pathspec magic like `:(exclude)`.
+ *
  * Rejects with a GitError on a non-zero exit, or GIT_NOT_FOUND if no git binary can be located.
  */
 export async function runGit(root: string, args: readonly string[]): Promise<GitResult> {
-  const fullArgs = ['-C', root, '--no-optional-locks', ...args]
+  const fullArgs = ['-C', root, '--no-optional-locks', '--literal-pathspecs', ...args]
   const git = await getGitExecutable()
 
   return new Promise((resolve, reject) => {

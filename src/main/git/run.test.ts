@@ -31,6 +31,7 @@ describe('runGit', () => {
       '-C',
       '/some/root',
       '--no-optional-locks',
+      '--literal-pathspecs',
       'status',
       '--short'
     ])
