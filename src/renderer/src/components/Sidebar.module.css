@@ -116,7 +116,11 @@
   text-overflow: ellipsis;
 }
 
-.working[data-selected='true'] {
+.working[data-selected='true'],
+/* The quiet button's own hover replaces the background rather than layering over it, and it
+   outranks the rule above, so without this the accent is wiped out on hover and the white
+   text is left on the sidebar. Already selected, so hover has nothing left to say. */
+.working[data-selected='true']:hover:not([data-disabled]) {
   --color-text: var(--color-accent-text);
   --color-text-muted: var(--color-accent-text);
   --color-hover: rgba(255, 255, 255, 0.22);
