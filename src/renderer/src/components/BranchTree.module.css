@@ -37,6 +37,20 @@
   background: var(--color-hover);
 }
 
+/* The row whose view the main pane is showing. Redefining the colour variables here, rather
+   than restyling each child, is what carries the contrast into the badges inside it. */
+.row[data-selected='true'] {
+  --color-text: var(--color-accent-text);
+  --color-text-muted: var(--color-accent-text);
+  --color-hover: rgba(255, 255, 255, 0.22);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.item:focus-visible > .row[data-selected='true'] {
+  outline-color: var(--color-accent-text);
+}
+
 .item:focus-visible > .row {
   outline: var(--focus-ring-width) solid var(--focus-ring-color);
   outline-offset: -2px;
@@ -69,21 +83,14 @@
   color: var(--color-text-muted);
 }
 
-/* The checked-out branch's dot in the chevron column, and where a collapsed folder hides it. */
-.currentDot {
-  display: block;
-  flex: none;
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--color-accent);
-}
-
-.detached {
-  margin: 0;
-  padding: 3px 8px;
-  color: var(--color-text-muted);
-  font-style: italic;
+/* Where HEAD is when it isn't on a branch. */
+.detachedOid {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-family: var(--font-mono);
+  font-weight: 600;
 }
 
 .currentName {

@@ -31,8 +31,9 @@ function visibleNodes(nodes: BranchTreeNode[], expansion: FolderExpansion): Bran
 export function useTreeNavigation(
   tree: BranchTreeNode[],
   expansion: FolderExpansion,
-  /** Called with a branch's name when the user presses Enter on it. */
-  onActivateBranch: (name: string) => void
+  /** Called with a leaf when the user presses Enter or Space on it: a branch, or the
+   * detached-HEAD row. Selecting, not checking out — see ADR 0006. */
+  onSelect: (node: BranchTreeNode) => void
 ): TreeNavigation {
   const elements = useRef(new Map<string, HTMLElement>())
   const [focusedPath, setFocusedPath] = useState<string | null>(null)
@@ -59,7 +60,9 @@ export function useTreeNavigation(
       },
       onKeyDown: (event) => {
         if (event.target !== event.currentTarget) return
-        const isFolder = node.branch === null
+        // A folder is the only node with children. The detached-HEAD row has neither a
+        // branch nor children, and behaves as a leaf.
+        const isFolder = node.branch === null && node.children.length > 0
         const index = visible.findIndex((candidate) => candidate.path === node.path)
         let handled = true
 
@@ -82,7 +85,7 @@ export function useTreeNavigation(
           case 'Enter':
           case ' ':
             if (isFolder) expansion.setExpanded(node.path, !expansion.isExpanded(node.path))
-            else if (event.key === 'Enter' && node.branch) onActivateBranch(node.branch.name)
+            else onSelect(node)
             break
           default:
             handled = false

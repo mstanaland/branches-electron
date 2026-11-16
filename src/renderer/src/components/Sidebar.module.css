@@ -99,3 +99,27 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The Working view, above the branch tree. */
+.working {
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  margin: 0 0 2px;
+  text-align: left;
+}
+
+.workingLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.working[data-selected='true'] {
+  --color-text: var(--color-accent-text);
+  --color-text-muted: var(--color-accent-text);
+  --color-hover: rgba(255, 255, 255, 0.22);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}

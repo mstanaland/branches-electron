@@ -3,6 +3,7 @@ import type {
   Branch,
   BranchMenuAction,
   ChangeDiff,
+  Commit,
   RepositoryStatus,
   SavedRepository
 } from '../shared/git'
@@ -15,6 +16,7 @@ import {
   listBranches,
   getDiff,
   getStatus,
+  listCommits,
   resolveRepositoryRoot,
   stageFiles,
   unstageFiles
@@ -47,6 +49,7 @@ export interface Handlers {
   confirmRemoveMissingRepository: (root: string) => Promise<boolean>
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
+  listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
   getDiff: (root: string, path: string, originalPath: string | null) => Promise<ChangeDiff>
   stageFiles: (root: string, paths: readonly string[]) => Promise<void>
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
@@ -54,6 +57,25 @@ export interface Handlers {
   setActiveRepository: (root: string | null) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
+}
+
+/**
+ * Checks a ref before it reaches git. The renderer only ever sends a branch it was given
+ * or an oid it read back from a commit, but it is still a string off IPC, so it is matched
+ * against what exists rather than trusted: nothing user-written becomes a git argument.
+ */
+async function assertRef(root: string, ref: string): Promise<void> {
+  if (/^[0-9a-f]{40}$/.test(ref)) return
+  if ((await listBranches(root)).some((branch) => branch.name === ref)) return
+  throw new ApiError({ code: 'INVALID_REF', message: `${ref} is not a branch or a commit id.` })
+}
+
+/** Paging numbers off IPC: they go into git arguments, so they must really be numbers. */
+function assertCount(value: number, name: string): number {
+  if (!Number.isSafeInteger(value) || value < 0) {
+    throw new ApiError({ code: 'INVALID_REF', message: `${name} must be a whole number.` })
+  }
+  return value
 }
 
 /**
@@ -133,6 +155,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listBranches(root) {
       await assertOpen(root)
       return listBranches(root)
+    },
+    async listCommits(root, ref, limit, skip) {
+      await assertOpen(root)
+      await assertRef(root, ref)
+      return listCommits(root, ref, assertCount(limit, 'limit'), assertCount(skip, 'skip'))
     },
     async getDiff(root, path, originalPath) {
       await assertOpen(root)

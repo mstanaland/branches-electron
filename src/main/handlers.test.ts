@@ -522,3 +522,62 @@ describe('setActiveRepository', () => {
     expect(active).toEqual([])
   })
 })
+
+describe('listCommits', () => {
+  /** Handlers with `repo` already opened, as the renderer would have done. */
+  async function handlersFor(root: string): Promise<ReturnType<typeof createHandlers>> {
+    const handlers = handlersChoosing(root)
+    await handlers.openRepository()
+    return handlers
+  }
+
+  it('lists a branch the user picked', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+
+    const commits = await handlers.listCommits(repo.root, 'main', 10, 0)
+    expect(commits.map((commit) => commit.subject)).toEqual(['Initial commit'])
+  })
+
+  it('accepts a full oid, which is how later pages are anchored', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(handlers.listCommits(repo.root, oid, 10, 0)).resolves.toHaveLength(1)
+  })
+
+  it('refuses a ref that is neither a branch nor an oid', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+
+    for (const ref of ['HEAD', '--output=/tmp/x', 'main; rm -rf /', 'origin/main', 'nope']) {
+      await expect(handlers.listCommits(repo.root, ref, 10, 0)).rejects.toMatchObject({
+        code: 'INVALID_REF'
+      })
+    }
+  })
+
+  it('refuses paging numbers that are not whole and positive', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+
+    await expect(handlers.listCommits(repo.root, 'main', -1, 0)).rejects.toMatchObject({
+      code: 'INVALID_REF'
+    })
+    await expect(handlers.listCommits(repo.root, 'main', 1.5, 0)).rejects.toMatchObject({
+      code: 'INVALID_REF'
+    })
+    await expect(handlers.listCommits(repo.root, 'main', 10, Number.NaN)).rejects.toMatchObject({
+      code: 'INVALID_REF'
+    })
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(
+      handlersChoosing(null).listCommits(repo.root, 'main', 10, 0)
+    ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+  })
+})

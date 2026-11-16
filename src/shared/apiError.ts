@@ -6,6 +6,7 @@ export type ApiErrorCode =
   | 'CHECKOUT_BLOCKED_BY_CHANGES'
   | 'REPOSITORY_NOT_OPEN'
   | 'INVALID_PATH'
+  | 'INVALID_REF'
   | 'UNKNOWN'
 
 /** A failure from the main process, in a form that survives crossing IPC. */

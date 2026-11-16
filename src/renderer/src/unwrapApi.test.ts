@@ -14,6 +14,7 @@ function bridgeReturning(result: unknown): BranchesApi {
     confirmRemoveMissingRepository: respond,
     getStatus: respond,
     listBranches: respond,
+    listCommits: respond,
     getDiff: respond,
     stageFiles: respond,
     unstageFiles: respond,

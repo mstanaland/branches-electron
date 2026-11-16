@@ -22,6 +22,24 @@ _Avoid_: Current repository, selected repository
 A saved repository whose folder no longer exists or is no longer a repository root. Flagged every time the list is read, never removed automatically.
 _Avoid_: Broken, deleted, orphaned
 
+### Views
+
+**View**:
+What the main pane shows. The sidebar picks exactly one per repository: **Working**, or the **history** of one branch. Chosen fresh each time a repository is opened, and never changed by anything but the user.
+_Avoid_: Tab, page, screen, mode
+
+**Working**:
+The view of what is uncommitted: the repository's changes and the commit form.
+_Avoid_: Working copy, working directory, changes view, uncommitted view
+
+**History**:
+The view of the commits reachable from one branch, newest first, drawn with the lanes that connect them.
+_Avoid_: Log, timeline, graph (for the view as a whole)
+
+**Selected branch**:
+The branch whose history is shown. Selecting a branch does not move HEAD, so the selected branch and the current branch are often different.
+_Avoid_: Active branch, current branch, checked-out branch
+
 ### Changes
 
 **Change**:
@@ -86,3 +104,18 @@ _Avoid_: Active branch ("active" belongs to repositories)
 
 **Detached HEAD**:
 HEAD points at a commit instead of a branch.
+_Avoid_: No branch, headless
+
+### Commits
+
+**Commit**:
+One commit reachable from a branch. It has a **commit subject**, an author, a date and a **short oid**, and one parent — or several, which makes it a **merge**.
+_Avoid_: Revision, changeset, SHA (for the commit itself)
+
+**Short oid**:
+The first eight characters of a commit's object id, always eight. Git's own abbreviation varies in length by repository; this one doesn't, so the same commit reads the same everywhere in the app.
+_Avoid_: SHA, hash, short hash, abbreviated id
+
+**Lane**:
+One vertical track in the **history**. A commit sits in exactly one lane, and lanes join where a **merge** brings two lines of work together.
+_Avoid_: Column, track, swimlane, branch line

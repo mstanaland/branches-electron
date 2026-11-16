@@ -1,18 +1,60 @@
 import { useCallback, useEffect, useState } from 'react'
-import { ChevronDown, ChevronRight, FolderX } from 'lucide-react'
+import { ChevronDown, ChevronRight, FileDiff, FolderX } from 'lucide-react'
 import { api } from '../api'
 import {
+  WORKING,
   describeError,
   useConfirmRemoveMissing,
   useOpenRepository,
   useRepositories,
   useRepositoryMenu,
-  useSelection
+  useSelection,
+  useStatus
 } from '../data'
-import { Button, EmptyState, Tooltip } from '../ui'
+import { Badge, Button, EmptyState, Tooltip } from '../ui'
 import { BranchTree } from './BranchTree'
 import shared from './shared.module.css'
 import styles from './Sidebar.module.css'
+
+/**
+ * The first view in the switcher: what is uncommitted. Outside the branch tree, because a
+ * tree item would have to pretend to be a branch, and above it, because committing is what
+ * you came to do (ADR 0006).
+ *
+ * The count is every change — staged, unstaged, untracked and conflicted — which is exactly
+ * the number of rows the view itself lists. Hidden at zero rather than showing "0": a clean
+ * repository has nothing to report.
+ */
+function WorkingItem({
+  root,
+  selected,
+  onSelect
+}: {
+  root: string
+  selected: boolean
+  onSelect: () => void
+}): React.JSX.Element {
+  // Subscribed here, not only where the changes are listed, so the count stays right while
+  // the user is reading a branch's history.
+  const status = useStatus(root)
+  const count = status.data?.changes.length ?? 0
+
+  return (
+    <Button
+      variant="quiet"
+      className={styles.working}
+      data-selected={selected ? 'true' : undefined}
+      aria-current={selected ? 'true' : undefined}
+      onClick={onSelect}
+    >
+      <FileDiff />
+      <span className={styles.workingLabel}>Working</span>
+      {count > 0 && (
+        <Badge aria-label={`${count} ${count === 1 ? 'change' : 'changes'}`}>{count}</Badge>
+      )}
+    </Button>
+  )
+}
 
 /**
  * The saved repositories and the active repository's branches. Once a repository is active the
@@ -23,7 +65,7 @@ export function Sidebar(): React.JSX.Element {
   const open = useOpenRepository()
   const menu = useRepositoryMenu()
   const confirmRemoval = useConfirmRemoveMissing()
-  const { activeRoot, setActiveRoot } = useSelection()
+  const { activeRoot, setActiveRoot, view, setView } = useSelection()
 
   // Set to the active repository's root when the user reopens the list for it. Switching
   // repository changes the root, which folds the list again without any extra bookkeeping.
@@ -144,7 +186,16 @@ export function Sidebar(): React.JSX.Element {
           </p>
         )}
       </nav>
-      {active && !active.missing && <BranchTree root={active.root} />}
+      {active && !active.missing && (
+        <>
+          <WorkingItem
+            root={active.root}
+            selected={view.kind === 'working'}
+            onSelect={() => setView(WORKING)}
+          />
+          <BranchTree root={active.root} />
+        </>
+      )}
     </div>
   )
 }

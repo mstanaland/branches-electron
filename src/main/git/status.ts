@@ -86,7 +86,9 @@ function parseHeader(record: string, status: RepositoryStatus): void {
   const value = rest.join(' ')
   switch (key) {
     case 'branch.oid':
-      status.headOid = value === '(initial)' ? null : value.slice(0, 7)
+      // Kept whole: the renderer is the one place that shortens an oid, so every view
+      // shortens it the same way.
+      status.headOid = value === '(initial)' ? null : value
       break
     case 'branch.head':
       status.detached = value === '(detached)'
