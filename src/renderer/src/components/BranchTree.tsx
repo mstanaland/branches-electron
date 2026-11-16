@@ -236,6 +236,7 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
   const checkout = useCheckoutBranch(root)
   const menu = useBranchMenu(root)
   const { view, setView } = useSelection()
+  const headingId = useId()
 
   const detachedOid = status.data?.detached ? (status.data.headOid ?? null) : null
   const tree = useMemo(() => {
@@ -304,7 +305,10 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
   if (error?.notARepository) return null
 
   return (
-    <section className={styles.branches} aria-label="Branches">
+    <section className={styles.branches} aria-labelledby={headingId}>
+      <h2 id={headingId} className={styles.heading}>
+        Branches
+      </h2>
       {error && (
         <p role="alert" className={shared.error}>
           {error.message}

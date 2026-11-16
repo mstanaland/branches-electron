@@ -5,6 +5,14 @@
   min-height: 0;
 }
 
+/* Separates the branches from the Working row above them. */
+.heading {
+  margin: 10px 4px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
 .tree,
 .group {
   margin: 0;
