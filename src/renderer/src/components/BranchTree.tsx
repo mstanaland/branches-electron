@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LoaderCircle } from 'lucide-react'
+import { ChevronDown, ChevronRight, LoaderCircle, GitBranchIcon, FolderIcon } from 'lucide-react'
 import { useEffect, useId, useMemo } from 'react'
 import { ApiError } from '../../../shared/apiError'
 import type { BranchTreeNode } from '../../../shared/branchTree'
@@ -81,7 +81,8 @@ function BranchRow({
       {...navigation.itemProps(node, parentPath)}
     >
       <div className={styles.row} data-selected={selected ? 'true' : undefined}>
-        <span className={styles.chevron} aria-hidden="true" />
+        <GitBranchIcon className={styles.branchIcon} size={16} />
+        {/* <span className={styles.chevron} aria-hidden="true" /> */}
         <span className={branch.isCurrent ? styles.currentName : styles.name}>{node.name}</span>
         {actions.checkingOut === branch.name && (
           <LoaderCircle role="img" aria-label="Checking out" className={styles.spinner} />
@@ -130,6 +131,7 @@ function FolderRow({
         <span className={styles.chevron} aria-hidden="true">
           {expanded ? <ChevronDown /> : <ChevronRight />}
         </span>
+        <FolderIcon className={styles.folderIcon} size={16} />
         <span className={styles.name}>{node.name}</span>
         {/* Collapsed, the folder stands in for the current branch hidden inside it. */}
         {!expanded && containsCurrentBranch(node) && (
