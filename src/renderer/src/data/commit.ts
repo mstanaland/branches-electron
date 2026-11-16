@@ -35,7 +35,12 @@ export function useCommit(root: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.status(root) }),
         queryClient.invalidateQueries({ queryKey: keys.branches(root) }),
-        queryClient.invalidateQueries({ queryKey: keys.diffs(root) })
+        queryClient.invalidateQueries({ queryKey: keys.diffs(root) }),
+        // The new commit belongs at the top of the history of whichever branch it landed on.
+        // Every ref under this root is invalidated rather than working out which one that
+        // was: the ones not on screen refetch lazily, and the branch's history is a prefix
+        // key away.
+        queryClient.invalidateQueries({ queryKey: keys.commitsOfAny(root) })
       ])
     }
   })

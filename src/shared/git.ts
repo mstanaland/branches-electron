@@ -28,7 +28,11 @@ export interface FileChange {
 export interface RepositoryStatus {
   /** Current branch name, or null when HEAD is detached. */
   branch: string | null
-  /** Short commit id of HEAD, or null in a repository with no commits. */
+  /**
+   * Full object id of HEAD, or null in a repository with no commits. Full, not git's own
+   * abbreviation, so the renderer can shorten it the one way it shortens every oid
+   * (`shortOid`) and the same commit never reads two different lengths on screen.
+   */
   headOid: string | null
   detached: boolean
   /** Upstream branch, e.g. "origin/main", or null if none is set. */
@@ -48,6 +52,24 @@ export interface Branch {
   upstreamGone: boolean
   ahead: number
   behind: number
+}
+
+/**
+ * One commit in a branch's history. `parents` is what the graph is built from: no parents
+ * makes it a root, more than one makes it a merge.
+ */
+export interface Commit {
+  /** Full object id. */
+  oid: string
+  /** The first eight characters of `oid`. Always eight — see `shortOid`. */
+  shortOid: string
+  /** Full object ids of the parents, in git's order: the first is the commit's own line. */
+  parents: string[]
+  /** First line of the commit message. */
+  subject: string
+  authorName: string
+  /** ISO 8601, from the author date. */
+  authorDate: string
 }
 
 /** What a user can choose from a branch's context menu. */

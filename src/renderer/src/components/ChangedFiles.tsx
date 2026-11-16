@@ -9,6 +9,7 @@ import {
   stagingState
 } from '../../../shared/changes'
 import type { FileChange } from '../../../shared/git'
+import { shortOid } from '../../../shared/oid'
 import {
   describeError,
   useConfirmRemoveMissing,
@@ -161,7 +162,7 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
           <header className={styles.header}>
             <GitBranch />
             <span className={styles.branch}>
-              {data.branch ?? `Detached at ${data.headOid ?? 'no commits'}`}
+              {data.branch ?? `Detached at ${data.headOid ? shortOid(data.headOid) : 'no commits'}`}
             </span>
             {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
             <AheadBehind ahead={data.ahead} behind={data.behind} />

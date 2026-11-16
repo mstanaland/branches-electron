@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
-import type { RepositoryStatus, SavedRepository } from '../../../shared/git'
+import type { FileChange, RepositoryStatus, SavedRepository } from '../../../shared/git'
 import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
 
@@ -528,5 +528,59 @@ describe('branch tree', () => {
 
     expect(screen.queryByRole('tree')).toBeNull()
     expect(api.listBranches).not.toHaveBeenCalled()
+  })
+})
+
+describe('the Working view', () => {
+  const change = (path: string): FileChange => ({
+    path,
+    originalPath: null,
+    index: null,
+    worktree: 'modified',
+    kind: 'ordinary'
+  })
+
+  /** Opens a repository, which is what puts the view switcher on screen. */
+  async function openRepository(changes: FileChange[] = []): Promise<void> {
+    api.listRepositories.mockResolvedValue([repo('alpha')])
+    api.getStatus.mockResolvedValue({ ...status(), changes })
+    renderWithProviders(<Sidebar />)
+    const [option] = await showList()
+    fireEvent.click(option)
+    await screen.findByRole('button', { name: /working/i })
+  }
+
+  it('is selected to begin with', async () => {
+    await openRepository()
+
+    const working = screen.getByRole('button', { name: /working/i })
+    expect(working.getAttribute('aria-current')).toBe('true')
+  })
+
+  it('counts every change, whatever its staging state', async () => {
+    await openRepository([change('a.txt'), change('b.txt'), change('c.txt')])
+
+    expect(await screen.findByLabelText('3 changes')).toBeTruthy()
+  })
+
+  it('says "change" for one', async () => {
+    await openRepository([change('a.txt')])
+
+    expect(await screen.findByLabelText('1 change')).toBeTruthy()
+  })
+
+  it('shows no count at all when the repository is clean', async () => {
+    await openRepository()
+
+    const working = await screen.findByRole('button', { name: /working/i })
+    expect(working.textContent).toBe('Working')
+  })
+
+  it('is not there until a repository is open', async () => {
+    api.listRepositories.mockResolvedValue([])
+    renderWithProviders(<Sidebar />)
+    await screen.findByText('No repositories yet.')
+
+    expect(screen.queryByRole('button', { name: /working/i })).toBeNull()
   })
 })

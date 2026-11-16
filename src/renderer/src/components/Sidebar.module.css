@@ -99,3 +99,31 @@
   text-overflow: ellipsis;
   white-space: nowrap;
 }
+
+/* The Working view, above the branch tree. */
+.working {
+  justify-content: flex-start;
+  gap: 6px;
+  width: 100%;
+  margin: 0 0 2px;
+  text-align: left;
+}
+
+.workingLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.working[data-selected='true'],
+/* The quiet button's own hover replaces the background rather than layering over it, and it
+   outranks the rule above, so without this the accent is wiped out on hover and the white
+   text is left on the sidebar. Already selected, so hover has nothing left to say. */
+.working[data-selected='true']:hover:not([data-disabled]) {
+  --color-text: var(--color-accent-text);
+  --color-text-muted: var(--color-accent-text);
+  --color-hover: rgba(255, 255, 255, 0.22);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}

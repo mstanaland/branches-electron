@@ -1,4 +1,11 @@
-import type { Branch, BranchMenuAction, ChangeDiff, RepositoryStatus, SavedRepository } from './git'
+import type {
+  Branch,
+  BranchMenuAction,
+  ChangeDiff,
+  Commit,
+  RepositoryStatus,
+  SavedRepository
+} from './git'
 import type { ApiResult } from './result'
 
 /**
@@ -30,6 +37,22 @@ export interface BranchesApi {
   getStatus: (root: string) => Promise<ApiResult<RepositoryStatus>>
   /** `root` must be a saved repository or one the user opened this session. */
   listBranches: (root: string) => Promise<ApiResult<Branch[]>>
+  /**
+   * One page of the commits reachable from `ref`, newest first and in topological order.
+   *
+   * `ref` is a local branch name or a full object id — the renderer anchors every page after
+   * the first to the oid the first page started from, so a branch that moves restarts the
+   * list instead of shifting rows underneath it. A ref that resolves to nothing, as in a
+   * repository with no commits, gives an empty list rather than an error.
+   *
+   * `root` must be a saved repository or one the user opened this session.
+   */
+  listCommits: (
+    root: string,
+    ref: string,
+    limit: number,
+    skip: number
+  ) => Promise<ApiResult<Commit[]>>
   /**
    * The staged and unstaged diffs of one change. `path` is relative to the repository root
    * and must not climb out of it. For a renamed file pass `originalPath` (else null) so the

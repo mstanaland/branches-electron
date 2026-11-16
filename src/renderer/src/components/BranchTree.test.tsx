@@ -196,7 +196,7 @@ describe('collapsing folders', () => {
       branch('fix/typo')
     ])
     await screen.findByRole('tree')
-    const flag = { name: 'Contains current branch' }
+    const flag = { name: 'Contains the current branch' }
 
     expect(screen.queryByRole('img', flag)).toBeNull()
 
@@ -218,7 +218,7 @@ describe('collapsing folders', () => {
 
     fireEvent.click(screen.getByText('a'))
 
-    expect(screen.getAllByRole('img', { name: 'Contains current branch' })).toHaveLength(1)
+    expect(screen.getAllByRole('img', { name: 'Contains the current branch' })).toHaveLength(1)
   })
 })
 
@@ -294,26 +294,49 @@ describe('remembering collapsed folders', () => {
 })
 
 describe('detached HEAD', () => {
-  it('shows "Detached at <short oid>" above the tree', async () => {
-    showBranches(
-      [branch('main'), branch('dev')],
-      status({ branch: null, detached: true, headOid: '9f3a2c1' })
-    )
+  const DETACHED_OID = '9f3a2c1d4e5f60718293a4b5c6d7e8f901234567'
 
-    const row = await screen.findByText('Detached at 9f3a2c1')
-    const tree = await screen.findByRole('tree')
+  const detached = (): RepositoryStatus =>
+    status({ branch: null, detached: true, headOid: DETACHED_OID })
 
-    expect(row.compareDocumentPosition(tree) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy()
-    expect(
-      screen.queryAllByRole('treeitem').some((item) => item.getAttribute('aria-current'))
-    ).toBe(false)
+  it('lists HEAD as the first item, labelled with the short oid', async () => {
+    showBranches([branch('main'), branch('dev')], detached())
+    await screen.findByRole('tree')
+
+    expect(outline()[0]).toEqual(['Detached HEAD at 9f3a2c1d', '1'])
+    expect(screen.getByText('9f3a2c1d')).toBeTruthy()
   })
 
-  it('does not show it when a branch is checked out', async () => {
+  it('marks it as where HEAD is, and no branch as current', async () => {
+    showBranches([branch('main'), branch('dev')], detached())
+    const head = await screen.findByRole('treeitem', { name: 'Detached HEAD at 9f3a2c1d' })
+
+    expect(head.getAttribute('aria-current')).toBe('true')
+    expect(
+      screen
+        .getAllByRole('treeitem')
+        .filter((candidate) => candidate.getAttribute('aria-current') === 'true')
+    ).toHaveLength(1)
+  })
+
+  it('selects it when clicked, and shows nothing to check out', async () => {
+    showBranches([branch('main')], detached())
+    const head = await screen.findByRole('treeitem', { name: 'Detached HEAD at 9f3a2c1d' })
+
+    fireEvent.click(head)
+    expect(head.getAttribute('aria-selected')).toBe('true')
+
+    fireEvent.doubleClick(head)
+    fireEvent.contextMenu(head)
+    expect(api.checkoutBranch).not.toHaveBeenCalled()
+    expect(api.showBranchMenu).not.toHaveBeenCalled()
+  })
+
+  it('is not there when a branch is checked out', async () => {
     showBranches([branch('main', { isCurrent: true })])
     await screen.findByRole('tree')
 
-    expect(screen.queryByText(/detached at/i)).toBeNull()
+    expect(screen.queryByRole('treeitem', { name: /detached head/i })).toBeNull()
   })
 })
 
@@ -455,15 +478,19 @@ describe('checking out', () => {
     })
   })
 
-  it('checks out the focused branch with Enter', async () => {
+  it('selects rather than checks out when Enter or Space is pressed', async () => {
+    // Selecting is what a click does, and the keyboard matches it: checking out is the
+    // consequential act and keeps its own gesture (ADR 0006).
     showBranches(twoBranches())
-    api.checkoutBranch.mockResolvedValue(undefined)
     await screen.findByRole('tree')
 
-    row('work').focus()
-    fireEvent.keyDown(row('work'), { key: 'Enter' })
+    for (const key of ['Enter', ' ']) {
+      row('work').focus()
+      fireEvent.keyDown(row('work'), { key })
 
-    await waitFor(() => expect(api.checkoutBranch).toHaveBeenCalledWith(ROOT, 'work'))
+      expect(row('work').getAttribute('aria-selected')).toBe('true')
+      expect(api.checkoutBranch).not.toHaveBeenCalled()
+    }
   })
 
   it('does nothing when the current branch is double-clicked', async () => {
@@ -588,5 +615,57 @@ describe('branch context menu', () => {
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'feature' }))
 
     expect(api.showBranchMenu).not.toHaveBeenCalled()
+  })
+})
+
+describe('selecting a view', () => {
+  it('selects the branch that was clicked, without checking anything out', async () => {
+    showBranches(twoBranches())
+    await screen.findByRole('tree')
+
+    fireEvent.click(row('work'))
+
+    expect(row('work').getAttribute('aria-selected')).toBe('true')
+    expect(row('main').getAttribute('aria-selected')).toBe('false')
+    expect(api.checkoutBranch).not.toHaveBeenCalled()
+  })
+
+  it('selects the branch it checks out, so the pane follows the switch', async () => {
+    showBranches(twoBranches())
+    api.checkoutBranch.mockResolvedValue(undefined)
+    await screen.findByRole('tree')
+
+    fireEvent.doubleClick(row('work'))
+
+    await waitFor(() => expect(api.checkoutBranch).toHaveBeenCalledWith(ROOT, 'work'))
+    expect(row('work').getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('falls back to Working when the selected branch is gone', async () => {
+    const { client } = showBranches(twoBranches())
+    await screen.findByRole('tree')
+    fireEvent.click(row('work'))
+    expect(row('work').getAttribute('aria-selected')).toBe('true')
+
+    // Deleted in a terminal, noticed on the next read of the branch list.
+    api.listBranches.mockResolvedValue([branch('main', { isCurrent: true })])
+    await act(async () => {
+      await client.invalidateQueries()
+    })
+
+    await waitFor(() => expect(screen.queryByRole('treeitem', { name: 'work' })).toBeNull())
+    expect(row('main').getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('keeps the selection while the branch is still listed', async () => {
+    const { client } = showBranches(twoBranches())
+    await screen.findByRole('tree')
+    fireEvent.click(row('work'))
+
+    await act(async () => {
+      await client.invalidateQueries()
+    })
+
+    expect(row('work').getAttribute('aria-selected')).toBe('true')
   })
 })

@@ -9,10 +9,17 @@ export type { ErrorInfo } from './apiErrorInfo'
 export { useFolderExpansion } from './collapsedFolders'
 export type { FolderExpansion } from './collapsedFolders'
 export { keys } from './keys'
-export { useBranches, useDiff, useRepositories, useStatus } from './queries'
+export {
+  COMMIT_PAGE_SIZE,
+  useBranches,
+  useCommits,
+  useDiff,
+  useRepositories,
+  useStatus
+} from './queries'
 export { useConfirmRemoveMissing, useRepositoryMenu } from './removal'
-export { SelectionProvider, useSelection } from './selection'
-export type { Selection } from './selection'
+export { SelectionProvider, WORKING, isSameView, useSelection, viewRef } from './selection'
+export type { Selection, View } from './selection'
 export { useStaging } from './staging'
 export type { StageAll, StagingActions } from './staging'
 export { useOpenRepository } from './useOpenRepository'

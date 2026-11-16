@@ -100,6 +100,11 @@ export function registerIpc(): void {
     settle(() => handlers.listBranches(root))
   )
   ipcMain.handle(
+    'repository:commits',
+    (_event, root: string, ref: string, limit: number, skip: number) =>
+      settle(() => handlers.listCommits(root, ref, limit, skip))
+  )
+  ipcMain.handle(
     'repository:diff',
     (_event, root: string, path: string, originalPath: string | null) =>
       settle(() => handlers.getDiff(root, path, originalPath))

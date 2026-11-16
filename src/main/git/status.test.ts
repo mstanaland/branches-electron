@@ -18,7 +18,7 @@ describe('getStatus', () => {
 
     expect(status.branch).toBe('main')
     expect(status.detached).toBe(false)
-    expect(status.headOid).toMatch(/^[0-9a-f]{7}$/)
+    expect(status.headOid).toMatch(/^[0-9a-f]{40}$/)
     expect(status.upstream).toBeNull()
     expect(status.changes).toEqual([])
   })
@@ -120,7 +120,7 @@ describe('getStatus', () => {
     const status = await getStatus(repo.root)
     expect(status.detached).toBe(true)
     expect(status.branch).toBeNull()
-    expect(status.headOid).toBe(oid.slice(0, 7))
+    expect(status.headOid).toBe(oid)
   })
 
   it('reports the upstream and ahead/behind counts', async () => {

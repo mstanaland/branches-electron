@@ -1,0 +1,98 @@
+/* Must match ROW_HEIGHT in CommitHistory.tsx, which sizes each row's SVG. */
+.history {
+  --row-height: 48px;
+
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.row {
+  display: flex;
+  align-items: stretch;
+  gap: 10px;
+  height: var(--row-height);
+  padding: 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  outline: none;
+  cursor: default;
+}
+
+.row:hover {
+  background: var(--color-hover);
+}
+
+.row[data-selected='true'] {
+  background: var(--color-hover);
+}
+
+.row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
+}
+
+/* The graph column. Flush to the row's edges so the lanes meet the rows above and below. */
+.graph {
+  flex: none;
+  align-self: stretch;
+  overflow: visible;
+}
+
+.details {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1px;
+}
+
+.line {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+}
+
+.author {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-text-muted);
+}
+
+.date {
+  flex: none;
+  color: var(--color-text-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.oid {
+  flex: none;
+  color: var(--color-text-muted);
+  font-family: var(--font-mono);
+}
+
+.subject {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* Watched to load the next page; nothing is drawn. */
+.sentinel {
+  flex: none;
+  height: 1px;
+}
