@@ -27,9 +27,10 @@ function App(): React.JSX.Element {
             <p>Open a repository to get started.</p>
           </div>
         ) : ref === null ? (
-          <div className={styles.split}>
-            <ChangedFiles key={active.root} root={active.root} />
-            <DiffView key={active.root} root={active.root} />
+          // Keyed as a whole so switching repository starts both panes fresh.
+          <div key={active.root} className={styles.split}>
+            <ChangedFiles root={active.root} />
+            <DiffView root={active.root} />
           </div>
         ) : (
           <CommitHistory root={active.root} commitRef={ref} />
