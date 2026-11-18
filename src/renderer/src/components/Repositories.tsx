@@ -7,6 +7,7 @@ import {
   useRepositoryMenu,
   useTabs
 } from '../data'
+import { cannotBeFound } from './MissingRepository'
 import { Button, Tooltip } from '../ui'
 import shared from './shared.module.css'
 import styles from './Repositories.module.css'
@@ -65,7 +66,7 @@ export function Repositories({
                 else chooseRepository(repository.root)
               }
               const missingMessage = repository.missing
-                ? `${repository.name} can’t be found. Click to remove it from the list.`
+                ? `${cannotBeFound(repository.name)}. Click to remove it from the list.`
                 : null
               return (
                 <Tooltip key={repository.root} content={missingMessage}>
