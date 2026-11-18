@@ -479,3 +479,71 @@ describe('removing a repository from the saved list', () => {
     await waitFor(() => expect(tabLabels()).toEqual(['beta', 'Repositories']))
   })
 })
+
+describe('a tab for a missing repository', () => {
+  it('flags it in the tab label', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+
+    const label = await screen.findByRole('button', { name: 'alpha' })
+    await waitFor(() =>
+      expect(label.getAttribute('aria-description')).toBe('alpha can’t be found.')
+    )
+  })
+
+  it('explains the folder cannot be found, instead of branches and changes', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+
+    expect(await screen.findByText('alpha can’t be found')).toBeTruthy()
+    expect(screen.getByText(/\/repos\/alpha/)).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'Remove from List' })).toBeTruthy()
+    // No branches to read, so no sidebar, and no panes over a folder that isn't there.
+    expect(screen.queryByRole('button', { name: /working/i })).toBeNull()
+    expect(screen.queryByText('Select a file to see its changes')).toBeNull()
+  })
+
+  it('removes the saved repository and closes the tab once removal is confirmed', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
+    api.confirmRemoveMissingRepository.mockResolvedValue(true)
+    renderWithProviders(<App />, { tabs: ['/repos/alpha', '/repos/beta'] })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove from List' }))
+
+    await waitFor(() =>
+      expect(api.confirmRemoveMissingRepository).toHaveBeenCalledWith('/repos/alpha')
+    )
+    api.listRepositories.mockResolvedValue([repo('beta')])
+    await waitFor(() => expect(tabLabels()).toEqual(['beta']))
+    expect(await screen.findByText('beta-main')).toBeTruthy()
+  })
+
+  it('leaves the saved repository and the tab alone when removal is cancelled', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
+    api.confirmRemoveMissingRepository.mockResolvedValue(false)
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Remove from List' }))
+
+    await waitFor(() =>
+      expect(api.confirmRemoveMissingRepository).toHaveBeenCalledWith('/repos/alpha')
+    )
+    expect(tabLabels()).toEqual(['alpha'])
+    expect(screen.getByText('alpha can’t be found')).toBeTruthy()
+    newTab()
+    expect(await screen.findByRole('option', { name: 'alpha' })).toBeTruthy()
+  })
+
+  it('leaves the saved entry intact when the tab is closed without removing it', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha can’t be found')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close alpha' }))
+
+    expect(tabLabels()).toBeNull()
+    expect(api.confirmRemoveMissingRepository).not.toHaveBeenCalled()
+    // Still on the backdrop's saved list, flagged, waiting to be dealt with.
+    expect(await screen.findByRole('option', { name: 'alpha' })).toBeTruthy()
+  })
+})

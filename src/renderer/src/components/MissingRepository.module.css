@@ -1,0 +1,21 @@
+/* Centred in the content area the repository's panes would have filled, so the tab reads as
+   occupied by an explanation rather than as a half-loaded repository. */
+.pane {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 12px;
+  flex: 1;
+  min-height: 0;
+  padding: 24px;
+}
+
+.icon {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: var(--color-hover);
+  color: var(--color-text-muted);
+}
