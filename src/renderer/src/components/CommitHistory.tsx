@@ -4,7 +4,7 @@ import { MAX_LANES, buildCommitGraph } from '../../../shared/commitGraph'
 import type { CommitGraphRow } from '../../../shared/commitGraph'
 import type { Commit } from '../../../shared/git'
 import { describeError, useCommits } from '../data'
-import { EmptyState } from '../ui'
+import { EmptyState, Pending } from '../ui'
 import shared from './shared.module.css'
 import styles from './CommitHistory.module.css'
 
@@ -228,8 +228,10 @@ export function CommitHistory({
           {error.message}
         </p>
       )}
-      {/* No spinner for the first page: a local log answers in milliseconds, and a spinner
-          that flashes and goes is worse than a list that simply appears. */}
+      {/* The first page only. It fades in late, since a local log usually answers in
+          milliseconds and a spinner that flashes and goes is worse than a list that simply
+          appears; a large repository still shows it is reading rather than empty. */}
+      {commits.isPending && !error && <Pending label="Loading history" />}
       {commits.isSuccess && listed.length === 0 && <EmptyState title="No commits yet." />}
       {listed.length > 0 && (
         <ul ref={listRef} className={styles.list} aria-label="Commits">

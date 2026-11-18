@@ -1,0 +1,15 @@
+/* Takes no height: the bar overlays the top edge of the columns below, so it appearing never
+   pushes them down. */
+.slot {
+  position: relative;
+  flex: none;
+  height: 0;
+}
+
+.bar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 1;
+}

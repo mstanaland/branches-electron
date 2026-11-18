@@ -49,17 +49,5 @@
 
 /* The icon while a fetch or a pull is in flight. */
 .spinner {
-  animation: spin 1s linear infinite;
-}
-
-@keyframes spin {
-  to {
-    transform: rotate(1turn);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .spinner {
-    animation: none;
-  }
+  composes: spinner from './shared.module.css';
 }

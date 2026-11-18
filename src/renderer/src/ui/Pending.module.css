@@ -1,0 +1,21 @@
+/* Laid out like EmptyState, so the column doesn't shift when one replaces the other. */
+.pending {
+  padding: 4px;
+  color: var(--color-text-muted);
+  opacity: 0;
+  /* Shown after the same ~400ms the in-progress bar waits, for the same reason: a read that
+     finishes sooner should never flash it. */
+  animation: appear 150ms ease-out 400ms forwards;
+}
+
+@keyframes appear {
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pending {
+    animation-duration: 1ms;
+  }
+}

@@ -33,3 +33,11 @@
   background: var(--color-accent);
   color: var(--color-accent-text);
 }
+
+/* Refresh, pinned to the bottom of the column below the branch tree, which scrolls above it. */
+.footer {
+  display: flex;
+  flex: none;
+  padding-top: 8px;
+  border-top: 1px solid var(--color-border);
+}

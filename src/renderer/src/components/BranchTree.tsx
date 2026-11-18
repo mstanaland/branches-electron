@@ -20,7 +20,7 @@ import {
   useStatus
 } from '../data'
 import { BlockedCheckoutDialog } from './BlockedCheckoutDialog'
-import { AheadBehind, Badge, aheadBehindLabel } from '../ui'
+import { AheadBehind, Badge, Pending, aheadBehindLabel } from '../ui'
 import shared from './shared.module.css'
 import styles from './BranchTree.module.css'
 
@@ -316,6 +316,7 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
           {error.message}
         </p>
       )}
+      {branches.isPending && !error && <Pending label="Loading branches" />}
       {branches.data?.length === 0 && detachedOid === null && (
         <p className={styles.empty}>No branches yet.</p>
       )}
