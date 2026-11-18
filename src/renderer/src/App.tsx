@@ -5,6 +5,7 @@ import { MissingRepository } from './components/MissingRepository'
 import { Repositories } from './components/Repositories'
 import { Sidebar } from './components/Sidebar'
 import { TabStrip } from './components/TabStrip'
+import { TitleBar } from './components/TitleBar'
 import {
   useBackgroundFetch,
   useOpenRepository,
@@ -16,7 +17,7 @@ import {
 import styles from './App.module.css'
 
 /**
- * The window: a title bar and a strip of **tabs** spanning it, and below them the **focused
+ * The window: a **title bar** and a strip of **tabs** spanning it, and below them the **focused
  * tab**'s repository — its branches on the left and whichever **view** the sidebar has
  * selected on the right.
  *
@@ -55,7 +56,7 @@ function App(): React.JSX.Element {
 
   return (
     <div className={styles.app}>
-      <div className={styles.titlebar} />
+      <TitleBar />
       {tabs.length > 0 && <TabStrip />}
       <div className={styles.body} data-sidebar={sidebarRoot === null ? 'false' : 'true'}>
         {sidebarRoot !== null && (

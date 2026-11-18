@@ -14,12 +14,6 @@
   background: var(--color-chrome);
 }
 
-/* Space for the inset traffic lights; dragging here moves the window. */
-.titlebar {
-  height: 40px;
-  -webkit-app-region: drag;
-}
-
 /* The columns, under the chrome. A grid item's automatic minimum size is its content, so
    without the zero minimum a tall child — a long history, a large diff — stretches the row
    past the window and the column's own scroll container never gets a height to scroll in. */

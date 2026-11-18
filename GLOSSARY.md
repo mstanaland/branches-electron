@@ -23,6 +23,25 @@ _Avoid_: Current repository, selected repository
 A saved repository whose folder no longer exists or is no longer a repository root. Flagged every time the list is read, never removed automatically.
 _Avoid_: Broken, deleted, orphaned
 
+### Window chrome
+
+**Title bar**:
+The full-width row at the top of the window: the traffic lights inset on the left, the
+**operations area** on the right. The window has no frame of its own, so this row and the tab
+strip below it are all the chrome there is, and both are the window's drag region.
+_Avoid_: Toolbar, header, top bar
+
+**Operations area**:
+The right-hand end of the **title bar**, holding the operations on the **active repository** —
+Fetch, Pull, Push and the overflow menu. Empty when no repository is in front.
+_Avoid_: Action bar, button bar, toolbar
+
+**Window title**:
+What the OS shows for the window — in Mission Control, the Window menu and screen sharing. The
+**active repository**'s name, or the application name with no repository in front. Set in the
+main process; nothing draws it inside the window.
+_Avoid_: Document title, header text
+
 ### Tabs
 
 **Tab**:

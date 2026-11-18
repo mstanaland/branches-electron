@@ -53,6 +53,10 @@ function createWindow(): void {
 
   mainWindow.on('ready-to-show', () => mainWindow.show())
 
+  // The window title is ours: it follows the active repository (see windowTitle.ts). Electron
+  // otherwise takes it from the document on every load, which a reload would reset.
+  mainWindow.on('page-title-updated', (event) => event.preventDefault())
+
   // Open external links in the default browser, never in the app window.
   mainWindow.webContents.setWindowOpenHandler((details) => {
     void shell.openExternal(details.url)

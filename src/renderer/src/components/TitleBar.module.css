@@ -1,0 +1,26 @@
+/* The chrome's top row, spanning the window above the tab strip. Tall enough for the inset
+   traffic lights, which the OS draws over the left of it — hence the padding, which is the
+   space they sit in rather than anything of ours. Dragging the row moves the window. */
+.titlebar {
+  display: flex;
+  align-items: center;
+  flex: none;
+  height: 40px;
+  padding: 0 10px 0 78px;
+  -webkit-app-region: drag;
+}
+
+/* The operations on the active repository, against the right edge. Empty until Fetch arrives. */
+.operations {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+
+/* A control under a drag region never sees the click, so each one opts out. The gaps between
+   them stay draggable, which is how a Mac toolbar behaves — and an empty operations area
+   leaves the whole row a drag handle. */
+.operations > * {
+  -webkit-app-region: no-drag;
+}
