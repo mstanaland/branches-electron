@@ -23,7 +23,6 @@
   transition: background-color 120ms ease;
 }
 
-
 .handle:hover::after {
   background: var(--color-border);
 }
