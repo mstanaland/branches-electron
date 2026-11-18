@@ -924,6 +924,38 @@ describe('Pull', () => {
     expect(alert.textContent).toContain('diverged')
   })
 
+  it('gives up the row to Fetch once Fetch is the more recent operation', async () => {
+    api.pullRepository.mockRejectedValue(
+      new ApiError({
+        code: 'PULL_NOT_FAST_FORWARD',
+        message: 'main has diverged from its upstream, so it can\u2019t be fast-forwarded.'
+      })
+    )
+    await openBehind(1)
+    await waitFor(() => expect(pullButton().disabled).toBe(false))
+    fireEvent.click(pullButton())
+    await screen.findByRole('alert')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch' }))
+
+    // The row holds one failure for two operations, so a fetch that works clears the pull's.
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+  })
+
+  it('takes the row back from Fetch when the pull is the more recent operation', async () => {
+    api.fetchRepository.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'git fetch failed: host unreachable' })
+    )
+    await openBehind(1)
+    await waitFor(() => expect(pullButton().disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch' }))
+    expect((await screen.findByRole('alert')).textContent).toContain('host unreachable')
+
+    fireEvent.click(pullButton())
+
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+  })
+
   it('says it is working and cannot be fired twice at once', async () => {
     let finish = (): void => {}
     api.pullRepository.mockImplementation(

@@ -62,9 +62,10 @@ export function TitleBar(): React.JSX.Element {
 function Operations({ root }: { root: string }): React.JSX.Element {
   const fetch = useFetchRepository(root)
   const pull = usePullRepository(root)
-  // Whichever operation last failed is the one worth reporting, and only one of them can be
-  // the user's most recent action, so the two never compete for the row.
-  const error = describeError(pull.error ?? fetch.error)
+  // The row has space for one failure and holds two operations, so the one reported is the
+  // one the user ran most recently. Without that, a fetch that succeeds after a failed pull
+  // would leave the pull's error sitting there, and vice versa.
+  const error = describeError(pull.submittedAt > fetch.submittedAt ? pull.error : fetch.error)
 
   return (
     <>
@@ -116,17 +117,14 @@ function FetchButton({
  * as fresh as the last fetch, and Fetch sits next to it for when it isn't.
  */
 function Pull({ root, pull }: { root: string; pull: RepositoryPull }): React.JSX.Element {
-  const status = useStatus(root)
-  const behind = status.data?.detached === false ? (status.data.behind ?? 0) : 0
-  const hasUpstream = status.data?.upstream !== null && status.data?.upstream !== undefined
+  const status = useStatus(root).data
+  // Everything that makes a pull impossible collapses into "nothing to fast-forward": no
+  // status read yet, a **detached HEAD**, no **upstream**, or a branch already level with it.
+  const behind =
+    status !== undefined && !status.detached && status.upstream !== null ? status.behind : 0
 
   return (
-    <PullButton
-      behind={behind}
-      busy={pull.busy}
-      disabled={!hasUpstream || behind === 0}
-      onClick={pull.start}
-    />
+    <PullButton behind={behind} busy={pull.busy} disabled={behind === 0} onClick={pull.start} />
   )
 }
 

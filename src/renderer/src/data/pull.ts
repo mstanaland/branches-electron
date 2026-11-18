@@ -11,6 +11,8 @@ export interface RepositoryPull {
   busy: boolean
   /** What the last pull started from this mount failed with, else null. */
   error: ApiError | null
+  /** When the last pull from this mount was started, or 0 if none has been. See `RepositoryFetch`. */
+  submittedAt: number
 }
 
 /**
@@ -41,6 +43,7 @@ export function usePullRepository(root: string): RepositoryPull {
       if (inFlight === 0) pull.mutate()
     },
     busy: inFlight > 0,
-    error: pull.error
+    error: pull.error,
+    submittedAt: pull.submittedAt
   }
 }

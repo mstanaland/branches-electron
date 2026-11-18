@@ -71,8 +71,10 @@ async function currentBranch(root: string): Promise<string | null> {
  * argument: it reads HEAD's own, which the caller has already established is a branch.
  */
 async function hasUpstream(root: string): Promise<boolean> {
+  // --quiet exits 1, not 128, for both states that matter here: no upstream configured and
+  // an upstream configured but gone. Anything else is a real failure and should still throw.
   const { stdout } = await runGit(root, ['rev-parse', '--verify', '--quiet', '@{upstream}'], {
-    okExitCodes: [1, 128]
+    okExitCodes: [1]
   })
   return stdout.trim() !== ''
 }
