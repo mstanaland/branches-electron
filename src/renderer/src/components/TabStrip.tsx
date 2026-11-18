@@ -3,6 +3,7 @@ import { FolderX, Plus, X } from 'lucide-react'
 import { useRepositories, useTabs } from '../data'
 import type { SavedRepository } from '../../../shared/git'
 import type { Tab } from '../data'
+import { cannotBeFound } from './MissingRepository'
 import { Button } from '../ui'
 import styles from './TabStrip.module.css'
 
@@ -65,7 +66,7 @@ export function TabStrip(): React.JSX.Element {
                   className={styles.label}
                   aria-current={isFocused ? 'true' : undefined}
                   // The icon is decorative, so the flag has to reach assistive tech as text.
-                  aria-description={missing ? `${label} can’t be found.` : undefined}
+                  aria-description={missing ? `${cannotBeFound(label)}.` : undefined}
                   onClick={() => focusTab(tab.id)}
                 >
                   {missing && <FolderX className={styles.missing} />}

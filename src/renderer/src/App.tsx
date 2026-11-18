@@ -30,10 +30,13 @@ function App(): React.JSX.Element {
   useBackgroundFetch()
 
   const root = focused?.root ?? null
-  const saved = repositories.data?.find((repository) => repository.root === root)
-  const missing = root !== null && saved?.missing === true
+  // The saved entry when the focused tab's folder is known to be gone, which is the one case
+  // the repository's own panes can't be drawn for. Null while the list is still loading: the
+  // panes start their own slower git reads in the same render, so they are still pending when
+  // the list lands, and guessing "missing" would be worse than being briefly behind.
+  const missing = repositories.data?.find((r) => r.root === root && r.missing) ?? null
   // A repository whose folder is gone has no branches to read, so no view to switch.
-  const sidebarRoot = missing ? null : root
+  const sidebarRoot = missing === null ? root : null
   // Null for Working, which is the only view that isn't a history of something.
   const ref = focused === null ? null : viewRef(focused.view)
 
@@ -50,8 +53,8 @@ function App(): React.JSX.Element {
         <main className={styles.content}>
           {root === null ? (
             <Repositories onOpenRepository={open.mutate} openError={open.error} />
-          ) : missing ? (
-            <MissingRepository root={root} name={saved?.name ?? root} />
+          ) : missing !== null ? (
+            <MissingRepository repository={missing} />
           ) : ref === null ? (
             // Keyed as a whole so switching tab starts both panes fresh.
             <div key={root} className={styles.split}>

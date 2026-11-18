@@ -507,13 +507,16 @@ describe('a tab for a missing repository', () => {
     api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
     api.confirmRemoveMissingRepository.mockResolvedValue(true)
     renderWithProviders(<App />, { tabs: ['/repos/alpha', '/repos/beta'] })
+    const remove = await screen.findByRole('button', { name: 'Remove from List' })
 
-    fireEvent.click(await screen.findByRole('button', { name: 'Remove from List' }))
+    // Pinned before the click: what the list says afterwards shouldn't depend on when the
+    // invalidated refetch happens to run.
+    api.listRepositories.mockResolvedValue([repo('beta')])
+    fireEvent.click(remove)
 
     await waitFor(() =>
       expect(api.confirmRemoveMissingRepository).toHaveBeenCalledWith('/repos/alpha')
     )
-    api.listRepositories.mockResolvedValue([repo('beta')])
     await waitFor(() => expect(tabLabels()).toEqual(['beta']))
     expect(await screen.findByText('beta-main')).toBeTruthy()
   })

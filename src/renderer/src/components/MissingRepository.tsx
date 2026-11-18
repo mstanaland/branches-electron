@@ -1,8 +1,18 @@
 import { FolderX } from 'lucide-react'
 import { describeError, useConfirmRemoveMissing } from '../data'
+import type { SavedRepository } from '../../../shared/git'
 import { Button, EmptyState } from '../ui'
 import shared from './shared.module.css'
 import styles from './MissingRepository.module.css'
+
+/**
+ * How a **missing repository** is put to the user, wherever it is said: here, in the tab
+ * label, and in the saved list. One sentence without its full stop, so each caller can
+ * punctuate or continue it, and one place to change the wording.
+ */
+export function cannotBeFound(name: string): string {
+  return `${name} can’t be found`
+}
 
 /**
  * A **repository tab**'s content when its folder has moved or been deleted. Tabs come back
@@ -14,12 +24,11 @@ import styles from './MissingRepository.module.css'
  * Nothing here reads git: there is no folder to read.
  */
 export function MissingRepository({
-  root,
-  name
+  repository
 }: {
-  root: string
-  name: string
+  repository: SavedRepository
 }): React.JSX.Element {
+  const { root, name } = repository
   const confirmRemoval = useConfirmRemoveMissing()
   const error = describeError(confirmRemoval.error)
 
@@ -29,7 +38,7 @@ export function MissingRepository({
         <FolderX size={26} />
       </span>
       <EmptyState
-        title={`${name} can’t be found`}
+        title={cannotBeFound(name)}
         detail={`There is no repository at ${root} any more. It may have been moved, renamed or deleted.`}
         action={
           <Button
