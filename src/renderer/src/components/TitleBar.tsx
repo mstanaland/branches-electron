@@ -9,6 +9,7 @@ import {
   useTabs
 } from '../data'
 import { Button, Tooltip } from '../ui'
+import shared from './shared.module.css'
 import styles from './TitleBar.module.css'
 
 /**
@@ -101,7 +102,7 @@ function FetchButton({
       aria-busy={busy || undefined}
       onClick={onClick}
     >
-      {busy ? <LoaderCircle className={styles.spinner} /> : <ArrowDownToLine />}
+      {busy ? <LoaderCircle className={shared.spinner} /> : <ArrowDownToLine />}
       Fetch
     </Button>
   )
@@ -146,7 +147,7 @@ function PullButton({
       aria-busy={busy || undefined}
       onClick={onClick}
     >
-      {busy ? <LoaderCircle className={styles.spinner} /> : <ArrowDown />}
+      {busy ? <LoaderCircle className={shared.spinner} /> : <ArrowDown />}
       Pull
       {/* Part of the button's accessible name, not an aside: "Pull 3" is what the control
           offers to do, and a screen reader should hear the number too. */}

@@ -1,0 +1,38 @@
+.root {
+  height: 2px;
+}
+
+.track {
+  position: relative;
+  height: 100%;
+  overflow: hidden;
+}
+
+/* Base UI sizes the indicator from the value; indeterminate, it is ours to move. */
+.indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 30%;
+  background: var(--color-accent);
+  animation: slide 1.2s ease-in-out infinite;
+}
+
+@keyframes slide {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+/* No sliding: a steady, dimmer full-width bar still says "working". */
+@media (prefers-reduced-motion: reduce) {
+  .indicator {
+    width: 100%;
+    opacity: 0.5;
+    animation: none;
+  }
+}

@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../shared/apiError'
-import type { RepositoryStatus, SavedRepository } from '../../shared/git'
+import type { Branch, Commit, RepositoryStatus, SavedRepository } from '../../shared/git'
 import type { TabCommand } from '../../shared/tabs'
 import type { RendererApi } from './api'
 import { renderWithProviders } from './data/testUtils'
@@ -44,6 +44,16 @@ const status = (branch: string, overrides: Partial<RepositoryStatus> = {}): Repo
   changes: [],
   ...overrides
 })
+
+const mainBranch: Branch = {
+  name: 'main',
+  isCurrent: true,
+  shortOid: 'abc1234',
+  upstream: null,
+  upstreamGone: false,
+  ahead: 0,
+  behind: 0
+}
 
 /** A status whose branch is `behind` commits behind an upstream, so Pull has work to do. */
 const behindBy = (branch: string, behind: number): RepositoryStatus =>
@@ -977,5 +987,224 @@ describe('Pull', () => {
     await act(async () => {
       finish()
     })
+  })
+})
+
+describe('Refresh', () => {
+  const refreshButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: 'Refresh' }) as HTMLButtonElement
+
+  it('re-reads the focused tab’s repository without reaching the remote', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    await screen.findByText('beta-main')
+    api.getStatus.mockClear()
+    api.listBranches.mockClear()
+
+    fireEvent.click(refreshButton())
+
+    await waitFor(() => expect(api.getStatus).toHaveBeenCalledWith('/repos/beta'))
+    await waitFor(() => expect(api.listBranches).toHaveBeenCalledWith('/repos/beta'))
+    expect(api.getStatus).not.toHaveBeenCalledWith('/repos/alpha')
+    expect(api.fetchRepository).not.toHaveBeenCalled()
+    expect(api.pullRepository).not.toHaveBeenCalled()
+  })
+  it('says it is working, and keeps what is on screen until the new read lands', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+    let finish = (): void => {}
+    api.getStatus.mockImplementation(
+      () =>
+        new Promise((resolve) => {
+          finish = () => resolve(status('alpha-next'))
+        })
+    )
+
+    fireEvent.click(refreshButton())
+
+    await waitFor(() => expect(refreshButton().getAttribute('aria-busy')).toBe('true'))
+    expect(refreshButton().disabled).toBe(true)
+    // Stale data stays put: no skeleton, no pending state in its place.
+    expect(screen.getByText('alpha-main')).toBeTruthy()
+    expect(screen.queryByRole('status', { name: /loading/i })).toBeNull()
+
+    await act(async () => {
+      finish()
+    })
+    expect(await screen.findByText('alpha-next')).toBeTruthy()
+    await waitFor(() => expect(refreshButton().disabled).toBe(false))
+    expect(refreshButton().getAttribute('aria-busy')).toBeNull()
+  })
+})
+
+describe('the in-progress bar', () => {
+  const bar = (): HTMLElement | null => screen.queryByRole('progressbar', { name: 'In progress' })
+
+  /** Lets `ms` of fake time pass, flushing the renders and promises it releases. */
+  async function elapse(ms: number): Promise<void> {
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(ms)
+    })
+  }
+
+  /** Makes the next status reads hang until the returned function is called. */
+  function slowStatus(): () => void {
+    const pending: Array<() => void> = []
+    api.getStatus.mockImplementation(
+      (root) =>
+        new Promise((resolve) => {
+          pending.push(() => resolve(status(`${root.split('/').pop()}-main`)))
+        })
+    )
+    return () => {
+      for (const finish of pending.splice(0)) finish()
+    }
+  }
+
+  afterEach(() => {
+    vi.useRealTimers()
+  })
+
+  it('appears below the tab strip only once a refresh has taken about 400ms', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+    const finish = slowStatus()
+    vi.useFakeTimers()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await elapse(350)
+    expect(bar()).toBeNull()
+
+    await elapse(100)
+    expect(bar()).not.toBeNull()
+    // Under the strip, above the columns: it spans the window.
+    const strip = screen.getByRole('navigation', { name: 'Tabs' })
+    expect(strip.compareDocumentPosition(bar() as HTMLElement)).toBe(
+      Node.DOCUMENT_POSITION_FOLLOWING
+    )
+    expect(screen.getByText('alpha-main')).toBeTruthy()
+
+    finish()
+    await elapse(10)
+    expect(bar()).toBeNull()
+  })
+
+  it('never flashes for a refresh that finishes quickly', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+    const finish = slowStatus()
+    vi.useFakeTimers()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await elapse(200)
+    finish()
+    await elapse(1000)
+
+    expect(bar()).toBeNull()
+  })
+
+  it('shows while a fetch of the focused repository is in flight', async () => {
+    let finish = (): void => {}
+    api.fetchRepository.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => resolve()
+        })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+    vi.useFakeTimers()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Fetch' }))
+    await elapse(500)
+
+    expect(bar()).not.toBeNull()
+    finish()
+    await elapse(10)
+    expect(bar()).toBeNull()
+  })
+
+  it('reflects the focused tab only', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    await screen.findByText('beta-main')
+    const finish = slowStatus()
+    vi.useFakeTimers()
+    fireEvent.click(screen.getByRole('button', { name: 'Refresh' }))
+    await elapse(500)
+    expect(bar()).not.toBeNull()
+
+    // beta's read is still in flight, but alpha is what is in front now.
+    api.getStatus.mockImplementation(async (root) => status(`${root.split('/').pop()}-main`))
+    fireEvent.click(screen.getByRole('button', { name: 'alpha' }))
+    await elapse(500)
+    expect(screen.getByText('alpha-main')).toBeTruthy()
+    expect(bar()).toBeNull()
+
+    finish()
+    await elapse(10)
+  })
+})
+
+describe('a repository’s first load', () => {
+  /** A promise that stays pending until `finish` is called with what it should resolve to. */
+  function deferred<T>(): { promise: Promise<T>; finish: (value: T) => void } {
+    let finish = (_value: T): void => {}
+    const promise = new Promise<T>((resolve) => {
+      finish = resolve
+    })
+    return { promise, finish }
+  }
+
+  it('shows the changes and branch columns as pending, not empty', async () => {
+    const statusRead = deferred<RepositoryStatus>()
+    const branchesRead = deferred<Branch[]>()
+    api.getStatus.mockReturnValue(statusRead.promise)
+    api.listBranches.mockReturnValue(branchesRead.promise)
+    renderWithProviders(<App />)
+
+    await choose('alpha')
+
+    expect(await screen.findByRole('status', { name: 'Loading changes' })).toBeTruthy()
+    expect(screen.getByRole('status', { name: 'Loading branches' })).toBeTruthy()
+    expect(screen.queryByText('No changes')).toBeNull()
+    expect(screen.queryByText('No branches yet.')).toBeNull()
+
+    await act(async () => {
+      statusRead.finish(status('alpha-main'))
+      branchesRead.finish([])
+    })
+
+    expect(await screen.findByText('No changes')).toBeTruthy()
+    expect(screen.getByText('No branches yet.')).toBeTruthy()
+    expect(screen.queryByRole('status', { name: /^Loading/ })).toBeNull()
+  })
+
+  it('shows a branch’s history as pending, not empty', async () => {
+    api.listBranches.mockResolvedValue([mainBranch])
+    const commitsRead = deferred<Commit[]>()
+    api.listCommits.mockReturnValue(commitsRead.promise)
+    renderWithProviders(<App />)
+    await choose('alpha')
+
+    fireEvent.click(await screen.findByRole('treeitem', { name: 'main' }))
+
+    expect(await screen.findByRole('status', { name: 'Loading history' })).toBeTruthy()
+    expect(screen.queryByText('No commits yet.')).toBeNull()
+
+    await act(async () => {
+      commitsRead.finish([])
+    })
+
+    expect(await screen.findByText('No commits yet.')).toBeTruthy()
+    expect(screen.queryByRole('status', { name: 'Loading history' })).toBeNull()
   })
 })

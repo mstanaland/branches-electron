@@ -1,5 +1,22 @@
-/* Styles used by more than one sidebar component. */
+/* Styles used by more than one component. */
 .error {
   margin: 0 4px;
   color: var(--color-danger);
+}
+
+/* An operation's icon while it is in flight: Fetch, Pull and Refresh. */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
 }

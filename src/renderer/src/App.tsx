@@ -1,3 +1,4 @@
+import { InProgressBar } from './components/InProgressBar'
 import { ChangedFiles } from './components/ChangedFiles'
 import { CommitHistory } from './components/CommitHistory'
 import { DiffView } from './components/DiffView'
@@ -19,7 +20,8 @@ import styles from './App.module.css'
 /**
  * The window: a **title bar** and a strip of **tabs** spanning it, and below them the **focused
  * tab**'s repository — its branches on the left and whichever **view** the sidebar has
- * selected on the right.
+ * selected on the right. Between the two, the **in-progress bar** says when reading that
+ * repository is taking a while.
  *
  * With no repository in the focused tab, or no tab at all, the **Repositories** surface fills
  * the content area instead: as that tab's content, or as the **backdrop** (ADR 0007). The
@@ -58,6 +60,7 @@ function App(): React.JSX.Element {
     <div className={styles.app}>
       <TitleBar />
       {tabs.length > 0 && <TabStrip />}
+      {root !== null && <InProgressBar key={root} root={root} />}
       <div className={styles.body} data-sidebar={sidebarRoot === null ? 'false' : 'true'}>
         {sidebarRoot !== null && (
           <aside className={styles.sidebar}>

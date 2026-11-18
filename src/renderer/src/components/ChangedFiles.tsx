@@ -17,7 +17,7 @@ import {
   useStaging,
   useStatus
 } from '../data'
-import { AheadBehind, Button, Checkbox, EmptyState } from '../ui'
+import { AheadBehind, Button, Checkbox, EmptyState, Pending } from '../ui'
 import { CommitForm } from './CommitForm'
 import { StatusBadge } from './StatusBadge'
 import shared from './shared.module.css'
@@ -181,6 +181,8 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
           {error.message}
         </p>
       )}
+      {/* Only the first read: a refetch keeps the previous data on screen instead. */}
+      {status.isPending && !error && <Pending label="Loading changes" />}
       {data && changes.length === 0 && <EmptyState title="No changes" />}
       {changes.length > 0 && (
         <ul ref={listRef} className={styles.list} aria-label="Changes" tabIndex={-1}>

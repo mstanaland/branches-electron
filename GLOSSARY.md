@@ -42,6 +42,13 @@ What the OS shows for the window — in Mission Control, the Window menu and scr
 main process; nothing draws it inside the window.
 _Avoid_: Document title, header text
 
+**In-progress bar**:
+The thin indeterminate bar spanning the window below the tab strip, shown while the **active
+repository** is being read, or a Fetch, Pull or Refresh of it is running — but only once that
+has taken about 400ms, so a fast read never flashes it. What is already on screen stays there
+underneath.
+_Avoid_: Spinner, loading bar, throbber
+
 ### Tabs
 
 **Tab**:
@@ -166,6 +173,18 @@ The same `git fetch --prune` run for the **active repository** when the user pre
 the **operations area**. Loud, unlike **background fetch**: a failure is shown, and a
 repository with no remote is told about rather than reported as a fetch that did nothing.
 _Avoid_: Refresh (that one touches no network), sync, update
+
+**Refresh**:
+Re-reading the **active repository** from disk on demand, with the control at the foot of the
+sidebar — the same re-read regaining window focus does. Touches no network: reaching the
+remote is **manual fetch**'s job. A refresh keeps what is on screen until the new read lands.
+_Avoid_: Reload, sync, fetch (that one reaches the remote)
+
+**First load**:
+A repository's first read in a tab, when there is nothing yet to keep on screen. Each column
+shows a pending state until its read lands, so a column still loading never looks like an empty
+repository.
+_Avoid_: Initial fetch, skeleton
 
 **Pull**:
 Bringing the **current branch** up to date with its **upstream**, with `git pull --ff-only`,

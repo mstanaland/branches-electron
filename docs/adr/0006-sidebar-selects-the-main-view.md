@@ -18,3 +18,11 @@ opened, and the branch list stays a `role="tree"` rather than an ARIA tablist. O
 this ADR argued against calling the sidebar "tabs" at a time when nothing in the app was one.
 The word now means the horizontal strip above the columns, and `GLOSSARY.md` keeps the two
 apart: a **tab** holds a repository, a **view** is what the sidebar picks inside one.
+
+## Amendment: Refresh sits at the foot of the sidebar
+
+The sidebar now also holds the **Refresh** control (#34), pinned below the branch tree. It is
+not a view and selects nothing, so none of the above changes: the view switcher is still Working
+and the branch tree. It lives here rather than in the **operations area** because Refresh only
+re-reads the repository from disk, and the operations area holds what acts on the repository or
+its remote — keeping it apart keeps "touches the network" a property of where a control sits.
