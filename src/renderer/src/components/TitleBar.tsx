@@ -1,12 +1,20 @@
-import { ArrowDownToLine, LoaderCircle } from 'lucide-react'
-import { describeError, useFetchRepository, useRepositories, useTabs } from '../data'
+import { ArrowDown, ArrowDownToLine, LoaderCircle } from 'lucide-react'
+import {
+  describeError,
+  type RepositoryPull,
+  useFetchRepository,
+  usePullRepository,
+  useRepositories,
+  useStatus,
+  useTabs
+} from '../data'
 import { Button, Tooltip } from '../ui'
 import styles from './TitleBar.module.css'
 
 /**
  * The **title bar**: the full-width row at the top of the window, with the traffic lights
  * inset on the left and the **operations area** on the right, where the operations on the
- * **active repository** — Fetch today, Pull, Push and the overflow menu as they arrive —
+ * **active repository** — Fetch and Pull today, Push and the overflow menu as they arrive —
  * live.
  *
  * The row is the window's drag region, which is what makes the chrome behave like a Mac
@@ -31,23 +39,32 @@ export function TitleBar(): React.JSX.Element {
     <div className={styles.titlebar}>
       <div className={styles.operations}>
         {/* A Repositories tab and the backdrop have no repository, so the operations have
-            nothing to act on: the control is still there, visibly disabled, rather than
+            nothing to act on: the controls are still there, visibly disabled, rather than
             appearing and disappearing as tabs change. */}
-        {root !== null && reachable ? <Fetch key={root} root={root} /> : <FetchButton disabled />}
+        {root !== null && reachable ? (
+          <Operations key={root} root={root} />
+        ) : (
+          <>
+            <FetchButton disabled />
+            <PullButton disabled />
+          </>
+        )}
       </div>
     </div>
   )
 }
 
 /**
- * The **manual fetch** control. It reports what went wrong next to itself, unlike the
- * background fetch, which is silent by design. Keyed by root above, so switching tab never
- * shows one repository's failure beside another's; a fetch still in flight is still shown as
- * one, because that is read from the query client rather than from this mount.
+ * The operations on one repository. Keyed by root above, so switching tab never shows one
+ * repository's failure beside another's; an operation still in flight is still shown as one,
+ * because that is read from the query client rather than from this mount.
  */
-function Fetch({ root }: { root: string }): React.JSX.Element {
+function Operations({ root }: { root: string }): React.JSX.Element {
   const fetch = useFetchRepository(root)
-  const error = describeError(fetch.error)
+  const pull = usePullRepository(root)
+  // Whichever operation last failed is the one worth reporting, and only one of them can be
+  // the user's most recent action, so the two never compete for the row.
+  const error = describeError(pull.error ?? fetch.error)
 
   return (
     <>
@@ -59,9 +76,10 @@ function Fetch({ root }: { root: string }): React.JSX.Element {
           </p>
         </Tooltip>
       )}
-      {/* A fetch in flight both disables the button and spins its icon, so it can't be fired
-          twice at once and says that it is working. */}
+      {/* An operation in flight both disables its button and spins its icon, so it can't be
+          fired twice at once and says that it is working. */}
       <FetchButton busy={fetch.busy} onClick={fetch.start} />
+      <Pull root={root} pull={pull} />
     </>
   )
 }
@@ -84,6 +102,57 @@ function FetchButton({
     >
       {busy ? <LoaderCircle className={styles.spinner} /> : <ArrowDownToLine />}
       Fetch
+    </Button>
+  )
+}
+
+/**
+ * The **Pull** control. It is enabled only when there is something to fast-forward onto: a
+ * **current branch** (not a **detached HEAD**) with an **upstream** it is behind.
+ *
+ * The count beside the label is how far behind that branch is, so the row says what pulling
+ * would bring rather than only offering to do it. The number comes from status, which the
+ * **background fetch** keeps current while the window is focused — so "nothing to pull" is
+ * as fresh as the last fetch, and Fetch sits next to it for when it isn't.
+ */
+function Pull({ root, pull }: { root: string; pull: RepositoryPull }): React.JSX.Element {
+  const status = useStatus(root)
+  const behind = status.data?.detached === false ? (status.data.behind ?? 0) : 0
+  const hasUpstream = status.data?.upstream !== null && status.data?.upstream !== undefined
+
+  return (
+    <PullButton
+      behind={behind}
+      busy={pull.busy}
+      disabled={!hasUpstream || behind === 0}
+      onClick={pull.start}
+    />
+  )
+}
+
+function PullButton({
+  behind = 0,
+  busy = false,
+  disabled = false,
+  onClick
+}: {
+  behind?: number
+  busy?: boolean
+  disabled?: boolean
+  onClick?: () => void
+}): React.JSX.Element {
+  return (
+    <Button
+      variant="quiet"
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      onClick={onClick}
+    >
+      {busy ? <LoaderCircle className={styles.spinner} /> : <ArrowDown />}
+      Pull
+      {/* Part of the button's accessible name, not an aside: "Pull 3" is what the control
+          offers to do, and a screen reader should hear the number too. */}
+      {behind > 0 && <span className={styles.count}>{behind}</span>}
     </Button>
   )
 }

@@ -17,6 +17,7 @@ const api = vi.hoisted(() => ({
   listCommits: vi.fn<RendererApi['listCommits']>(),
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
   fetchRepository: vi.fn<RendererApi['fetchRepository']>(),
+  pullRepository: vi.fn<RendererApi['pullRepository']>(),
   setTabCount: vi.fn<RendererApi['setTabCount']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>(),
   onTabCommand: vi.fn<RendererApi['onTabCommand']>(),
@@ -33,15 +34,20 @@ const repo = (name: string, missing = false): SavedRepository => ({
   missing
 })
 
-const status = (branch: string): RepositoryStatus => ({
+const status = (branch: string, overrides: Partial<RepositoryStatus> = {}): RepositoryStatus => ({
   branch,
   headOid: 'abc1234',
   detached: false,
   upstream: null,
   ahead: 0,
   behind: 0,
-  changes: []
+  changes: [],
+  ...overrides
 })
+
+/** A status whose branch is `behind` commits behind an upstream, so Pull has work to do. */
+const behindBy = (branch: string, behind: number): RepositoryStatus =>
+  status(branch, { upstream: 'origin/main', behind })
 
 /** The labels in the tab strip, left to right, or null when there is no strip at all. */
 function tabLabels(): string[] | null {
@@ -95,6 +101,7 @@ beforeEach(() => {
   api.onRemoteRefsChanged.mockReturnValue(() => {})
   api.setActiveRepository.mockResolvedValue(undefined)
   api.fetchRepository.mockResolvedValue(undefined)
+  api.pullRepository.mockResolvedValue(undefined)
   api.listBranches.mockResolvedValue([])
   api.listCommits.mockResolvedValue([])
   api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta'), repo('gamma')])
@@ -824,5 +831,119 @@ describe('the Window menu', () => {
 
     await menu({ type: 'close' })
     await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(1))
+  })
+})
+
+describe('Pull', () => {
+  const pullButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: /^Pull/ }) as HTMLButtonElement
+
+  /** Puts `alpha` behind its upstream by `behind`, then opens it in a focused tab. */
+  async function openBehind(behind: number): Promise<void> {
+    api.getStatus.mockImplementation(async (root) =>
+      behindBy(`${root.split('/').pop()}-main`, behind)
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+  }
+
+  it('is disabled on the backdrop, where there is no repository to pull into', async () => {
+    renderWithProviders(<App />)
+    await screen.findByRole('option', { name: 'alpha' })
+
+    expect(pullButton().disabled).toBe(true)
+  })
+
+  it('says how far behind the branch is', async () => {
+    await openBehind(3)
+
+    await waitFor(() => expect(pullButton().disabled).toBe(false))
+    expect(pullButton().textContent).toContain('3')
+  })
+
+  it('is disabled when the branch is level with its upstream', async () => {
+    await openBehind(0)
+
+    await waitFor(() => expect(screen.getByText('alpha-main')).toBeTruthy())
+    expect(pullButton().disabled).toBe(true)
+  })
+
+  it('is disabled when the branch tracks no upstream', async () => {
+    api.getStatus.mockImplementation(async (root) => status(`${root.split('/').pop()}-main`))
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+
+    expect(pullButton().disabled).toBe(true)
+  })
+
+  it('is disabled on a detached HEAD, which has no upstream to pull from', async () => {
+    api.getStatus.mockImplementation(async () =>
+      status('detached', { branch: null, detached: true, upstream: 'origin/main', behind: 2 })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await waitFor(() => expect(api.getStatus).toHaveBeenCalledWith('/repos/alpha'))
+
+    await waitFor(() => expect(pullButton().disabled).toBe(true))
+  })
+
+  it('pulls the focused tab’s repository and re-reads what it changed', async () => {
+    api.getStatus.mockImplementation(async (root) => behindBy(`${root.split('/').pop()}-main`, 2))
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    await screen.findByText('beta-main')
+    await waitFor(() => expect(pullButton().disabled).toBe(false))
+    const statusReads = api.getStatus.mock.calls.length
+
+    fireEvent.click(pullButton())
+
+    await waitFor(() => expect(api.pullRepository).toHaveBeenCalledWith('/repos/beta'))
+    // A pull moves HEAD and rewrites files, so the whole repository is re-read, not just
+    // the ahead/behind counts a fetch touches.
+    await waitFor(() => expect(api.getStatus.mock.calls.length).toBeGreaterThan(statusReads))
+    expect(api.listBranches).toHaveBeenCalledWith('/repos/beta')
+  })
+
+  it('reports a branch that cannot be fast-forwarded', async () => {
+    api.pullRepository.mockRejectedValue(
+      new ApiError({
+        code: 'PULL_NOT_FAST_FORWARD',
+        message: 'main has diverged from its upstream, so it can’t be fast-forwarded.'
+      })
+    )
+    await openBehind(1)
+    await waitFor(() => expect(pullButton().disabled).toBe(false))
+
+    fireEvent.click(pullButton())
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('diverged')
+  })
+
+  it('says it is working and cannot be fired twice at once', async () => {
+    let finish = (): void => {}
+    api.pullRepository.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => resolve()
+        })
+    )
+    await openBehind(1)
+    await waitFor(() => expect(pullButton().disabled).toBe(false))
+
+    fireEvent.click(pullButton())
+
+    await waitFor(() => expect(pullButton().disabled).toBe(true))
+    expect(pullButton().getAttribute('aria-busy')).toBe('true')
+    fireEvent.click(pullButton())
+    expect(api.pullRepository).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      finish()
+    })
   })
 })

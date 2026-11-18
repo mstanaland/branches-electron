@@ -167,6 +167,14 @@ the **operations area**. Loud, unlike **background fetch**: a failure is shown, 
 repository with no remote is told about rather than reported as a fetch that did nothing.
 _Avoid_: Refresh (that one touches no network), sync, update
 
+**Pull**:
+Bringing the **current branch** up to date with its **upstream**, with `git pull --ff-only`,
+when the user presses Pull in the **operations area**. Fast-forward only: a branch that has
+diverged is refused rather than merged or rebased. The control says how far **behind** the
+branch is, and is disabled when there is nothing to fast-forward onto — no **upstream**, a
+**detached HEAD**, or a branch already level with its upstream.
+_Avoid_: Sync, update, merge (a pull never makes a merge commit here)
+
 **Current branch**:
 The branch HEAD points at. Absent when HEAD is detached.
 _Avoid_: Active branch ("active" belongs to repositories)
