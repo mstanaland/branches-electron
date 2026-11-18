@@ -680,6 +680,26 @@ describe('column widths', () => {
   const width = (name: 'Sidebar width' | 'Changes width'): number =>
     Number(boundary(name).getAttribute('aria-valuenow'))
 
+  it('resizes with a pointer without moving focus to the separator', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    const handle = boundary('Sidebar width')
+    const start = width('Sidebar width')
+    const focused = document.activeElement
+    // jsdom does not implement pointer capture.
+    handle.setPointerCapture = vi.fn<HTMLElement['setPointerCapture']>()
+    handle.hasPointerCapture = () => false
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 260 })
+    expect(handle.getAttribute('data-dragging')).toBe('true')
+    fireEvent.pointerMove(handle, { pointerId: 1, clientX: 280 })
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 280 })
+
+    expect(width('Sidebar width')).toBe(start + 20)
+    expect(handle.hasAttribute('data-dragging')).toBe(false)
+    expect(document.activeElement).toBe(focused)
+  })
+
   it('nudges the sidebar boundary with the arrow keys', async () => {
     renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
     await screen.findByText('alpha-main')

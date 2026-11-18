@@ -50,9 +50,8 @@ export function ResizeHandle({
 
   const onPointerDown = (event: React.PointerEvent<HTMLDivElement>): void => {
     if (event.button !== 0) return
-    // Keeps the text under the pointer from being selected while dragging.
+    // Keep the current focus and prevent text selection while dragging.
     event.preventDefault()
-    event.currentTarget.focus()
     event.currentTarget.setPointerCapture(event.pointerId)
     drag.current = { pointerId: event.pointerId, startX: event.clientX, startValue: current }
     setDragging(true)
