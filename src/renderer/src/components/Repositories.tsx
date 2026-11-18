@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { FolderX } from 'lucide-react'
+import { FolderGit2, FolderX } from 'lucide-react'
 import {
   describeError,
   useConfirmRemoveMissing,
@@ -7,7 +7,7 @@ import {
   useRepositoryMenu,
   useTabs
 } from '../data'
-import { Button, EmptyState, Tooltip } from '../ui'
+import { Button, Tooltip } from '../ui'
 import shared from './shared.module.css'
 import styles from './Repositories.module.css'
 
@@ -49,7 +49,8 @@ export function Repositories({
         {saved !== undefined && saved.length === 0 && (
           <p className={styles.none}>No repositories yet.</p>
         )}
-        {/* More than one repository can be open, so more than one option is marked. */}
+        {/* More than one repository can be open, so more than one option is marked. The
+            tab strip is where that shows visually; here it is only announced. */}
         {saved !== undefined && saved.length > 0 && (
           <ul
             className={styles.list}
@@ -96,7 +97,7 @@ export function Repositories({
                       }
                     }}
                   >
-                    {repository.missing && <FolderX />}
+                    {repository.missing ? <FolderX /> : <FolderGit2 />}
                     <span className={styles.rowName}>{repository.name}</span>
                   </li>
                 </Tooltip>
@@ -111,11 +112,17 @@ export function Repositories({
         )}
       </nav>
       <div className={styles.pane}>
-        <EmptyState
-          title="No repository open."
-          detail="Choose one from the list, or open a folder."
-          action={<Button onClick={onOpenRepository}>Open Repository…</Button>}
-        />
+        <div className={styles.hero}>
+          <span className={styles.heroIcon}>
+            <FolderGit2 size={26} />
+          </span>
+          <h1 className={styles.heroTitle}>
+            Choose an imported repository from the list or add a new one
+          </h1>
+          <Button variant="primary" onClick={onOpenRepository}>
+            Open Repository…
+          </Button>
+        </div>
       </div>
     </div>
   )

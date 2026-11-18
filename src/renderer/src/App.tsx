@@ -8,8 +8,9 @@ import { useBackgroundFetch, useOpenRepository, useRepositories, useTabs, viewRe
 import styles from './App.module.css'
 
 /**
- * The window: a strip of **tabs**, and below it the **focused tab**'s repository — its
- * branches on the left and whichever **view** the sidebar has selected on the right.
+ * The window: a title bar and a strip of **tabs** spanning it, and below them the **focused
+ * tab**'s repository — its branches on the left and whichever **view** the sidebar has
+ * selected on the right.
  *
  * With no repository in the focused tab, or no tab at all, the **Repositories** surface fills
  * the content area instead: as that tab's content, or as the **backdrop** (ADR 0007). The
@@ -31,28 +32,29 @@ function App(): React.JSX.Element {
   const ref = focused === null ? null : viewRef(focused.view)
 
   return (
-    <div className={styles.app} data-sidebar={sidebarRoot === null ? 'false' : 'true'}>
-      {sidebarRoot !== null && (
-        <aside className={styles.sidebar}>
-          <div className={styles.titlebar} />
-          <Sidebar root={sidebarRoot} />
-        </aside>
-      )}
-      <main className={styles.content}>
-        <div className={styles.titlebar} />
-        {tabs.length > 0 && <TabStrip />}
-        {root === null ? (
-          <Repositories onOpenRepository={open.mutate} openError={open.error} />
-        ) : ref === null ? (
-          // Keyed as a whole so switching tab starts both panes fresh.
-          <div key={root} className={styles.split}>
-            <ChangedFiles root={root} />
-            <DiffView root={root} />
-          </div>
-        ) : (
-          <CommitHistory root={root} commitRef={ref} />
+    <div className={styles.app}>
+      <div className={styles.titlebar} />
+      {tabs.length > 0 && <TabStrip />}
+      <div className={styles.body} data-sidebar={sidebarRoot === null ? 'false' : 'true'}>
+        {sidebarRoot !== null && (
+          <aside className={styles.sidebar}>
+            <Sidebar root={sidebarRoot} />
+          </aside>
         )}
-      </main>
+        <main className={styles.content}>
+          {root === null ? (
+            <Repositories onOpenRepository={open.mutate} openError={open.error} />
+          ) : ref === null ? (
+            // Keyed as a whole so switching tab starts both panes fresh.
+            <div key={root} className={styles.split}>
+              <ChangedFiles root={root} />
+              <DiffView root={root} />
+            </div>
+          ) : (
+            <CommitHistory root={root} commitRef={ref} />
+          )}
+        </main>
+      </div>
     </div>
   )
 }
