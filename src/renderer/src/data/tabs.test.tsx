@@ -2,7 +2,8 @@
 import { act, cleanup, renderHook } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { MAX_TABS, TabsProvider, useSelection, useTabs } from './tabs'
+import { MAX_TABS } from '../../../shared/tabs'
+import { TabsProvider, useSelection, useTabs } from './tabs'
 
 const STORAGE_KEY = 'branches.tabs'
 

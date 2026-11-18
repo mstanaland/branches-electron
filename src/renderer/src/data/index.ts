@@ -18,7 +18,9 @@ export {
   useStatus
 } from './queries'
 export { useConfirmRemoveMissing, useRepositoryMenu } from './removal'
-export { MAX_TABS, TabsProvider, useSelection, useTabs } from './tabs'
+export { useTabMenu } from './tabMenu'
+export { MAX_TABS } from '../../../shared/tabs'
+export { TabsProvider, useSelection, useTabs } from './tabs'
 export type { Selection, Tab, TabsState } from './tabs'
 export { WORKING, isSameView, viewRef } from './view'
 export type { View } from './view'

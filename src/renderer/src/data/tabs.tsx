@@ -1,15 +1,10 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
+import { MAX_TABS } from '../../../shared/tabs'
 import { WORKING, isSameView } from './view'
 import type { View } from './view'
 
 const STORAGE_KEY = 'branches.tabs'
-
-/**
- * How many tabs the strip holds, of any kind (ADR 0007). The `+` button is absent once it is
- * full, so the limit is visible rather than discovered by a click that does nothing.
- */
-export const MAX_TABS = 4
 
 /**
  * One slot in the strip. `root` is null for a **Repositories tab**, which has no repository
@@ -39,7 +34,19 @@ export interface TabsState {
    */
   chooseRepository: (root: string) => void
   focusTab: (id: string) => void
+  /**
+   * Focuses the `index`th tab, counting from zero, for Cmd+1 … Cmd+4. Nothing happens when
+   * the strip is shorter than that.
+   */
+  focusIndex: (index: number) => void
+  /**
+   * Moves focus one tab to the left or right, wrapping round the ends so the shortcut keeps
+   * cycling rather than stopping dead at the edge. Nothing happens on the backdrop.
+   */
+  focusStep: (step: 1 | -1) => void
   closeTab: (id: string) => void
+  /** Closes the focused tab, for Cmd+W. Nothing happens on the backdrop. */
+  closeFocused: () => void
   /** Closes any tab showing `root`, for when it leaves the saved list. */
   closeRepository: (root: string) => void
   /** Changes the focused tab's view. Nothing happens on the backdrop. */
@@ -203,8 +210,37 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
     []
   )
 
+  const focusIndex = useCallback(
+    (index: number) =>
+      setState((current) => {
+        const tab = current.tabs[index]
+        return tab === undefined || tab.id === current.focusedId
+          ? current
+          : { ...current, focusedId: tab.id }
+      }),
+    []
+  )
+
+  const focusStep = useCallback(
+    (step: 1 | -1) =>
+      setState((current) => {
+        if (current.tabs.length === 0) return current
+        const from = current.tabs.findIndex((tab) => tab.id === current.focusedId)
+        if (from === -1) return current
+        const count = current.tabs.length
+        const index = (from + step + count) % count
+        return { ...current, focusedId: current.tabs[index].id }
+      }),
+    []
+  )
+
   const closeTab = useCallback(
     (id: string) => setState((current) => close(current, (tab) => tab.id === id)),
+    []
+  )
+
+  const closeFocused = useCallback(
+    () => setState((current) => close(current, (tab) => tab.id === current.focusedId)),
     []
   )
 
@@ -249,7 +285,10 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
       openTab,
       chooseRepository,
       focusTab,
+      focusIndex,
+      focusStep,
       closeTab,
+      closeFocused,
       closeRepository,
       setView,
       setSelectedPath
@@ -259,7 +298,10 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
     openTab,
     chooseRepository,
     focusTab,
+    focusIndex,
+    focusStep,
     closeTab,
+    closeFocused,
     closeRepository,
     setView,
     setSelectedPath

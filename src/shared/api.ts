@@ -7,6 +7,7 @@ import type {
   SavedRepository
 } from './git'
 import type { ApiResult } from './result'
+import type { TabCommand } from './tabs'
 
 /**
  * The typed bridge between the renderer (React) and the main process (Node).
@@ -91,6 +92,12 @@ export interface BranchesApi {
    */
   setActiveRepository: (root: string | null) => Promise<ApiResult<void>>
   /**
+   * Tells main how many tabs the strip holds, so the Window menu can enable only what the
+   * strip can actually do — and so Cmd+W knows whether there is a tab to close or only the
+   * window. Called whenever the count changes; `count` must be between 0 and `MAX_TABS`.
+   */
+  setTabCount: (count: number) => Promise<ApiResult<void>>
+  /**
    * Pops up the native context menu for a branch. Resolves with what the user chose, or null
    * if they dismissed it. It only reports the choice; the renderer then makes the call, so it
    * can show progress and errors.
@@ -105,6 +112,12 @@ export interface BranchesApi {
 export interface BranchesEvents {
   /** The user chose File > Open Repository… (Cmd+O). Returns a function that unsubscribes. */
   onOpenRepositoryRequested: (listener: () => void) => () => void
+  /**
+   * The user chose one of the Window menu's tab items — New Tab, Close Tab, Show Previous /
+   * Next Tab, or one of Cmd+1 … Cmd+4. The strip lives here, so main only reports the choice.
+   * Returns a function that unsubscribes.
+   */
+  onTabCommand: (listener: (command: TabCommand) => void) => () => void
   /**
    * A background fetch moved, added or pruned a remote-tracking ref in `root`, so the
    * ahead/behind counts the renderer is showing are stale. Returns an unsubscribe function.
