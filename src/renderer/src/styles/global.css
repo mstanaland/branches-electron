@@ -103,6 +103,14 @@
   box-sizing: border-box;
 }
 
+/* The backstop under the app's own scroll chain: the document is the window, and nothing
+   inside it can ever make the window itself scroll. Each column scrolls on its own instead. */
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+}
+
 body {
   margin: 0;
   background: var(--color-bg);
