@@ -50,6 +50,18 @@ _Avoid_: Empty state, home, welcome screen
 The one tab the user is looking at. Its repository is the **active repository**.
 _Avoid_: Current tab, selected tab, open tab
 
+**Tab command**:
+What a **Window menu** item asks of the strip — open a tab, close the focused one, step to the
+previous or next, or focus the nth. The menu lives in the main process and the strip in the
+renderer, so the item sends one of these rather than changing anything itself (ADR 0008).
+_Avoid_: Tab action, tab event, shortcut
+
+**Window menu**:
+The application menu holding every tab keystroke: New Tab, Close Tab, Show Previous / Next Tab,
+and the four items that focus a tab by position. An item is disabled when the strip cannot do
+it, and Cmd+W becomes Close Window only once no tab is left.
+_Avoid_: Tab menu, View menu
+
 ### Views
 
 **View**:

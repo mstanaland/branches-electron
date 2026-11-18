@@ -5,7 +5,14 @@ import { MissingRepository } from './components/MissingRepository'
 import { Repositories } from './components/Repositories'
 import { Sidebar } from './components/Sidebar'
 import { TabStrip } from './components/TabStrip'
-import { useBackgroundFetch, useOpenRepository, useRepositories, useTabs, viewRef } from './data'
+import {
+  useBackgroundFetch,
+  useOpenRepository,
+  useRepositories,
+  useTabMenu,
+  useTabs,
+  viewRef
+} from './data'
 import styles from './App.module.css'
 
 /**
@@ -17,6 +24,9 @@ import styles from './App.module.css'
  * the content area instead: as that tab's content, or as the **backdrop** (ADR 0007). The
  * sidebar is absent then, because there are no branches to switch views within.
  *
+ * Every tab shortcut — Cmd+T, Cmd+W, Cmd+1 … Cmd+4 and the two step shortcuts — arrives as a
+ * command from main's Window menu rather than a key handler here (ADR 0003).
+ *
  * A tab whose repository has gone **missing** — tabs come back across launches, folders move
  * in between — gets the same treatment: an explanation and a way out, in place of panes that
  * have no folder to read.
@@ -27,6 +37,9 @@ function App(): React.JSX.Element {
   // Owned here, not in the surface that draws its button: the menu's Cmd+O has to reach it
   // whatever the focused tab is showing.
   const open = useOpenRepository()
+  // Owned here for the same reason: the Window menu's tab shortcuts reach the whole strip,
+  // not whatever tab is in front.
+  useTabMenu()
   useBackgroundFetch()
 
   const root = focused?.root ?? null

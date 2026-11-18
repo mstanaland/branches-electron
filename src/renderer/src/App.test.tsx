@@ -2,6 +2,7 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import type { RepositoryStatus, SavedRepository } from '../../shared/git'
+import type { TabCommand } from '../../shared/tabs'
 import type { RendererApi } from './api'
 import { renderWithProviders } from './data/testUtils'
 
@@ -14,7 +15,9 @@ const api = vi.hoisted(() => ({
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listCommits: vi.fn<RendererApi['listCommits']>(),
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
+  setTabCount: vi.fn<RendererApi['setTabCount']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>(),
+  onTabCommand: vi.fn<RendererApi['onTabCommand']>(),
   onRemoteRefsChanged: vi.fn<RendererApi['onRemoteRefsChanged']>()
 }))
 vi.mock('./api', () => ({ api }))
@@ -60,6 +63,16 @@ async function choose(name: string): Promise<void> {
   fireEvent.click(await screen.findByRole('option', { name }))
 }
 
+/** The Window-menu listeners the app has registered, newest last. */
+let tabCommandListeners: Array<(command: TabCommand) => void> = []
+
+/** Runs a Window-menu item, the way main's menu does when its accelerator is pressed. */
+async function menu(command: TabCommand): Promise<void> {
+  await act(async () => {
+    for (const listener of tabCommandListeners) listener(command)
+  })
+}
+
 /** Opens a Repositories tab with `+`. */
 function newTab(): void {
   fireEvent.click(screen.getByRole('button', { name: 'New tab' }))
@@ -69,6 +82,14 @@ beforeEach(() => {
   vi.resetAllMocks()
   localStorage.clear()
   api.onOpenRepositoryRequested.mockReturnValue(() => {})
+  tabCommandListeners = []
+  api.onTabCommand.mockImplementation((listener) => {
+    tabCommandListeners.push(listener)
+    return () => {
+      tabCommandListeners = tabCommandListeners.filter((entry) => entry !== listener)
+    }
+  })
+  api.setTabCount.mockResolvedValue(undefined)
   api.onRemoteRefsChanged.mockReturnValue(() => {})
   api.setActiveRepository.mockResolvedValue(undefined)
   api.listBranches.mockResolvedValue([])
@@ -548,5 +569,100 @@ describe('a tab for a missing repository', () => {
     expect(api.confirmRemoveMissingRepository).not.toHaveBeenCalled()
     // Still on the backdrop's saved list, flagged, waiting to be dealt with.
     expect(await screen.findByRole('option', { name: 'alpha' })).toBeTruthy()
+  })
+})
+
+describe('the Window menu', () => {
+  it('opens a Repositories tab on New Tab (Cmd+T)', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+
+    await menu({ type: 'new' })
+
+    expect(tabLabels()).toEqual(['alpha', 'Repositories'])
+    expect(focusedTab()).toBe('Repositories')
+    expect(await screen.findByRole('option', { name: 'beta' })).toBeTruthy()
+  })
+
+  it('closes the focused tab on Close Tab (Cmd+W), focusing a neighbour', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+
+    await menu({ type: 'close' })
+
+    expect(tabLabels()).toEqual(['alpha'])
+    expect(focusedTab()).toBe('alpha')
+    expect(await screen.findByText('alpha-main')).toBeTruthy()
+  })
+
+  it('leaves the backdrop when the last tab is closed, rather than the window going', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+
+    await menu({ type: 'close' })
+
+    expect(tabLabels()).toBeNull()
+    expect(await screen.findByRole('option', { name: 'alpha' })).toBeTruthy()
+    // Nothing left for a second Cmd+W to close but the window, which is main's to do.
+    await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(0))
+  })
+
+  it('focuses the nth tab on Cmd+1 to Cmd+4, and does nothing without an nth tab', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    expect(focusedTab()).toBe('beta')
+
+    await menu({ type: 'focus', index: 0 })
+    expect(focusedTab()).toBe('alpha')
+    expect(await screen.findByText('alpha-main')).toBeTruthy()
+
+    await menu({ type: 'focus', index: 1 })
+    expect(focusedTab()).toBe('beta')
+
+    await menu({ type: 'focus', index: 3 })
+
+    expect(focusedTab()).toBe('beta')
+    expect(tabLabels()).toEqual(['alpha', 'beta'])
+  })
+
+  it('steps through the strip on Show Previous Tab and Show Next Tab, wrapping round', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    newTab()
+    await choose('gamma')
+
+    await menu({ type: 'previous' })
+    expect(focusedTab()).toBe('beta')
+
+    await menu({ type: 'next' })
+    expect(focusedTab()).toBe('gamma')
+
+    // Past the right-hand end, round to the first.
+    await menu({ type: 'next' })
+    expect(focusedTab()).toBe('alpha')
+
+    // And back off the left-hand end, round to the last.
+    await menu({ type: 'previous' })
+    expect(focusedTab()).toBe('gamma')
+  })
+
+  it('tells main how many tabs there are, so the menu can disable what the strip cannot do', async () => {
+    renderWithProviders(<App />)
+    await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(0))
+
+    await choose('alpha')
+    await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(1))
+
+    newTab()
+    await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(2))
+
+    await menu({ type: 'close' })
+    await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(1))
   })
 })

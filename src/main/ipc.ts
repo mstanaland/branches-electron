@@ -11,8 +11,16 @@ function broadcast(channel: string, ...args: unknown[]): void {
   for (const window of BrowserWindow.getAllWindows()) window.webContents.send(channel, ...args)
 }
 
+export interface IpcDeps {
+  /**
+   * Called with how many tabs the renderer's strip holds, so the application menu can be
+   * rebuilt: what it enables, and whether Cmd+W closes a tab or the window, depend on it.
+   */
+  setTabCount: (count: number) => void
+}
+
 /** Registers the handlers behind `window.api`. Logic lives in handlers.ts. */
-export function registerIpc(): void {
+export function registerIpc(deps: IpcDeps): void {
   const store = createRepositoryStore({
     filePath: join(app.getPath('userData'), 'repositories.json')
   })
@@ -65,6 +73,7 @@ export function registerIpc(): void {
         })
       }),
     setActiveRepository: (root) => fetchScheduler.setActiveRepository(root),
+    setTabCount: (count) => deps.setTabCount(count),
     confirmRemoval: async (repository) => {
       const options = {
         type: 'question' as const,
@@ -120,6 +129,9 @@ export function registerIpc(): void {
   )
   ipcMain.handle('repository:set-active', (_event, root: string | null) =>
     settle(() => handlers.setActiveRepository(root))
+  )
+  ipcMain.handle('tabs:set-count', (_event, count: number) =>
+    settle(() => handlers.setTabCount(count))
   )
   ipcMain.handle('branch:checkout', (_event, root: string, name: string) =>
     settle(() => handlers.checkoutBranch(root, name))

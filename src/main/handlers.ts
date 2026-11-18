@@ -8,6 +8,7 @@ import type {
   SavedRepository
 } from '../shared/git'
 import { assertRelativePath } from '../shared/path'
+import { isTabCount } from '../shared/tabs'
 import { assertInsideRoot } from './assertInsideRoot'
 import {
   checkoutBranch,
@@ -39,6 +40,11 @@ export interface HandlerDeps {
    * follows along.
    */
   setActiveRepository: (root: string | null) => void
+  /**
+   * Told how many tabs the renderer's strip holds, so the application menu can be rebuilt
+   * around it.
+   */
+  setTabCount: (count: number) => void
 }
 
 export interface Handlers {
@@ -55,6 +61,7 @@ export interface Handlers {
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
   commit: (root: string, message: string) => Promise<void>
   setActiveRepository: (root: string | null) => Promise<void>
+  setTabCount: (count: number) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
 }
@@ -184,6 +191,17 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       // null is always allowed: it only stops background work.
       if (root !== null) await assertOpen(root)
       deps.setActiveRepository(root)
+    },
+    async setTabCount(count) {
+      // A number off IPC, and the menu is built from it, so a strip of -1 or 7.5 tabs is
+      // refused rather than quietly clamped.
+      if (!isTabCount(count)) {
+        throw new ApiError({
+          code: 'INVALID_TAB_COUNT',
+          message: `${String(count)} is not a number of tabs a strip can hold.`
+        })
+      }
+      deps.setTabCount(count)
     },
     async checkoutBranch(root, name) {
       await assertOpen(root)

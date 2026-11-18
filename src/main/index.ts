@@ -4,6 +4,33 @@ import { electronApp, is, optimizer } from '@electron-toolkit/utils'
 import { getGitExecutable } from './git'
 import { registerIpc } from './ipc'
 import { createMenuTemplate } from './menu'
+import type { TabCommand } from '../shared/tabs'
+
+/**
+ * How many tabs the focused window's strip holds. The renderer owns the strip (ADR 0007) and
+ * reports its size, because the menu is built around it: at the limit New Tab and Open
+ * Repository … are disabled, and Cmd+W closes a tab until there is none left to close.
+ */
+let tabCount = 0
+
+/** The renderer owns the open flow, the strip and the active repository, so it is told to act. */
+function tellRenderer(channel: string, ...args: unknown[]): void {
+  BrowserWindow.getFocusedWindow()?.webContents.send(channel, ...args)
+}
+
+/** Rebuilds the application menu around the current tab count. Cheap, and runs rarely. */
+function applyApplicationMenu(): void {
+  Menu.setApplicationMenu(
+    Menu.buildFromTemplate(
+      createMenuTemplate({
+        appName: app.name,
+        tabCount,
+        openRepository: () => tellRenderer('menu:open-repository'),
+        tabCommand: (command: TabCommand) => tellRenderer('menu:tab-command', command)
+      })
+    )
+  )
+}
 
 function createWindow(): void {
   const mainWindow = new BrowserWindow({
@@ -47,17 +74,14 @@ void app.whenReady().then(() => {
   // GIT_NOT_FOUND to the caller, so here we only log.
   getGitExecutable().catch((error: unknown) => console.error('Could not locate git:', error))
 
-  registerIpc()
-  Menu.setApplicationMenu(
-    Menu.buildFromTemplate(
-      createMenuTemplate({
-        appName: app.name,
-        // The renderer owns the open flow and the active repository, so it is told to run it.
-        openRepository: () =>
-          BrowserWindow.getFocusedWindow()?.webContents.send('menu:open-repository')
-      })
-    )
-  )
+  registerIpc({
+    setTabCount: (count) => {
+      if (count === tabCount) return
+      tabCount = count
+      applyApplicationMenu()
+    }
+  })
+  applyApplicationMenu()
   createWindow()
 
   app.on('activate', () => {

@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 import type { WindowApi } from '../shared/api'
+import type { TabCommand } from '../shared/tabs'
 
 // Only this narrow, typed API is exposed to the renderer — not ipcRenderer itself.
 // Results travel as plain data; the renderer turns failures into ApiErrors (see unwrapApi).
@@ -16,6 +17,15 @@ const api: WindowApi = {
     ipcRenderer.on('menu:open-repository', forward)
     return () => {
       ipcRenderer.removeListener('menu:open-repository', forward)
+    }
+  },
+  setTabCount: (count) => ipcRenderer.invoke('tabs:set-count', count),
+  onTabCommand: (listener) => {
+    // Wrap it so the IPC event object never reaches the renderer.
+    const forward = (_event: unknown, command: TabCommand): void => listener(command)
+    ipcRenderer.on('menu:tab-command', forward)
+    return () => {
+      ipcRenderer.removeListener('menu:tab-command', forward)
     }
   },
   onRemoteRefsChanged: (listener) => {

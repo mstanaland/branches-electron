@@ -7,6 +7,7 @@ export type ApiErrorCode =
   | 'REPOSITORY_NOT_OPEN'
   | 'INVALID_PATH'
   | 'INVALID_REF'
+  | 'INVALID_TAB_COUNT'
   | 'UNKNOWN'
 
 /** A failure from the main process, in a form that survives crossing IPC. */

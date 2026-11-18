@@ -1,9 +1,67 @@
 import type { MenuItemConstructorOptions } from 'electron'
+import { MAX_TABS, type TabCommand } from '../shared/tabs'
 
 export interface MenuOptions {
   appName: string
+  /**
+   * How many tabs the strip holds right now. It drives what is enabled, so the menu refuses
+   * what the strip cannot do instead of offering a keystroke that does nothing — and it
+   * decides whether Cmd+W closes a tab or the window.
+   */
+  tabCount: number
   /** Called when the user chooses File > Open Repository… (Cmd+O). */
   openRepository: () => void
+  /** Called with what a Window-menu item asks of the strip, which the renderer owns. */
+  tabCommand: (command: TabCommand) => void
+}
+
+/** Ordinals for the Cmd+1 … Cmd+4 items, one per slot in the strip. */
+const ORDINALS = ['First', 'Second', 'Third', 'Fourth'] as const
+
+/**
+ * The tab items of the Window menu. Every tab shortcut is a real menu item rather than a key
+ * handler in the renderer: the menu shows the shortcuts, greys out what is unavailable, and
+ * keeps working while focus is in a text field.
+ *
+ * Cmd+W never closes the window by surprise. While a tab is open it is **Close Tab**, so the
+ * last close leaves the backdrop; only then does the same keystroke become **Close Window**.
+ * That is also why window closing lives here rather than as `role: 'close'` in File — two
+ * items cannot share one accelerator.
+ */
+function tabItems(options: MenuOptions): MenuItemConstructorOptions[] {
+  const { tabCount, tabCommand } = options
+  const send = (command: TabCommand) => () => tabCommand(command)
+  return [
+    {
+      label: 'New Tab',
+      accelerator: 'CmdOrCtrl+T',
+      enabled: tabCount < MAX_TABS,
+      click: send({ type: 'new' })
+    },
+    tabCount > 0
+      ? { label: 'Close Tab', accelerator: 'CmdOrCtrl+W', click: send({ type: 'close' }) }
+      : { label: 'Close Window', accelerator: 'CmdOrCtrl+W', role: 'close' },
+    { type: 'separator' },
+    {
+      label: 'Show Previous Tab',
+      accelerator: 'CmdOrCtrl+Shift+[',
+      enabled: tabCount > 1,
+      click: send({ type: 'previous' })
+    },
+    {
+      label: 'Show Next Tab',
+      accelerator: 'CmdOrCtrl+Shift+]',
+      enabled: tabCount > 1,
+      click: send({ type: 'next' })
+    },
+    { type: 'separator' },
+    ...ORDINALS.map((ordinal, index) => ({
+      label: `Show ${ordinal} Tab`,
+      accelerator: `CmdOrCtrl+${index + 1}`,
+      enabled: index < tabCount,
+      click: send({ type: 'focus', index })
+    }))
+  ]
 }
 
 /** The macOS application menu. Kept as plain data so it can be tested without Electron. */
@@ -29,10 +87,11 @@ export function createMenuTemplate(options: MenuOptions): MenuItemConstructorOpt
         {
           label: 'Open Repository…',
           accelerator: 'CmdOrCtrl+O',
+          // At the limit the chosen folder would have nowhere to go (ADR 0007), so the picker
+          // never opens rather than opening and discarding the answer.
+          enabled: options.tabCount < MAX_TABS,
           click: () => options.openRepository()
-        },
-        { type: 'separator' },
-        { role: 'close' }
+        }
       ]
     },
     {
@@ -49,6 +108,17 @@ export function createMenuTemplate(options: MenuOptions): MenuItemConstructorOpt
       ]
     },
     { label: 'View', submenu: [{ role: 'togglefullscreen' }] },
-    { role: 'windowMenu' }
+    {
+      // Spelled out rather than `role: 'windowMenu'`, which would bring its own Cmd+W.
+      label: 'Window',
+      submenu: [
+        ...tabItems(options),
+        { type: 'separator' },
+        { role: 'minimize' },
+        { role: 'zoom' },
+        { type: 'separator' },
+        { role: 'front' }
+      ]
+    }
   ]
 }

@@ -2,6 +2,7 @@ import { mkdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SavedRepository } from '../shared/git'
+import { MAX_TABS } from '../shared/tabs'
 import { createHandlers, type HandlerDeps } from './handlers'
 import { createRepositoryStore } from './repositoryStore'
 import { cleanupTestRepos, createRepoWithCommit, makeTempDir } from './git/test-repo'
@@ -13,7 +14,8 @@ const dismissed = {
   showRepositoryMenu: async () => false,
   confirmRemoval: async () => false,
   showBranchMenu: async () => null,
-  setActiveRepository: () => {}
+  setActiveRepository: () => {},
+  setTabCount: () => {}
 }
 
 let storeDir = ''
@@ -520,6 +522,46 @@ describe('setActiveRepository', () => {
       code: 'REPOSITORY_NOT_OPEN'
     })
     expect(active).toEqual([])
+  })
+})
+
+/** Handlers recording the tab counts main was told to rebuild the menu for. */
+function handlersRecordingTabCount(): {
+  handlers: ReturnType<typeof createHandlers>
+  counts: number[]
+} {
+  const counts: number[] = []
+  const filePath = join(storeDir, `repositories-${storeCount++}.json`)
+  return {
+    handlers: createHandlers({
+      pickFolder: async () => null,
+      store: createRepositoryStore({ filePath }),
+      ...dismissed,
+      setTabCount: (count) => counts.push(count)
+    }),
+    counts
+  }
+}
+
+describe('setTabCount', () => {
+  it('passes on a count the strip could really have, including an empty strip', async () => {
+    const { handlers, counts } = handlersRecordingTabCount()
+
+    await handlers.setTabCount(0)
+    await handlers.setTabCount(MAX_TABS)
+
+    expect(counts).toEqual([0, MAX_TABS])
+  })
+
+  it('refuses a count no strip can hold, rather than building a menu around it', async () => {
+    const { handlers, counts } = handlersRecordingTabCount()
+
+    for (const count of [-1, MAX_TABS + 1, 1.5, Number.NaN]) {
+      await expect(handlers.setTabCount(count)).rejects.toMatchObject({
+        code: 'INVALID_TAB_COUNT'
+      })
+    }
+    expect(counts).toEqual([])
   })
 })
 
