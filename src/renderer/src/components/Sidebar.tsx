@@ -73,7 +73,7 @@ function RefreshButton({ root }: { root: string }): React.JSX.Element {
 
 /**
  * The **view** switcher for the **focused tab**'s repository: Working, then its branches, and
- * nothing else, with Refresh at its foot. Repositories are chosen from tabs now (ADR 0007), so the foldable repository
+ * nothing else; Refresh sits at its foot, outside the switcher (ADR 0006). Repositories are chosen from tabs now (ADR 0007), so the foldable repository
  * picker that used to sit above this is gone and the branch list has the whole column.
  *
  * Rendered only where there is a repository to switch views within, so never for a

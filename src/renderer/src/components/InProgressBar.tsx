@@ -1,13 +1,13 @@
 import { useDelayed, useRepositoryBusy } from '../data'
 import { ProgressBar } from '../ui'
-import styles from './ActivityBar.module.css'
+import styles from './InProgressBar.module.css'
 
 /**
  * How long something has to be in flight before the bar shows. Most reads of a local
  * repository finish well inside it, so the common refresh never flashes the bar; a large
  * repository, or a fetch over a slow network, is still visibly working.
  */
-export const ACTIVITY_DELAY_MS = 400
+export const IN_PROGRESS_DELAY_MS = 400
 
 /**
  * The **in-progress bar**: a thin indeterminate bar spanning the window below the tab strip,
@@ -20,8 +20,8 @@ export const ACTIVITY_DELAY_MS = 400
  *
  * Keyed by root where it is used, so the delay starts again for a tab switched to.
  */
-export function ActivityBar({ root }: { root: string }): React.JSX.Element {
-  const shown = useDelayed(useRepositoryBusy(root), ACTIVITY_DELAY_MS)
+export function InProgressBar({ root }: { root: string }): React.JSX.Element {
+  const shown = useDelayed(useRepositoryBusy(root), IN_PROGRESS_DELAY_MS)
 
   return (
     <div className={styles.slot}>

@@ -1,4 +1,4 @@
-import { ActivityBar } from './components/ActivityBar'
+import { InProgressBar } from './components/InProgressBar'
 import { ChangedFiles } from './components/ChangedFiles'
 import { CommitHistory } from './components/CommitHistory'
 import { DiffView } from './components/DiffView'
@@ -60,7 +60,7 @@ function App(): React.JSX.Element {
     <div className={styles.app}>
       <TitleBar />
       {tabs.length > 0 && <TabStrip />}
-      {root !== null && <ActivityBar key={root} root={root} />}
+      {root !== null && <InProgressBar key={root} root={root} />}
       <div className={styles.body} data-sidebar={sidebarRoot === null ? 'false' : 'true'}>
         {sidebarRoot !== null && (
           <aside className={styles.sidebar}>

@@ -43,9 +43,10 @@ main process; nothing draws it inside the window.
 _Avoid_: Document title, header text
 
 **In-progress bar**:
-The thin indeterminate bar spanning the window below the tab strip, shown while anything for the
-**active repository** is being read or run — but only once it has taken about 400ms, so a fast
-read never flashes it. What is already on screen stays there underneath.
+The thin indeterminate bar spanning the window below the tab strip, shown while the **active
+repository** is being read, or a Fetch, Pull or Refresh of it is running — but only once that
+has taken about 400ms, so a fast read never flashes it. What is already on screen stays there
+underneath.
 _Avoid_: Spinner, loading bar, throbber
 
 ### Tabs

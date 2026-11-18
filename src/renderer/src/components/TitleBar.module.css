@@ -46,8 +46,3 @@
   font-variant-numeric: tabular-nums;
   line-height: 16px;
 }
-
-/* The icon while a fetch or a pull is in flight. */
-.spinner {
-  composes: spinner from './shared.module.css';
-}
