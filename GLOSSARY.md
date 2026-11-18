@@ -44,7 +44,7 @@ _Avoid_: Document title, header text
 
 **In-progress bar**:
 The thin indeterminate bar spanning the window below the tab strip, shown while the **active
-repository** is being read, or a Fetch, Pull or Refresh of it is running — but only once that
+repository** is being read, or a Fetch, Pull, Push or Refresh of it is running — but only once that
 has taken about 400ms, so a fast read never flashes it. What is already on screen stays there
 underneath.
 _Avoid_: Spinner, loading bar, throbber
@@ -160,6 +160,11 @@ _Avoid_: Pending message, unsent commit
 A local branch. Remote branches are not yet shown, and the bare word never means one.
 _Avoid_: Ref, head
 
+**Remote**:
+A named repository elsewhere that this one fetches from and pushes to, such as `origin`. Shown by
+its name in UI text.
+_Avoid_: Server, origin (as the general word), remote repository (in UI text)
+
 **Upstream**:
 The remote branch a local branch tracks. It can be **gone** when it no longer exists on the remote.
 _Avoid_: Tracking branch, remote branch
@@ -193,6 +198,26 @@ diverged is refused rather than merged or rebased. The control says how far **be
 branch is, and is disabled when there is nothing to fast-forward onto — no **upstream**, a
 **detached HEAD**, or a branch already level with its upstream.
 _Avoid_: Sync, update, merge (a pull never makes a merge commit here)
+
+**Push**:
+Sending the **current branch**'s commits to its **upstream**, when the user presses Push in the
+**operations area**. Never forced: a push the remote rejects because it has commits the branch
+lacks is refused, not overwritten. Sends the branch only, never tags. The control says how far
+**ahead** the branch is, and is disabled for a **detached HEAD** or a branch already level with
+its upstream. With no upstream — or one that is **gone** — it reads Publish and leads to
+**publish branch** instead.
+_Avoid_: Sync, upload, force push (there is none)
+
+**Publish branch**:
+Creating the **current branch** on a **remote**, under the same name, and making that its
+**upstream** — so later pushes and pulls go there. Always confirmed by the user first, including
+when it recreates an upstream that is **gone**.
+_Avoid_: Push upstream, set upstream, track
+
+**Publish repository**:
+Giving a repository with no **remote** one, by creating it on a hosting service and adding it.
+Not built yet; until then, Push on such a repository says there is no remote.
+_Avoid_: Add remote, upload repository
 
 **Current branch**:
 The branch HEAD points at. Absent when HEAD is detached.
