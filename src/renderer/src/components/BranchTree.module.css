@@ -1,5 +1,8 @@
+/* Takes the sidebar's remaining height so the tree below scrolls within it, rather than
+   sizing itself to the branches and pushing them past the bottom of the window. */
 .branches {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: 4px;
   min-height: 0;
@@ -21,6 +24,8 @@
 }
 
 .tree {
+  flex: 1;
+  min-height: 0;
   overflow-y: auto;
 }
 

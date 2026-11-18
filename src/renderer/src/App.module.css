@@ -1,7 +1,11 @@
+/* The root of the scroll chain. Every column below sizes itself against this height, and the
+   document itself never scrolls: anything taller than the window scrolls inside its own
+   column, so the sidebar and the titlebar stay put. */
 .app {
   display: grid;
   grid-template-columns: 260px 1fr;
   height: 100vh;
+  overflow: hidden;
 }
 
 .sidebar {
@@ -19,10 +23,14 @@
   -webkit-app-region: drag;
 }
 
+/* A grid item's automatic minimum size is its content, so without the zero minimum a tall
+   child — a long history, a large diff — stretches the grid's row past the window, and the
+   column's own scroll container never gets a height to scroll within. */
 .content {
   display: flex;
   flex-direction: column;
   min-width: 0;
+  min-height: 0;
 }
 
 .split {
