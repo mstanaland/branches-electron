@@ -23,15 +23,12 @@
   transition: background-color 120ms ease;
 }
 
-/* A short delay before hover shows it, so sweeping the pointer across the window doesn't
-   flash a line on every boundary it crosses. */
+
 .handle:hover::after {
-  background: var(--color-accent);
-  transition-delay: 150ms;
+  background: var(--color-border);
 }
 
 .handle[data-dragging='true']::after,
 .handle:focus-visible::after {
-  background: var(--color-accent);
-  transition-delay: 0ms;
+  background: var(--color-border);
 }
