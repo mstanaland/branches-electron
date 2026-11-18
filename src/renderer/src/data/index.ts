@@ -18,8 +18,10 @@ export {
   useStatus
 } from './queries'
 export { useConfirmRemoveMissing, useRepositoryMenu } from './removal'
-export { SelectionProvider, WORKING, isSameView, useSelection, viewRef } from './selection'
-export type { Selection, View } from './selection'
+export { MAX_TABS, TabsProvider, useSelection, useTabs } from './tabs'
+export type { Selection, Tab, TabsState } from './tabs'
+export { WORKING, isSameView, viewRef } from './view'
+export type { View } from './view'
 export { useStaging } from './staging'
 export type { StageAll, StagingActions } from './staging'
 export { useOpenRepository } from './useOpenRepository'

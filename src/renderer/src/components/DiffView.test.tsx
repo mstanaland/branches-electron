@@ -81,7 +81,8 @@ function renderDiff(selected: string | null, changes: FileChange[], diff?: Chang
     <>
       <Select path={selected} />
       <DiffView root={ROOT} />
-    </>
+    </>,
+    { tabs: [ROOT] }
   )
 }
 

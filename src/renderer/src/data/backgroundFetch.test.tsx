@@ -15,7 +15,7 @@ vi.mock('../api', () => ({ api }))
 
 import { useBackgroundFetch } from './backgroundFetch'
 import { keys } from './keys'
-import { SelectionProvider, useSelection } from './selection'
+import { TabsProvider, useSelection, useTabs } from './tabs'
 
 /** Hands back the listener the hook subscribed with, so a test can push an event at it. */
 function emitter() {
@@ -37,14 +37,14 @@ function setup() {
   function wrapper({ children }: { children: ReactNode }): React.JSX.Element {
     return (
       <QueryClientProvider client={client}>
-        <SelectionProvider>{children}</SelectionProvider>
+        <TabsProvider>{children}</TabsProvider>
       </QueryClientProvider>
     )
   }
   const hook = renderHook(
     () => {
       useBackgroundFetch()
-      return useSelection()
+      return { ...useSelection(), chooseRepository: useTabs().chooseRepository }
     },
     { wrapper }
   )
@@ -66,10 +66,10 @@ describe('useBackgroundFetch', () => {
     expect(api.setActiveRepository).toHaveBeenCalledWith(null)
   })
 
-  it('tells main which repository is active when it changes', async () => {
+  it('tells main which repository the focused tab holds when it changes', async () => {
     const { result } = setup()
 
-    act(() => result.current.setActiveRoot('/repo'))
+    act(() => result.current.chooseRepository('/repo'))
 
     await waitFor(() => expect(api.setActiveRepository).toHaveBeenLastCalledWith('/repo'))
   })
@@ -78,7 +78,7 @@ describe('useBackgroundFetch', () => {
     api.setActiveRepository.mockRejectedValue(new Error('no window'))
 
     const { result } = setup()
-    act(() => result.current.setActiveRoot('/repo'))
+    act(() => result.current.chooseRepository('/repo'))
 
     await waitFor(() => expect(api.setActiveRepository).toHaveBeenLastCalledWith('/repo'))
   })

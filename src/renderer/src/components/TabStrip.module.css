@@ -1,0 +1,72 @@
+.strip {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex: none;
+  padding: 0 8px 4px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.tabs {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  max-width: 200px;
+  padding: 0 4px 0 2px;
+  border-radius: var(--radius);
+}
+
+.tab:hover {
+  background: var(--color-hover);
+}
+
+.tab[data-focused='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+/* The quiet button replaces its background on hover rather than layering over it, so the
+   accent would otherwise be wiped out and white text left on the strip. */
+.tab[data-focused='true'] .label,
+.tab[data-focused='true'] .close {
+  --color-text: var(--color-accent-text);
+  --color-text-muted: var(--color-accent-text);
+  --color-hover: rgba(255, 255, 255, 0.22);
+  color: var(--color-accent-text);
+}
+
+.label {
+  min-width: 0;
+  min-height: 0;
+  padding: 4px 6px;
+  background: none;
+}
+
+.labelText {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close {
+  flex: none;
+  min-height: 0;
+  padding: 3px;
+  background: none;
+}
+
+.add {
+  flex: none;
+  min-height: 0;
+  padding: 4px;
+}

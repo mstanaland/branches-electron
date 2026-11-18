@@ -53,7 +53,7 @@ function showBranches(
 ): ReturnType<typeof renderWithProviders> {
   api.getStatus.mockResolvedValue(repositoryStatus)
   api.listBranches.mockResolvedValue(branches)
-  return renderWithProviders(<BranchTree root={root} />)
+  return renderWithProviders(<BranchTree root={root} />, { tabs: [root] })
 }
 
 /** Each tree item as [accessible name, nesting level]. */
@@ -252,7 +252,9 @@ describe('remembering collapsed folders', () => {
     api.getStatus.mockResolvedValue(status())
     api.listBranches.mockResolvedValue(FEATURES)
     localStorage.setItem('branches.collapsedFolders./repos/alpha', JSON.stringify(['feature']))
-    const { rerender } = renderWithProviders(<BranchTree root="/repos/alpha" />)
+    const { rerender } = renderWithProviders(<BranchTree root="/repos/alpha" />, {
+      tabs: ['/repos/alpha']
+    })
     expect(
       (await screen.findByRole('treeitem', { name: 'feature' })).getAttribute('aria-expanded')
     ).toBe('false')

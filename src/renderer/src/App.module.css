@@ -8,6 +8,12 @@
   overflow: hidden;
 }
 
+/* No repository in the focused tab, so no branches to switch views within: the Repositories
+   surface, which brings a column of its own, gets the whole width. */
+.app[data-sidebar='false'] {
+  grid-template-columns: 1fr;
+}
+
 .sidebar {
   display: flex;
   flex-direction: column;
@@ -38,23 +44,4 @@
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
-}
-
-.empty {
-  flex: 1;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  gap: 4px;
-}
-
-.empty h1 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.empty p {
-  margin: 0;
-  color: var(--color-text-muted);
 }

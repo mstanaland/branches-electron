@@ -1,0 +1,92 @@
+/* The saved list beside an empty pane. Fills whatever it is given: a tab's content area, or
+   the whole content area as the backdrop. */
+.repositories {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.saved {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-height: 0;
+  padding: 12px;
+  background: var(--color-sidebar);
+  border-right: 1px solid var(--color-border);
+}
+
+.heading {
+  margin: 0 4px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+}
+
+.none {
+  margin: 0 4px;
+  color: var(--color-text-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  border-radius: var(--radius);
+  cursor: default;
+}
+
+.row svg {
+  flex: none;
+}
+
+.rowName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row:hover {
+  background: var(--color-hover);
+}
+
+/* Already open in a tab. */
+.row[aria-selected='true'] {
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+}
+
+.row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
+}
+
+.row[aria-selected='true']:focus-visible {
+  outline-color: var(--color-accent-text);
+}
+
+/* A repository whose folder is gone: still listed, never deleted automatically. */
+.row[data-missing='true'] {
+  opacity: 0.5;
+}
+
+.pane {
+  display: grid;
+  place-content: center;
+  min-width: 0;
+  min-height: 0;
+  padding: 24px;
+}
