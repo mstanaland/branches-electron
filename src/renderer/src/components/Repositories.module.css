@@ -1,0 +1,109 @@
+/* The saved list beside the hero. Fills whatever it is given: a tab's content area, or the
+   whole content area as the backdrop. */
+.repositories {
+  display: grid;
+  grid-template-columns: minmax(200px, 260px) minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+}
+
+.saved {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-height: 0;
+  padding: 8px 12px 12px;
+  border-right: 1px solid var(--color-border);
+}
+
+/* Matches the branch tree's heading, which sits in the same place in a repository tab. */
+.heading {
+  margin: 10px 4px 2px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-text-muted);
+}
+
+.none {
+  margin: 0 4px;
+  color: var(--color-text-muted);
+}
+
+.list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border-radius: var(--radius);
+  cursor: default;
+}
+
+.row svg {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.rowName {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.row:hover {
+  background: var(--color-hover);
+}
+
+.row:focus-visible {
+  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline-offset: -2px;
+}
+
+/* A repository whose folder is gone: still listed, never deleted automatically. */
+.row[data-missing='true'] {
+  opacity: 0.5;
+}
+
+/* The way in, left-aligned in the upper part of the pane rather than dead centre, so the
+   eye lands on it on the way down from the tabs. */
+.pane {
+  display: grid;
+  align-content: start;
+  justify-items: start;
+  min-width: 0;
+  min-height: 0;
+  padding: 72px 56px;
+  overflow-y: auto;
+}
+
+.hero {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  max-width: 40ch;
+}
+
+.heroIcon {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: var(--badge-info-bg);
+  color: var(--color-accent);
+}
+
+.heroTitle {
+  margin: 0;
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.3;
+}

@@ -1,19 +1,20 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import { api } from '../api'
 import { keys } from './keys'
-import { useSelection } from './selection'
+import { useTabs } from './tabs'
 
 /**
- * What to do once main has answered whether it removed `root` from the saved list:
- * drop its cached git state, un-activate it, and refresh the list.
+ * What to do once main has answered whether it removed `root` from the saved list: drop its
+ * cached git state, close any tab showing it — no tab points at a repository the app has
+ * forgotten — and refresh the list.
  */
 function useAfterRemoval(): (root: string, removed: boolean) => Promise<void> {
   const queryClient = useQueryClient()
-  const { activeRoot, setActiveRoot } = useSelection()
+  const { closeRepository } = useTabs()
 
   return async (root, removed) => {
     if (!removed) return
-    if (activeRoot === root) setActiveRoot(null)
+    closeRepository(root)
     queryClient.removeQueries({ queryKey: keys.repository(root) })
     await queryClient.invalidateQueries({ queryKey: keys.repositories() })
   }

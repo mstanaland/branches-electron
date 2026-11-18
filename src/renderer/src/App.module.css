@@ -1,20 +1,17 @@
 /* The root of the scroll chain. Every column below sizes itself against this height, and the
    document itself never scrolls: anything taller than the window scrolls inside its own
-   column, so the sidebar and the titlebar stay put. */
-.app {
-  display: grid;
-  grid-template-columns: 260px 1fr;
-  height: 100vh;
-  overflow: hidden;
-}
+   column, so the chrome stays put.
 
-.sidebar {
+   Stacked: the title bar, the tab strip, and the columns. The chrome spans the window rather
+   than sitting inside each column, so the tabs run the full width above the sidebar. A column
+   rather than grid rows, because the strip is absent on the backdrop and positional rows would
+   leave the columns in the auto row, short of the window. */
+.app {
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  background: var(--color-sidebar);
-  border-right: 1px solid var(--color-border);
-  padding: 0 12px 12px;
+  height: 100vh;
+  overflow: hidden;
+  background: var(--color-chrome);
 }
 
 /* Space for the inset traffic lights; dragging here moves the window. */
@@ -23,9 +20,32 @@
   -webkit-app-region: drag;
 }
 
-/* A grid item's automatic minimum size is its content, so without the zero minimum a tall
-   child — a long history, a large diff — stretches the grid's row past the window, and the
-   column's own scroll container never gets a height to scroll within. */
+/* The columns, under the chrome. A grid item's automatic minimum size is its content, so
+   without the zero minimum a tall child — a long history, a large diff — stretches the row
+   past the window and the column's own scroll container never gets a height to scroll in. */
+.body {
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  flex: 1;
+  min-height: 0;
+  background: var(--color-bg);
+  border-top: 1px solid var(--color-border);
+}
+
+/* No repository in the focused tab, so no branches to switch views within: the Repositories
+   surface, which brings a column of its own, gets the whole width. */
+.body[data-sidebar='false'] {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  border-right: 1px solid var(--color-border);
+  padding: 8px 12px 12px;
+}
+
 .content {
   display: flex;
   flex-direction: column;
@@ -38,23 +58,4 @@
   grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
   flex: 1;
   min-height: 0;
-}
-
-.empty {
-  flex: 1;
-  display: grid;
-  place-content: center;
-  text-align: center;
-  gap: 4px;
-}
-
-.empty h1 {
-  margin: 0;
-  font-size: 20px;
-  font-weight: 600;
-}
-
-.empty p {
-  margin: 0;
-  color: var(--color-text-muted);
 }

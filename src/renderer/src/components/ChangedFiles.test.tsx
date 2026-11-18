@@ -57,7 +57,8 @@ function renderPane() {
     <>
       <ChangedFiles root={ROOT} />
       <SelectedPath />
-    </>
+    </>,
+    { tabs: [ROOT] }
   )
 }
 
