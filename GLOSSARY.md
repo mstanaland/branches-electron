@@ -15,18 +15,49 @@ An entry in the user's list of repositories, with a name and a last-opened time.
 _Avoid_: Bookmark, favorite
 
 **Active repository**:
-The one saved repository the user is currently viewing, if any. Remembered across launches.
+The repository of the **focused tab**, if it has one. What background fetch follows, and what
+the title bar's operations act on.
 _Avoid_: Current repository, selected repository
 
 **Missing repository**:
 A saved repository whose folder no longer exists or is no longer a repository root. Flagged every time the list is read, never removed automatically.
 _Avoid_: Broken, deleted, orphaned
 
+### Tabs
+
+**Tab**:
+One of up to four slots in the horizontal strip below the title bar. Either a **repository tab**
+or a **Repositories tab**. The set of tabs is remembered across launches; what is selected
+inside one is not.
+_Avoid_: Window, pane, workspace
+
+**Repository tab**:
+A tab showing one repository: its branches, and whichever **view** the sidebar has selected.
+At most one tab per repository.
+_Avoid_: Repo tab, project tab
+
+**Repositories tab**:
+A tab with no repository yet: the saved repositories and the control for opening a new one.
+Choosing a repository turns it into a **repository tab** in place, under the repository's name.
+_Avoid_: New tab, empty tab, picker
+
+**Backdrop**:
+What fills the content area when no tab is open, including on a first launch. The same surface
+as a **Repositories tab**, but not a tab: it has no label and cannot be closed.
+_Avoid_: Empty state, home, welcome screen
+
+**Focused tab**:
+The one tab the user is looking at. Its repository is the **active repository**.
+_Avoid_: Current tab, selected tab, open tab
+
 ### Views
 
 **View**:
-What the main pane shows. The sidebar picks exactly one per repository: **Working**, or the **history** of one branch. Chosen fresh each time a repository is opened, and never changed by anything but the user.
-_Avoid_: Tab, page, screen, mode
+What one **repository tab** shows beside its branches. The sidebar picks exactly one per
+repository: **Working**, or the **history** of one branch. Chosen fresh each time a repository
+is opened, and never changed by anything but the user. A **tab** is the horizontal strip above;
+a view is what the sidebar picks inside one.
+_Avoid_: Page, screen, mode
 
 **Working**:
 The view of what is uncommitted: the repository's changes and the commit form.
@@ -81,7 +112,8 @@ The rest of a commit message, below the subject. Optional.
 _Avoid_: Body, long description, extended description
 
 **Draft**:
-A commit subject and description the user has typed but not committed. One per repository, lost when the app quits.
+A commit subject and description the user has typed but not committed. One per repository — and
+so one per **repository tab** — lost when the app quits.
 _Avoid_: Pending message, unsent commit
 
 ### Branches
@@ -95,7 +127,7 @@ The remote branch a local branch tracks. It can be **gone** when it no longer ex
 _Avoid_: Tracking branch, remote branch
 
 **Background fetch**:
-The periodic `git fetch --prune` main runs for the active repository while the window is focused, so **upstream** positions stay current. Quiet: it never reports a failure to the user.
+The periodic `git fetch --prune` main runs for the **active repository** while the window is focused, so **upstream** positions stay current. Quiet: it never reports a failure to the user.
 _Avoid_: Auto fetch, polling, sync
 
 **Current branch**:

@@ -7,3 +7,14 @@ The main pane used to be unconditional: a repository was active, so you saw its 
 It behaves like vertical tabs, and we considered ARIA `tab` roles. We rejected them: tabs must live in a `tablist`, each needs a `tabpanel` wired with `aria-controls`, and arrow keys must cycle within the tablist — but the branch list is already a `role="tree"` with folders and roving focus, and a tree cannot be a tablist. Selection is expressed with `aria-selected` on the rows instead, which gives screen-reader users the same meaning without a contract we'd be breaking. Working sits outside the tree as its own control, which is also why the detached-HEAD row sits _inside_ it: as a top-level `treeitem` it stays reachable by the arrow keys that already move through branches, where a second outside control would let Up escape the tree.
 
 Consequence: the Working row's change count has to be live in every view, so the sidebar now subscribes to `getStatus` for the active repository permanently — previously that query was fetched only because the changed-files list was mounted. `RepositoryStatus.headOid` also became the full oid, with the renderer abbreviating to eight characters everywhere, because the detached row and the history rows name the same commit and git's own abbreviation varies in length.
+
+## Amendment: the repository picker above the sidebar is gone
+
+Repositories are now opened into **tabs** (ADR 0007), so the foldable repository picker this ADR
+describes as sitting above the view switcher no longer exists; the sidebar is Working and the
+branch tree, nothing else. Everything above still holds — selecting a branch does not move HEAD,
+HEAD moving does not change the selection, the view resets to Working whenever a repository is
+opened, and the branch list stays a `role="tree"` rather than an ARIA tablist. One wording note:
+this ADR argued against calling the sidebar "tabs" at a time when nothing in the app was one.
+The word now means the horizontal strip above the columns, and `GLOSSARY.md` keeps the two
+apart: a **tab** holds a repository, a **view** is what the sidebar picks inside one.
