@@ -1,11 +1,21 @@
 /* Sits on the chrome, spanning the window. The focused tab is a card of the content's own
-   colour, so it reads as the surface continuing underneath it. */
+   colour, so it reads as the surface continuing underneath it.
+
+   Part of the window's drag region: the empty space beside the tabs moves the window, which is
+   where a tabbed Mac app lets you grab one. The tabs and `+` opt out below, since a control
+   under a drag region never sees the click. */
 .strip {
   display: flex;
   align-items: center;
   gap: 2px;
   flex: none;
   padding: 0 10px 6px;
+  -webkit-app-region: drag;
+}
+
+.strip > nav,
+.add {
+  -webkit-app-region: no-drag;
 }
 
 .tabs {

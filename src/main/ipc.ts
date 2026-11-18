@@ -5,6 +5,7 @@ import { createFetchScheduler } from './fetchScheduler'
 import { fetchRemote, hasRemote } from './git'
 import { createHandlers } from './handlers'
 import { createRepositoryStore } from './repositoryStore'
+import { createWindowTitle } from './windowTitle'
 
 /** Sends an event to every open window. Single-window today, but nothing here assumes that. */
 function broadcast(channel: string, ...args: unknown[]): void {
@@ -23,6 +24,16 @@ export interface IpcDeps {
 export function registerIpc(deps: IpcDeps): void {
   const store = createRepositoryStore({
     filePath: join(app.getPath('userData'), 'repositories.json')
+  })
+
+  // The window title follows the active repository, so Mission Control, the Window menu and
+  // screen sharing name what is on screen. Single-window today, like `broadcast`.
+  const windowTitle = createWindowTitle({
+    appName: app.name,
+    list: () => store.list(),
+    setTitle: (title) => {
+      for (const window of BrowserWindow.getAllWindows()) window.setTitle(title)
+    }
   })
 
   // Keeps the active repository's remote-tracking refs current so ahead/behind counts notice
@@ -72,7 +83,10 @@ export function registerIpc(deps: IpcDeps): void {
           callback: () => setImmediate(() => resolve(null))
         })
       }),
-    setActiveRepository: (root) => fetchScheduler.setActiveRepository(root),
+    setActiveRepository: (root) => {
+      fetchScheduler.setActiveRepository(root)
+      void windowTitle.follow(root)
+    },
     setTabCount: (count) => deps.setTabCount(count),
     confirmRemoval: async (repository) => {
       const options = {
