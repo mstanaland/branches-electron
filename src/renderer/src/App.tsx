@@ -25,7 +25,7 @@ import styles from './App.module.css'
  * sidebar is absent then, because there are no branches to switch views within.
  *
  * Every tab shortcut — Cmd+T, Cmd+W, Cmd+1 … Cmd+4 and the two step shortcuts — arrives as a
- * command from main's Window menu rather than a key handler here (ADR 0003).
+ * command from main's **Window menu** rather than a key handler here (ADR 0008).
  *
  * A tab whose repository has gone **missing** — tabs come back across launches, folders move
  * in between — gets the same treatment: an explanation and a way out, in place of panes that

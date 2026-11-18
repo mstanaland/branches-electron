@@ -7,11 +7,14 @@ import { createMenuTemplate } from './menu'
 import type { TabCommand } from '../shared/tabs'
 
 /**
- * How many tabs the focused window's strip holds. The renderer owns the strip (ADR 0007) and
- * reports its size, because the menu is built around it: at the limit New Tab and Open
- * Repository … are disabled, and Cmd+W closes a tab until there is none left to close.
+ * How many tabs there are, as the renderer last reported, and null until it first does. The
+ * application menu is one per app
+ * on a Mac, so this is one number rather than one per window — which is also why a second
+ * window would need this rebuilt on focus. The renderer owns the strip (ADR 0007) and reports
+ * its size because the menu is built around it: at the limit New Tab and Open Repository … are
+ * disabled, and Cmd+W closes a tab until there is none left to close (ADR 0008).
  */
-let tabCount = 0
+let tabCount: number | null = null
 
 /** The renderer owns the open flow, the strip and the active repository, so it is told to act. */
 function tellRenderer(channel: string, ...args: unknown[]): void {

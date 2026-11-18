@@ -13,7 +13,10 @@ renderer carries it out. The renderer reports its tab count back the same way, b
 is built around it. That makes the count a round trip — the renderer changes the strip, tells
 main, main rebuilds the menu — so the menu is briefly a step behind the strip. The alternative,
 moving tab state into main, would mean an IPC pair and a second file on disk for state no other
-process reads, which ADR 0007 already rejected.
+process reads, which ADR 0007 already rejected. The one direction where being behind would bite
+is handled instead: until the renderer has reported at all — the first menu is built before last
+launch's tabs are restored — the count is unknown rather than zero, and Cmd+W is a disabled
+**Close Tab** rather than a **Close Window** that would take the window with it.
 
 ## Cmd+W closes a tab until there is no tab left
 

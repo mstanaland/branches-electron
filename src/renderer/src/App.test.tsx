@@ -652,6 +652,21 @@ describe('the Window menu', () => {
     expect(focusedTab()).toBe('gamma')
   })
 
+  it('opens no fifth tab, so a stale New Tab cannot get past the limit', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    newTab()
+    await choose('gamma')
+    newTab()
+    expect(tabLabels()).toEqual(['alpha', 'beta', 'gamma', 'Repositories'])
+
+    await menu({ type: 'new' })
+
+    expect(tabLabels()).toEqual(['alpha', 'beta', 'gamma', 'Repositories'])
+  })
+
   it('tells main how many tabs there are, so the menu can disable what the strip cannot do', async () => {
     renderWithProviders(<App />)
     await waitFor(() => expect(api.setTabCount).toHaveBeenLastCalledWith(0))

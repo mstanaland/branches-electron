@@ -6,8 +6,6 @@ import type { View } from './view'
 
 const STORAGE_KEY = 'branches.tabs'
 
-export { MAX_TABS }
-
 /**
  * One slot in the strip. `root` is null for a **Repositories tab**, which has no repository
  * yet; choosing one turns that same tab into a **repository tab** in place.

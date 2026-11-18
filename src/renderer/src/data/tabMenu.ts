@@ -7,7 +7,7 @@ import { useTabs } from './tabs'
  * keeps main told how many tabs there are so the menu can grey out what the strip cannot do
  * (and so Cmd+W knows whether there is a tab to close or only the window).
  *
- * The shortcuts are menu items in main rather than key handlers here (ADR 0003): they then
+ * The shortcuts are menu items in main rather than key handlers here (ADR 0008): they then
  * show up in the menu with their accelerators, and keep working while focus is in a text
  * field, where a renderer-level Cmd+W would be fighting the text cursor.
  *

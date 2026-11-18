@@ -12,7 +12,10 @@ function spies(): Spies {
   return { openRepository: vi.fn<() => void>(), tabCommand: vi.fn<(c: TabCommand) => void>() }
 }
 
-function createTemplate(tabCount = 1, calls: Spies = spies()): MenuItemConstructorOptions[] {
+function createTemplate(
+  tabCount: number | null = 1,
+  calls: Spies = spies()
+): MenuItemConstructorOptions[] {
   return createMenuTemplate({ appName: 'Branches', tabCount, ...calls })
 }
 
@@ -143,6 +146,20 @@ describe('the Window menu', () => {
     expect(itemOf(template, 'Window', 'Show Second Tab').enabled).not.toBe(false)
     expect(itemOf(template, 'Window', 'Show Third Tab').enabled).toBe(false)
     expect(itemOf(template, 'Window', 'Show Fourth Tab').enabled).toBe(false)
+  })
+
+  it('offers nothing to close before the renderer has said how many tabs there are', () => {
+    // The count is a round trip, so the first menu is built before the strip is restored.
+    // Closing the window then would be exactly the surprise Cmd+W is meant not to be.
+    const template = createTemplate(null)
+
+    expect(submenuOf(template, 'Window').map((item) => item.label)).not.toContain('Close Window')
+    expect(itemOf(template, 'Window', 'Close Tab').enabled).toBe(false)
+    expect(itemOf(template, 'Window', 'Show First Tab').enabled).toBe(false)
+    expect(itemOf(template, 'Window', 'Show Previous Tab').enabled).toBe(false)
+    // Opening is still allowed: the strip refuses it on its own if it turns out to be full.
+    expect(itemOf(template, 'Window', 'New Tab').enabled).not.toBe(false)
+    expect(itemOf(template, 'File', 'Open Repository…').enabled).not.toBe(false)
   })
 
   it('keeps the window roles a Mac Window menu is expected to have', () => {
