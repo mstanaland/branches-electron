@@ -5,7 +5,7 @@ import type { SavedRepository } from '../shared/git'
 import { MAX_TABS } from '../shared/tabs'
 import { createHandlers, type HandlerDeps } from './handlers'
 import { createRepositoryStore } from './repositoryStore'
-import { cleanupTestRepos, createRepoWithCommit, makeTempDir } from './git/test-repo'
+import { cleanupTestRepos, cloneRepo, createRepoWithCommit, makeTempDir } from './git/test-repo'
 
 afterAll(cleanupTestRepos)
 
@@ -522,6 +522,51 @@ describe('setActiveRepository', () => {
       code: 'REPOSITORY_NOT_OPEN'
     })
     expect(active).toEqual([])
+  })
+})
+
+describe('fetchRepository', () => {
+  it('updates the remote-tracking refs, so the branch reports behind by one', async () => {
+    const origin = await createRepoWithCommit()
+    const clone = await cloneRepo(origin)
+    const handlers = handlersChoosing(clone.root)
+    await handlers.openRepository()
+    await origin.write('upstream.txt')
+    await origin.commit('Upstream commit')
+
+    await handlers.fetchRepository(clone.root)
+
+    const main = (await handlers.listBranches(clone.root)).find((b) => b.name === 'main')
+    expect(main?.behind).toBe(1)
+  })
+
+  it('fails rather than staying quiet when the remote cannot be reached', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('remote', 'add', 'origin', '/nowhere/there-is-no-repository-here')
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await expect(handlers.fetchRepository(repo.root)).rejects.toMatchObject({
+      code: 'COMMAND_FAILED'
+    })
+  })
+
+  it('says so when the repository has no remote, rather than reporting a fetch that did nothing', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await expect(handlers.fetchRepository(repo.root)).rejects.toMatchObject({
+      code: 'NO_REMOTE'
+    })
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(handlersChoosing(null).fetchRepository(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
   })
 })
 

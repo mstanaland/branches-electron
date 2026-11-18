@@ -1,7 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { api } from '../api'
-import { keys } from './keys'
+import { invalidateAfterFetch } from './fetch'
 import { useSelection } from './tabs'
 
 /**
@@ -25,10 +25,7 @@ export function useBackgroundFetch(): void {
 
   useEffect(() => {
     return api.onRemoteRefsChanged((root) => {
-      // Only upstream positions moved: branches, and the current branch's counts in status.
-      // Diffs come from the work tree and the index, which a fetch never touches.
-      void client.invalidateQueries({ queryKey: keys.branches(root) })
-      void client.invalidateQueries({ queryKey: keys.status(root) })
+      void invalidateAfterFetch(client, root)
     })
   }, [client])
 }

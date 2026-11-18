@@ -46,6 +46,7 @@ const api: WindowApi = {
   unstageFiles: (root, paths) => ipcRenderer.invoke('repository:unstage', root, paths),
   commit: (root, message) => ipcRenderer.invoke('repository:commit', root, message),
   setActiveRepository: (root) => ipcRenderer.invoke('repository:set-active', root),
+  fetchRepository: (root) => ipcRenderer.invoke('repository:fetch', root),
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name)
 }

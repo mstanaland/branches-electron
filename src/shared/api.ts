@@ -86,6 +86,15 @@ export interface BranchesApi {
    */
   checkoutBranch: (root: string, name: string) => Promise<ApiResult<void>>
   /**
+   * Updates `root`'s remote-tracking refs now, with the same `git fetch --prune` the
+   * background fetch runs. Unlike that one it reports what went wrong: being offline or
+   * having credentials refused comes back as `COMMAND_FAILED`, and a repository with no
+   * remote as `NO_REMOTE`, because a fetch the user asked for that silently did nothing is
+   * worse than no button at all. `root` must be a saved repository or one the user opened
+   * this session.
+   */
+  fetchRepository: (root: string) => Promise<ApiResult<void>>
+  /**
    * Tells main which repository the user is looking at, so it can keep that one's
    * remote-tracking refs current with a periodic `git fetch`. Pass null when none is active.
    * `root` must be a saved repository or one the user opened this session.

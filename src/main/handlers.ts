@@ -13,6 +13,8 @@ import { assertInsideRoot } from './assertInsideRoot'
 import {
   checkoutBranch,
   commit,
+  fetchRemote,
+  hasRemote,
   isRepositoryRoot,
   listBranches,
   getDiff,
@@ -61,6 +63,7 @@ export interface Handlers {
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
   commit: (root: string, message: string) => Promise<void>
   setActiveRepository: (root: string | null) => Promise<void>
+  fetchRepository: (root: string) => Promise<void>
   setTabCount: (count: number) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
@@ -191,6 +194,20 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       // null is always allowed: it only stops background work.
       if (root !== null) await assertOpen(root)
       deps.setActiveRepository(root)
+    },
+    async fetchRepository(root) {
+      await assertOpen(root)
+      // `git fetch` with nothing configured exits 0 having done nothing, which would read as
+      // a fetch that worked. The user asked for this one, so say what happened instead.
+      if (!(await hasRemote(root))) {
+        throw new ApiError({
+          code: 'NO_REMOTE',
+          message: 'This repository has no remote to fetch from.'
+        })
+      }
+      // Whatever else git says — offline, a remote that is gone, refused credentials —
+      // travels back as a failed result rather than being swallowed.
+      await fetchRemote(root)
     },
     async setTabCount(count) {
       // A number off IPC, and the menu is built from it, so a strip of -1 or 7.5 tabs is

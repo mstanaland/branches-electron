@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { ApiError } from '../../shared/apiError'
 import type { RepositoryStatus, SavedRepository } from '../../shared/git'
 import type { TabCommand } from '../../shared/tabs'
 import type { RendererApi } from './api'
@@ -15,6 +16,7 @@ const api = vi.hoisted(() => ({
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listCommits: vi.fn<RendererApi['listCommits']>(),
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
+  fetchRepository: vi.fn<RendererApi['fetchRepository']>(),
   setTabCount: vi.fn<RendererApi['setTabCount']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>(),
   onTabCommand: vi.fn<RendererApi['onTabCommand']>(),
@@ -92,6 +94,7 @@ beforeEach(() => {
   api.setTabCount.mockResolvedValue(undefined)
   api.onRemoteRefsChanged.mockReturnValue(() => {})
   api.setActiveRepository.mockResolvedValue(undefined)
+  api.fetchRepository.mockResolvedValue(undefined)
   api.listBranches.mockResolvedValue([])
   api.listCommits.mockResolvedValue([])
   api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta'), repo('gamma')])
@@ -469,6 +472,148 @@ describe('the active repository', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'alpha' }))
     await waitFor(() => expect(api.setActiveRepository).toHaveBeenLastCalledWith('/repos/alpha'))
+  })
+})
+
+describe('Fetch', () => {
+  const fetchButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: 'Fetch' }) as HTMLButtonElement
+
+  it('fetches the focused tab\u2019s repository and re-reads its ahead/behind counts', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+    const statusReads = api.getStatus.mock.calls.length
+
+    fireEvent.click(fetchButton())
+
+    await waitFor(() => expect(api.fetchRepository).toHaveBeenCalledWith('/repos/alpha'))
+    // The counts come from status and branches, which are both read again once it lands.
+    await waitFor(() => expect(api.getStatus.mock.calls.length).toBeGreaterThan(statusReads))
+    expect(api.listBranches).toHaveBeenCalledWith('/repos/alpha')
+  })
+
+  it('acts on whichever tab is focused', async () => {
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    await screen.findByText('beta-main')
+
+    fireEvent.click(fetchButton())
+
+    await waitFor(() => expect(api.fetchRepository).toHaveBeenCalledWith('/repos/beta'))
+  })
+
+  it('reports a failure, unlike the background fetch', async () => {
+    api.fetchRepository.mockRejectedValue(
+      new ApiError({
+        code: 'COMMAND_FAILED',
+        message: 'git fetch failed: could not read from remote'
+      })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+
+    fireEvent.click(fetchButton())
+
+    const alert = await screen.findByRole('alert')
+    expect(alert.textContent).toContain('could not read from remote')
+  })
+
+  it('leaves one repository\u2019s failure behind when another tab is focused', async () => {
+    api.fetchRepository.mockRejectedValue(
+      new ApiError({ code: 'NO_REMOTE', message: 'This repository has no remote to fetch from.' })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    await screen.findByText('beta-main')
+    fireEvent.click(fetchButton())
+    await screen.findByRole('alert')
+
+    fireEvent.click(screen.getByRole('button', { name: 'alpha' }))
+
+    await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+  })
+
+  it('says it is working and cannot be fired twice at once', async () => {
+    let finish = (): void => {}
+    api.fetchRepository.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => resolve()
+        })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+
+    fireEvent.click(fetchButton())
+
+    await waitFor(() => expect(fetchButton().disabled).toBe(true))
+    expect(fetchButton().getAttribute('aria-busy')).toBe('true')
+    fireEvent.click(fetchButton())
+    expect(api.fetchRepository).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      finish()
+    })
+    await waitFor(() => expect(fetchButton().disabled).toBe(false))
+  })
+
+  it('stays in flight, and unrepeatable, across a tab switch and back', async () => {
+    let finish = (): void => {}
+    api.fetchRepository.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => resolve()
+        })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    newTab()
+    await choose('beta')
+    await screen.findByText('beta-main')
+    fireEvent.click(fetchButton())
+    await waitFor(() => expect(fetchButton().disabled).toBe(true))
+
+    fireEvent.click(screen.getByRole('button', { name: 'alpha' }))
+    await waitFor(() => expect(fetchButton().disabled).toBe(false))
+    fireEvent.click(screen.getByRole('button', { name: 'beta' }))
+
+    expect(fetchButton().disabled).toBe(true)
+    fireEvent.click(fetchButton())
+    expect(api.fetchRepository).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      finish()
+    })
+    await waitFor(() => expect(fetchButton().disabled).toBe(false))
+  })
+
+  it('is disabled for a repository whose folder is gone', async () => {
+    api.listRepositories.mockResolvedValue([repo('alpha', true), repo('beta')])
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha can’t be found')
+
+    expect(fetchButton().disabled).toBe(true)
+  })
+
+  it('is disabled on a Repositories tab and on the backdrop', async () => {
+    renderWithProviders(<App />)
+
+    expect(fetchButton().disabled).toBe(true)
+
+    await choose('alpha')
+    await waitFor(() => expect(fetchButton().disabled).toBe(false))
+
+    newTab()
+    expect(fetchButton().disabled).toBe(true)
+    fireEvent.click(fetchButton())
+    expect(api.fetchRepository).not.toHaveBeenCalled()
   })
 })
 

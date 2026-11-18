@@ -24,3 +24,30 @@
 .operations > * {
   -webkit-app-region: no-drag;
 }
+
+/* What a manual fetch failed with, beside the control that started it. Git's messages can run
+   long, so it is clipped to a readable width, with the whole of it in a tooltip. */
+.error {
+  composes: error from './shared.module.css';
+  max-width: 320px;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* The icon while a fetch is in flight. */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(1turn);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .spinner {
+    animation: none;
+  }
+}

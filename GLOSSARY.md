@@ -161,6 +161,12 @@ _Avoid_: Tracking branch, remote branch
 The periodic `git fetch --prune` main runs for the **active repository** while the window is focused, so **upstream** positions stay current. Quiet: it never reports a failure to the user.
 _Avoid_: Auto fetch, polling, sync
 
+**Manual fetch**:
+The same `git fetch --prune` run for the **active repository** when the user presses Fetch in
+the **operations area**. Loud, unlike **background fetch**: a failure is shown, and a
+repository with no remote is told about rather than reported as a fetch that did nothing.
+_Avoid_: Refresh (that one touches no network), sync, update
+
 **Current branch**:
 The branch HEAD points at. Absent when HEAD is detached.
 _Avoid_: Active branch ("active" belongs to repositories)
