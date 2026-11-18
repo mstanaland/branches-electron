@@ -147,6 +147,9 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('repository:fetch', (_event, root: string) =>
     settle(() => handlers.fetchRepository(root))
   )
+  ipcMain.handle('repository:pull', (_event, root: string) =>
+    settle(() => handlers.pullRepository(root))
+  )
   ipcMain.handle('tabs:set-count', (_event, count: number) =>
     settle(() => handlers.setTabCount(count))
   )

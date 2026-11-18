@@ -570,6 +570,56 @@ describe('fetchRepository', () => {
   })
 })
 
+describe('pullRepository', () => {
+  it('fast-forwards the current branch onto its upstream', async () => {
+    const origin = await createRepoWithCommit()
+    const clone = await cloneRepo(origin)
+    const handlers = handlersChoosing(clone.root)
+    await handlers.openRepository()
+    await origin.write('upstream.txt')
+    await origin.commit('Upstream commit')
+
+    await handlers.pullRepository(clone.root)
+
+    const status = await handlers.getStatus(clone.root)
+    expect(status.behind).toBe(0)
+    expect(status.ahead).toBe(0)
+  })
+
+  it('says so when the repository has no remote', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await expect(handlers.pullRepository(repo.root)).rejects.toMatchObject({
+      code: 'NO_REMOTE'
+    })
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(handlersChoosing(null).pullRepository(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+
+  it('reports a diverged branch as PULL_NOT_FAST_FORWARD', async () => {
+    const origin = await createRepoWithCommit()
+    const clone = await cloneRepo(origin)
+    const handlers = handlersChoosing(clone.root)
+    await handlers.openRepository()
+    await origin.write('upstream.txt')
+    await origin.commit('Upstream commit')
+    await clone.write('local.txt')
+    await clone.commit('Local commit')
+
+    await expect(handlers.pullRepository(clone.root)).rejects.toMatchObject({
+      code: 'PULL_NOT_FAST_FORWARD'
+    })
+  })
+})
+
 /** Handlers recording the tab counts main was told to rebuild the menu for. */
 function handlersRecordingTabCount(): {
   handlers: ReturnType<typeof createHandlers>

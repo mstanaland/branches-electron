@@ -24,6 +24,12 @@ export interface RepositoryFetch {
   busy: boolean
   /** What the last fetch started from this mount failed with, else null. */
   error: ApiError | null
+  /**
+   * When the last fetch from this mount was started, or 0 if none has been. The operations
+   * area has room for one failure and two operations, so it compares these to show whichever
+   * the user ran most recently.
+   */
+  submittedAt: number
 }
 
 /**
@@ -53,6 +59,7 @@ export function useFetchRepository(root: string): RepositoryFetch {
       if (inFlight === 0) fetch.mutate()
     },
     busy: inFlight > 0,
-    error: fetch.error
+    error: fetch.error,
+    submittedAt: fetch.submittedAt
   }
 }

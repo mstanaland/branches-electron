@@ -3,6 +3,8 @@ export const keys = {
   repositories: () => ['repositories'] as const,
   /** A fetch of one repository, as a mutation key, so the title bar can see one in flight. */
   fetch: (root: string) => ['repository', root, 'fetch'] as const,
+  /** A pull of one repository, as a mutation key, so the title bar can see one in flight. */
+  pull: (root: string) => ['repository', root, 'pull'] as const,
   /** Everything cached for one repository (status, branches, diffs), for invalidating it all. */
   repository: (root: string) => ['repository', root] as const,
   status: (root: string) => ['repository', root, 'status'] as const,

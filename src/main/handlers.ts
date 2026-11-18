@@ -20,6 +20,7 @@ import {
   getDiff,
   getStatus,
   listCommits,
+  pullFastForward,
   resolveRepositoryRoot,
   stageFiles,
   unstageFiles
@@ -64,6 +65,7 @@ export interface Handlers {
   commit: (root: string, message: string) => Promise<void>
   setActiveRepository: (root: string | null) => Promise<void>
   fetchRepository: (root: string) => Promise<void>
+  pullRepository: (root: string) => Promise<void>
   setTabCount: (count: number) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
@@ -208,6 +210,18 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       // Whatever else git says — offline, a remote that is gone, refused credentials —
       // travels back as a failed result rather than being swallowed.
       await fetchRemote(root)
+    },
+    async pullRepository(root) {
+      await assertOpen(root)
+      // Same reasoning as fetchRepository: a pull with no remote configured would fail with
+      // git's own words about tracking information, which say nothing about the real cause.
+      if (!(await hasRemote(root))) {
+        throw new ApiError({
+          code: 'NO_REMOTE',
+          message: 'This repository has no remote to pull from.'
+        })
+      }
+      await pullFastForward(root)
     },
     async setTabCount(count) {
       // A number off IPC, and the menu is built from it, so a strip of -1 or 7.5 tabs is

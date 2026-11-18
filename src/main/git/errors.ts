@@ -3,6 +3,9 @@ export type GitErrorCode =
   | 'NOT_A_REPOSITORY'
   | 'COMMAND_FAILED'
   | 'CHECKOUT_BLOCKED_BY_CHANGES'
+  | 'DETACHED_HEAD'
+  | 'NO_UPSTREAM'
+  | 'PULL_NOT_FAST_FORWARD'
 
 /** Every failure from the git layer is a GitError, so callers can rely on its shape. */
 export class GitError extends Error {

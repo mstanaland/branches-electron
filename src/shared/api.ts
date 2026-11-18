@@ -95,6 +95,20 @@ export interface BranchesApi {
    */
   fetchRepository: (root: string) => Promise<ApiResult<void>>
   /**
+   * Brings `root`'s current branch up to date with its upstream, with `git pull --ff-only`.
+   *
+   * Fast-forward only: a branch that has diverged comes back as `PULL_NOT_FAST_FORWARD`
+   * rather than being merged or rebased, because neither has a surface in the app yet.
+   * A detached HEAD is `DETACHED_HEAD`, a branch tracking nothing — or tracking an upstream
+   * that is gone — is `NO_UPSTREAM`, and a repository with no remote is `NO_REMOTE`.
+   *
+   * A dirty work tree is git's business, as on the command line: there is no pre-flight
+   * check here. Git aborts by itself, work tree untouched, only when the incoming commits
+   * would overwrite a file with local changes, and that arrives as `COMMAND_FAILED` with
+   * git's own wording. `root` must be a saved repository or one opened this session.
+   */
+  pullRepository: (root: string) => Promise<ApiResult<void>>
+  /**
    * Tells main which repository the user is looking at, so it can keep that one's
    * remote-tracking refs current with a periodic `git fetch`. Pass null when none is active.
    * `root` must be a saved repository or one the user opened this session.
