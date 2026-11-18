@@ -16,10 +16,18 @@
 
 /* The columns, under the chrome. A grid item's automatic minimum size is its content, so
    without the zero minimum a tall child — a long history, a large diff — stretches the row
-   past the window and the column's own scroll container never gets a height to scroll in. */
+   past the window and the column's own scroll container never gets a height to scroll in.
+
+   Three tracks: the sidebar, a zero-width one holding the boundary's resize handle, and the
+   content. The sidebar's track grows to its dragged width only as far as the content's minimum
+   allows, so a window too narrow for both squeezes the sidebar, never the columns after it; the
+   width and both minimums come from App.tsx. */
 .body {
   display: grid;
-  grid-template-columns: 260px minmax(0, 1fr);
+  grid-template-columns:
+    minmax(var(--sidebar-min), var(--sidebar-width))
+    0
+    minmax(var(--content-min), 1fr);
   flex: 1;
   min-height: 0;
   background: var(--color-bg);
@@ -47,9 +55,14 @@
   min-height: 0;
 }
 
+/* The changes list, its boundary's handle and the diff, sized the same way as the columns
+   above: the changes list at its dragged width, unless the diff's minimum needs the room. */
 .split {
   display: grid;
-  grid-template-columns: minmax(260px, 360px) minmax(0, 1fr);
+  grid-template-columns:
+    minmax(var(--changes-min), var(--changes-width))
+    0
+    minmax(var(--diff-min), 1fr);
   flex: 1;
   min-height: 0;
 }
