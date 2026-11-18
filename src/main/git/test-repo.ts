@@ -78,3 +78,23 @@ export async function cloneRepo(source: TestRepo): Promise<TestRepo> {
 export async function cleanupTestRepos(): Promise<void> {
   await Promise.all(created.splice(0).map((dir) => rm(dir, { recursive: true, force: true })))
 }
+
+/**
+ * A bare repository holding `source`'s branches, added to `source` as `name` with each
+ * branch tracking its copy there — the shape a push needs, since a non-bare remote refuses
+ * a push to its checked-out branch.
+ */
+export async function addBareRemote(source: TestRepo, name = 'origin'): Promise<TestRepo> {
+  const root = join(await makeTempDir(), `${name}.git`)
+  await execFileAsync('git', ['init', '-q', '--bare', root])
+  const remote = testRepoAt(root)
+  await source.git('remote', 'add', name, root)
+  const heads = (await source.git('for-each-ref', '--format=%(refname:short)', 'refs/heads'))
+    .split('\n')
+    .filter(Boolean)
+  if (heads.length > 0) await source.git('push', '-q', '-u', name, ...heads)
+  // Point the remote's HEAD at the source's branch, so a clone of it checks that out.
+  const current = (await source.git('symbolic-ref', '-q', 'HEAD')).trim()
+  await remote.git('symbolic-ref', 'HEAD', current)
+  return remote
+}

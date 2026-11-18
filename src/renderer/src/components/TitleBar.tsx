@@ -1,21 +1,27 @@
-import { ArrowDown, ArrowDownToLine, LoaderCircle } from 'lucide-react'
+import { ArrowDown, ArrowDownToLine, ArrowUp, CloudUpload, LoaderCircle } from 'lucide-react'
+import { useState } from 'react'
+import type { PublishableTarget, PublishTarget, RepositoryStatus } from '../../../shared/git'
 import {
   describeError,
   type RepositoryPull,
+  type RepositoryPush,
   useFetchRepository,
+  usePublishTarget,
   usePullRepository,
+  usePushRepository,
   useRepositories,
   useStatus,
   useTabs
 } from '../data'
 import { Button, Tooltip } from '../ui'
+import { PublishBranchDialog } from './PublishBranchDialog'
 import shared from './shared.module.css'
 import styles from './TitleBar.module.css'
 
 /**
  * The **title bar**: the full-width row at the top of the window, with the traffic lights
  * inset on the left and the **operations area** on the right, where the operations on the
- * **active repository** — Fetch and Pull today, Push and the overflow menu as they arrive —
+ * **active repository** — Fetch, Pull and Push today, the overflow menu when it arrives —
  * live.
  *
  * The row is the window's drag region, which is what makes the chrome behave like a Mac
@@ -48,6 +54,7 @@ export function TitleBar(): React.JSX.Element {
           <>
             <FetchButton disabled />
             <PullButton disabled />
+            <PushButton label="Push" disabled />
           </>
         )}
       </div>
@@ -63,10 +70,12 @@ export function TitleBar(): React.JSX.Element {
 function Operations({ root }: { root: string }): React.JSX.Element {
   const fetch = useFetchRepository(root)
   const pull = usePullRepository(root)
-  // The row has space for one failure and holds two operations, so the one reported is the
-  // one the user ran most recently. Without that, a fetch that succeeds after a failed pull
-  // would leave the pull's error sitting there, and vice versa.
-  const error = describeError(pull.submittedAt > fetch.submittedAt ? pull.error : fetch.error)
+  const push = usePushRepository(root)
+  // The row has space for one failure and holds several operations, so the one reported is
+  // the one the user ran most recently. Without that, a fetch that succeeds after a failed
+  // pull would leave the pull's error sitting there, and vice versa.
+  const latest = [fetch, pull, push].reduce((a, b) => (b.submittedAt > a.submittedAt ? b : a))
+  const error = describeError(latest.error)
 
   return (
     <>
@@ -82,6 +91,7 @@ function Operations({ root }: { root: string }): React.JSX.Element {
           fired twice at once and says that it is working. */}
       <FetchButton busy={fetch.busy} onClick={fetch.start} />
       <Pull root={root} pull={pull} />
+      <Push root={root} push={push} />
     </>
   )
 }
@@ -152,6 +162,115 @@ function PullButton({
       {/* Part of the button's accessible name, not an aside: "Pull 3" is what the control
           offers to do, and a screen reader should hear the number too. */}
       {behind > 0 && <span className={styles.count}>{behind}</span>}
+    </Button>
+  )
+}
+
+/** What the Push control offers, from the current branch's status and where it can go. */
+type PushOffer =
+  | { kind: 'push'; ahead: number; enabled: boolean }
+  /** No upstream, or a gone one: the control reads Publish and opens the dialog. */
+  | { kind: 'publish'; target: PublishableTarget }
+
+function pushOffer(
+  status: RepositoryStatus | undefined,
+  target: PublishTarget | undefined
+): PushOffer {
+  // Nothing read yet, or a **detached HEAD**: there is no branch to push.
+  if (status === undefined || status.detached) return { kind: 'push', ahead: 0, enabled: false }
+  if (target === undefined || target.branch === null) {
+    // Where else the branch could go is still being read. A branch with an upstream can be
+    // pushed regardless, so the control doesn't flash disabled on every load; one without
+    // waits, since it may read Publish.
+    return status.upstream === null
+      ? { kind: 'push', ahead: 0, enabled: false }
+      : { kind: 'push', ahead: status.ahead, enabled: status.ahead > 0 }
+  }
+  // With no remote at all there is nowhere to publish to either. Push stays enabled so the
+  // user hears why — and Publish Repository (#46) will start from here.
+  if (target.remotes.length === 0) return { kind: 'push', ahead: 0, enabled: true }
+  if (status.upstream === null || target.goneFrom !== null) {
+    return { kind: 'publish', target: { ...target, branch: target.branch } }
+  }
+  // Diverged branches stay enabled: the push is refused, and the refusal says what to do.
+  return { kind: 'push', ahead: status.ahead, enabled: status.ahead > 0 }
+}
+
+/**
+ * The **Push** control. With an **upstream** it pushes, showing how far **ahead** the branch
+ * is and disabled when that is nothing. With no upstream, or one that is **gone**, the same
+ * control reads **Publish** and opens the Publish Branch dialog instead.
+ *
+ * The ahead count is as fresh as the last fetch, like Pull's behind count.
+ */
+function Push({ root, push }: { root: string; push: RepositoryPush }): React.JSX.Element {
+  const status = useStatus(root).data
+  const target = usePublishTarget(root).data
+  const [publishing, setPublishing] = useState(false)
+  const offer = pushOffer(status, target)
+
+  if (offer.kind === 'publish' || publishing) {
+    return (
+      <>
+        <PushButton
+          label="Publish"
+          disabled={publishing}
+          onClick={() => {
+            setPublishing(true)
+          }}
+        />
+        {publishing && offer.kind === 'publish' && (
+          <PublishBranchDialog
+            root={root}
+            target={offer.target}
+            onClose={() => setPublishing(false)}
+          />
+        )}
+      </>
+    )
+  }
+
+  return (
+    <PushButton
+      label="Push"
+      ahead={offer.ahead}
+      busy={push.busy}
+      disabled={!offer.enabled}
+      onClick={push.start}
+    />
+  )
+}
+
+function PushButton({
+  label,
+  ahead = 0,
+  busy = false,
+  disabled = false,
+  onClick
+}: {
+  label: 'Push' | 'Publish'
+  ahead?: number
+  busy?: boolean
+  disabled?: boolean
+  onClick?: () => void
+}): React.JSX.Element {
+  return (
+    <Button
+      variant="quiet"
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      onClick={onClick}
+    >
+      {busy ? (
+        <LoaderCircle className={shared.spinner} />
+      ) : label === 'Publish' ? (
+        <CloudUpload />
+      ) : (
+        <ArrowUp />
+      )}
+      {label}
+      {/* Part of the accessible name, as on Pull: "Push 2" is what the control offers. */}
+      {ahead > 0 && <span className={styles.count}>{ahead}</span>}
     </Button>
   )
 }

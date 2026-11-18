@@ -3,6 +3,7 @@ import type {
   BranchMenuAction,
   ChangeDiff,
   Commit,
+  PublishTarget,
   RepositoryStatus,
   SavedRepository
 } from './git'
@@ -108,6 +109,34 @@ export interface BranchesApi {
    * git's own wording. `root` must be a saved repository or one opened this session.
    */
   pullRepository: (root: string) => Promise<ApiResult<void>>
+  /**
+   * Sends `root`'s current branch to its configured upstream, whatever that upstream is
+   * called: the destination is named explicitly, so `foo` tracking `origin/bar` pushes to
+   * `origin/bar`. The branch only — no tags — and never forced.
+   *
+   * A remote with commits the branch lacks is `PUSH_REJECTED`, whose message says whether to
+   * Pull first (only behind) or that the branch has diverged. A detached HEAD is
+   * `DETACHED_HEAD`, a branch with no upstream — or a gone one — is `NO_UPSTREAM` (that is
+   * Publish's job), and a repository with no remote is `NO_REMOTE`. Refused credentials,
+   * being offline or a failing pre-push hook come back as `COMMAND_FAILED` with git's words.
+   * `root` must be a saved repository or one the user opened this session.
+   */
+  pushRepository: (root: string) => Promise<ApiResult<void>>
+  /**
+   * **Publish branch**: creates `root`'s current branch on `remote` under the same name and
+   * makes it the upstream, with `git push --set-upstream`. `remote` must be one the
+   * repository has (`INVALID_REF` otherwise). A remote that already has a branch of that name
+   * it can't fast-forward is `PUSH_REJECTED`; otherwise the errors are as for
+   * `pushRepository`. `root` must be a saved repository or one opened this session.
+   */
+  publishBranch: (root: string, remote: string) => Promise<ApiResult<void>>
+  /**
+   * Where `root`'s current branch can go: its remotes, each with its push URL and whether it
+   * already has the branch, and the remote a gone upstream was on. Local refs and config
+   * only — nothing reaches the network. `root` must be a saved repository or one opened
+   * this session.
+   */
+  getPublishTarget: (root: string) => Promise<ApiResult<PublishTarget>>
   /**
    * Tells main which repository the user is looking at, so it can keep that one's
    * remote-tracking refs current with a periodic `git fetch`. Pass null when none is active.

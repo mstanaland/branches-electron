@@ -11,6 +11,8 @@ export interface DialogProps {
   children?: React.ReactNode
   /** Usually `Button`s. Put `DialogClose` around the one that dismisses. */
   actions?: React.ReactNode
+  /** What takes focus when the dialog opens — the default button. The first control otherwise. */
+  initialFocus?: React.RefObject<HTMLElement | null>
 }
 
 /** A modal dialog with content, for in-window surfaces. Simple confirms stay native (ADR 0003). */
@@ -20,13 +22,14 @@ export function Dialog({
   title,
   description,
   children,
-  actions
+  actions,
+  initialFocus
 }: DialogProps): React.JSX.Element {
   return (
     <BaseDialog.Root open={open} onOpenChange={onOpenChange}>
       <BaseDialog.Portal>
         <BaseDialog.Backdrop className={styles.backdrop} />
-        <BaseDialog.Popup className={styles.popup}>
+        <BaseDialog.Popup className={styles.popup} initialFocus={initialFocus}>
           <BaseDialog.Title className={styles.title}>{title}</BaseDialog.Title>
           {description && (
             <BaseDialog.Description className={styles.description}>

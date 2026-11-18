@@ -5,7 +5,13 @@ import type { SavedRepository } from '../shared/git'
 import { MAX_TABS } from '../shared/tabs'
 import { createHandlers, type HandlerDeps } from './handlers'
 import { createRepositoryStore } from './repositoryStore'
-import { cleanupTestRepos, cloneRepo, createRepoWithCommit, makeTempDir } from './git/test-repo'
+import {
+  addBareRemote,
+  cleanupTestRepos,
+  cloneRepo,
+  createRepoWithCommit,
+  makeTempDir
+} from './git/test-repo'
 
 afterAll(cleanupTestRepos)
 
@@ -616,6 +622,108 @@ describe('pullRepository', () => {
 
     await expect(handlers.pullRepository(clone.root)).rejects.toMatchObject({
       code: 'PULL_NOT_FAST_FORWARD'
+    })
+  })
+})
+
+describe('pushRepository', () => {
+  it('sends the current branch to its upstream', async () => {
+    const repo = await createRepoWithCommit()
+    const remote = await addBareRemote(repo)
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+    await repo.write('local.txt')
+    await repo.commit('Local commit')
+
+    await handlers.pushRepository(repo.root)
+
+    expect((await remote.git('rev-parse', 'main')).trim()).toBe(
+      (await repo.git('rev-parse', 'HEAD')).trim()
+    )
+  })
+
+  it('says so when the repository has no remote', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await expect(handlers.pushRepository(repo.root)).rejects.toMatchObject({
+      code: 'NO_REMOTE',
+      message: expect.stringMatching(/no remote/)
+    })
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(handlersChoosing(null).pushRepository(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+})
+
+describe('publishBranch', () => {
+  it('creates the current branch on the chosen remote', async () => {
+    const repo = await createRepoWithCommit()
+    const remote = await addBareRemote(repo)
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+    await repo.git('checkout', '-q', '-b', 'feature')
+
+    await handlers.publishBranch(repo.root, 'origin')
+
+    expect(await remote.git('for-each-ref', '--format=%(refname)', 'refs/heads/feature')).toBe(
+      'refs/heads/feature\n'
+    )
+  })
+
+  it('refuses a remote the repository does not have, before it reaches git', async () => {
+    const repo = await createRepoWithCommit()
+    await addBareRemote(repo)
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await expect(handlers.publishBranch(repo.root, '--mirror')).rejects.toMatchObject({
+      code: 'INVALID_REF'
+    })
+  })
+
+  it('says so when the repository has no remote', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    await expect(handlers.publishBranch(repo.root, 'origin')).rejects.toMatchObject({
+      code: 'NO_REMOTE'
+    })
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(handlersChoosing(null).publishBranch(repo.root, 'origin')).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+})
+
+describe('getPublishTarget', () => {
+  it('describes where the current branch can go', async () => {
+    const repo = await createRepoWithCommit()
+    await addBareRemote(repo)
+    const handlers = handlersChoosing(repo.root)
+    await handlers.openRepository()
+
+    const target = await handlers.getPublishTarget(repo.root)
+
+    expect(target).toMatchObject({ branch: 'main', remotes: [{ name: 'origin', hasBranch: true }] })
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(handlersChoosing(null).getPublishTarget(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
     })
   })
 })

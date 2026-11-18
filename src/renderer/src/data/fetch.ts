@@ -5,14 +5,17 @@ import { api } from '../api'
 import { keys } from './keys'
 
 /**
- * Re-reads what a fetch — background or manual — can have changed: the branches, and the
- * current branch's ahead/behind counts in status. Diffs come from the work tree and the
- * index, which a fetch never touches. One rule, in one place, for both callers.
+ * Re-reads what a fetch — background or manual — can have changed: the branches, the
+ * current branch's ahead/behind counts in status, and the publish target, since a prune can
+ * leave an upstream **gone** and a fetch can bring a remote branch Publish should mention.
+ * Diffs come from the work tree and the index, which a fetch never touches. One rule, in one
+ * place, for every caller — a push and a publish move exactly the same refs.
  */
 export async function invalidateAfterFetch(client: QueryClient, root: string): Promise<void> {
   await Promise.all([
     client.invalidateQueries({ queryKey: keys.branches(root) }),
-    client.invalidateQueries({ queryKey: keys.status(root) })
+    client.invalidateQueries({ queryKey: keys.status(root) }),
+    client.invalidateQueries({ queryKey: keys.publishTarget(root) })
   ])
 }
 

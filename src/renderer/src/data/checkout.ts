@@ -13,6 +13,8 @@ export function useCheckoutBranch(root: string) {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.status(root) }),
         queryClient.invalidateQueries({ queryKey: keys.branches(root) }),
+        // A different current branch has different places to go.
+        queryClient.invalidateQueries({ queryKey: keys.publishTarget(root) }),
         queryClient.invalidateQueries({ queryKey: keys.diffs(root) })
       ])
     }

@@ -118,3 +118,28 @@ export interface ChangeDiff {
   staged: FileDiff | null
   unstaged: FileDiff | null
 }
+
+/** A **remote** as the Publish Branch dialog offers it. */
+export interface PublishRemote {
+  name: string
+  /** Where a push to it goes (its push URL), or null if it has none configured. */
+  url: string | null
+  /**
+   * True when `refs/remotes/<name>/<branch>` exists here — the remote had the current branch
+   * as of the last fetch. Local refs only: nothing reaches the network to find out.
+   */
+  hasBranch: boolean
+}
+
+/** What Push and Publish need to know about where the **current branch** can go. */
+export interface PublishTarget {
+  /** The current branch, or null when HEAD is detached. */
+  branch: string | null
+  /** Every remote, alphabetically. Empty for a repository with no remote. */
+  remotes: PublishRemote[]
+  /** The remote the current branch's **upstream** was on, when that upstream is **gone**. */
+  goneFrom: string | null
+}
+
+/** A `PublishTarget` with a current branch to publish — what the Publish Branch dialog needs. */
+export type PublishableTarget = PublishTarget & { branch: string }

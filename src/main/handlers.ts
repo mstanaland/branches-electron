@@ -4,6 +4,7 @@ import type {
   BranchMenuAction,
   ChangeDiff,
   Commit,
+  PublishTarget,
   RepositoryStatus,
   SavedRepository
 } from '../shared/git'
@@ -18,9 +19,12 @@ import {
   isRepositoryRoot,
   listBranches,
   getDiff,
+  getPublishTarget,
   getStatus,
   listCommits,
+  publishBranch,
   pullFastForward,
+  pushBranch,
   resolveRepositoryRoot,
   stageFiles,
   unstageFiles
@@ -66,6 +70,9 @@ export interface Handlers {
   setActiveRepository: (root: string | null) => Promise<void>
   fetchRepository: (root: string) => Promise<void>
   pullRepository: (root: string) => Promise<void>
+  pushRepository: (root: string) => Promise<void>
+  publishBranch: (root: string, remote: string) => Promise<void>
+  getPublishTarget: (root: string) => Promise<PublishTarget>
   setTabCount: (count: number) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
@@ -222,6 +229,38 @@ export function createHandlers(deps: HandlerDeps): Handlers {
         })
       }
       await pullFastForward(root)
+    },
+    async pushRepository(root) {
+      await assertOpen(root)
+      // As for Pull: with no remote, git would complain about a missing destination, which
+      // says nothing about the real cause. Publish Repository (#46) will start from here.
+      if (!(await hasRemote(root))) {
+        throw new ApiError({
+          code: 'NO_REMOTE',
+          message: 'This repository has no remote to push to.'
+        })
+      }
+      await pushBranch(root)
+    },
+    async publishBranch(root, remote) {
+      await assertOpen(root)
+      const { remotes } = await getPublishTarget(root)
+      if (remotes.length === 0) {
+        throw new ApiError({
+          code: 'NO_REMOTE',
+          message: 'This repository has no remote to publish to.'
+        })
+      }
+      // A string off IPC that becomes a git argument, so it is matched against the remotes
+      // that exist rather than trusted — which also keeps an option like `--mirror` out.
+      if (!remotes.some((candidate) => candidate.name === remote)) {
+        throw new ApiError({ code: 'INVALID_REF', message: `${remote} is not a remote.` })
+      }
+      await publishBranch(root, remote)
+    },
+    async getPublishTarget(root) {
+      await assertOpen(root)
+      return getPublishTarget(root)
     },
     async setTabCount(count) {
       // A number off IPC, and the menu is built from it, so a strip of -1 or 7.5 tabs is

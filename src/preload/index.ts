@@ -48,6 +48,9 @@ const api: WindowApi = {
   setActiveRepository: (root) => ipcRenderer.invoke('repository:set-active', root),
   fetchRepository: (root) => ipcRenderer.invoke('repository:fetch', root),
   pullRepository: (root) => ipcRenderer.invoke('repository:pull', root),
+  pushRepository: (root) => ipcRenderer.invoke('repository:push', root),
+  publishBranch: (root, remote) => ipcRenderer.invoke('repository:publish-branch', root, remote),
+  getPublishTarget: (root) => ipcRenderer.invoke('repository:publish-target', root),
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name)
 }

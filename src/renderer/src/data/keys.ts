@@ -5,12 +5,18 @@ export const keys = {
   fetch: (root: string) => ['repository', root, 'fetch'] as const,
   /** A pull of one repository, as a mutation key, so the title bar can see one in flight. */
   pull: (root: string) => ['repository', root, 'pull'] as const,
+  /** A push of one repository, as a mutation key, so the title bar can see one in flight. */
+  push: (root: string) => ['repository', root, 'push'] as const,
+  /** A Publish Branch in one repository, as a mutation key. Under `repository(root)`, like every operation, so the in-progress bar sees it. */
+  publish: (root: string) => ['repository', root, 'publish'] as const,
   /** A refresh of one repository, as a mutation key, so its control can see one in flight. */
   refresh: (root: string) => ['repository', root, 'refresh'] as const,
   /** Everything cached for one repository (status, branches, diffs), for invalidating it all. */
   repository: (root: string) => ['repository', root] as const,
   status: (root: string) => ['repository', root, 'status'] as const,
   branches: (root: string) => ['repository', root, 'branches'] as const,
+  /** Where the current branch can be pushed or published: its remotes, and a gone upstream's. */
+  publishTarget: (root: string) => ['repository', root, 'publish-target'] as const,
   /**
    * One branch's history. Keyed by the ref the user picked — a branch name, or the oid of a
    * detached HEAD — so switching between two branches keeps both their pages cached.

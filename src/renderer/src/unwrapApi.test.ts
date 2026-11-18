@@ -22,6 +22,9 @@ function bridgeReturning(result: unknown): BranchesApi {
     setActiveRepository: respond,
     fetchRepository: respond,
     pullRepository: respond,
+    pushRepository: respond,
+    publishBranch: respond,
+    getPublishTarget: respond,
     setTabCount: respond,
     checkoutBranch: respond,
     showBranchMenu: respond

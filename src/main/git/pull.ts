@@ -1,4 +1,5 @@
 import { GitError } from './errors'
+import { requireCurrentBranch } from './head'
 import { enqueueWrite } from './queue'
 import { runGit } from './run'
 
@@ -23,12 +24,7 @@ import { runGit } from './run'
  */
 export function pullFastForward(root: string): Promise<void> {
   return enqueueWrite(root, async () => {
-    const branch = await currentBranch(root)
-    if (branch === null) {
-      throw new GitError('DETACHED_HEAD', 'HEAD is not on a branch, so there is nothing to pull.', {
-        args: ['pull', '--ff-only']
-      })
-    }
+    const branch = await requireCurrentBranch(root, 'pull', ['pull', '--ff-only'])
     if (!(await hasUpstream(root))) {
       // One message for two states, because it is true of both and the user's next move is
       // the same: either no upstream was ever configured, or one was and the remote no
@@ -55,15 +51,6 @@ export function pullFastForward(root: string): Promise<void> {
       throw error
     }
   })
-}
-
-/** The **current branch**, or null when HEAD is detached — which is what makes the ref fail. */
-async function currentBranch(root: string): Promise<string | null> {
-  const { stdout } = await runGit(root, ['symbolic-ref', '--quiet', '--short', 'HEAD'], {
-    okExitCodes: [1]
-  })
-  const name = stdout.trim()
-  return name === '' ? null : name
 }
 
 /**

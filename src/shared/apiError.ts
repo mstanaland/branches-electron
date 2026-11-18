@@ -7,6 +7,7 @@ export type ApiErrorCode =
   | 'DETACHED_HEAD'
   | 'NO_UPSTREAM'
   | 'PULL_NOT_FAST_FORWARD'
+  | 'PUSH_REJECTED'
   | 'REPOSITORY_NOT_OPEN'
   | 'NO_REMOTE'
   | 'INVALID_PATH'

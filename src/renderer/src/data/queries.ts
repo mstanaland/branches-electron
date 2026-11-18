@@ -16,6 +16,18 @@ export function useStatus(root: string | null) {
   })
 }
 
+/**
+ * Where the active repository's **current branch** can go — its remotes, and the remote a
+ * **gone** upstream was on — for Push and the Publish Branch dialog. Idle while `root` is null.
+ */
+export function usePublishTarget(root: string | null) {
+  return useQuery({
+    queryKey: keys.publishTarget(root ?? ''),
+    queryFn: () => api.getPublishTarget(root as string),
+    enabled: root !== null
+  })
+}
+
 /** Branches of the active repository. Idle while `root` is null. A refetch keeps the old data on screen; a different repository starts empty. */
 export function useBranches(root: string | null) {
   return useQuery({

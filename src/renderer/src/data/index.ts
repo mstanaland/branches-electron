@@ -8,6 +8,8 @@ export type { RepositoryFetch } from './fetch'
 export { useRefreshRepository } from './refresh'
 export type { RepositoryRefresh } from './refresh'
 export { usePullRepository } from './pull'
+export { usePublishBranch, usePushRepository } from './push'
+export type { PublishBranch, RepositoryPush } from './push'
 export type { RepositoryPull } from './pull'
 export { useDraft } from './drafts'
 export type { Draft, DraftState } from './drafts'
@@ -21,6 +23,7 @@ export {
   useBranches,
   useCommits,
   useDiff,
+  usePublishTarget,
   useRepositories,
   useStatus
 } from './queries'

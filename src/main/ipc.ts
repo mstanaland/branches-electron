@@ -150,6 +150,15 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('repository:pull', (_event, root: string) =>
     settle(() => handlers.pullRepository(root))
   )
+  ipcMain.handle('repository:push', (_event, root: string) =>
+    settle(() => handlers.pushRepository(root))
+  )
+  ipcMain.handle('repository:publish-branch', (_event, root: string, remote: string) =>
+    settle(() => handlers.publishBranch(root, remote))
+  )
+  ipcMain.handle('repository:publish-target', (_event, root: string) =>
+    settle(() => handlers.getPublishTarget(root))
+  )
   ipcMain.handle('tabs:set-count', (_event, count: number) =>
     settle(() => handlers.setTabCount(count))
   )

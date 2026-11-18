@@ -2,7 +2,13 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../shared/apiError'
-import type { Branch, Commit, RepositoryStatus, SavedRepository } from '../../shared/git'
+import type {
+  Branch,
+  Commit,
+  PublishTarget,
+  RepositoryStatus,
+  SavedRepository
+} from '../../shared/git'
 import type { TabCommand } from '../../shared/tabs'
 import type { RendererApi } from './api'
 import { renderWithProviders } from './data/testUtils'
@@ -18,6 +24,9 @@ const api = vi.hoisted(() => ({
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
   fetchRepository: vi.fn<RendererApi['fetchRepository']>(),
   pullRepository: vi.fn<RendererApi['pullRepository']>(),
+  pushRepository: vi.fn<RendererApi['pushRepository']>(),
+  publishBranch: vi.fn<RendererApi['publishBranch']>(),
+  getPublishTarget: vi.fn<RendererApi['getPublishTarget']>(),
   setTabCount: vi.fn<RendererApi['setTabCount']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>(),
   onTabCommand: vi.fn<RendererApi['onTabCommand']>(),
@@ -58,6 +67,17 @@ const mainBranch: Branch = {
 /** A status whose branch is `behind` commits behind an upstream, so Pull has work to do. */
 const behindBy = (branch: string, behind: number): RepositoryStatus =>
   status(branch, { upstream: 'origin/main', behind })
+
+/** Where a branch can go: by default, a repository with one remote, `origin`. */
+const publishTarget = (
+  branch: string | null,
+  overrides: Partial<PublishTarget> = {}
+): PublishTarget => ({
+  branch,
+  remotes: [{ name: 'origin', url: 'git@example.com:me/repo.git', hasBranch: false }],
+  goneFrom: null,
+  ...overrides
+})
 
 /** The labels in the tab strip, left to right, or null when there is no strip at all. */
 function tabLabels(): string[] | null {
@@ -112,6 +132,11 @@ beforeEach(() => {
   api.setActiveRepository.mockResolvedValue(undefined)
   api.fetchRepository.mockResolvedValue(undefined)
   api.pullRepository.mockResolvedValue(undefined)
+  api.pushRepository.mockResolvedValue(undefined)
+  api.publishBranch.mockResolvedValue(undefined)
+  api.getPublishTarget.mockImplementation(async (root) =>
+    publishTarget(`${root.split('/').pop()}-main`)
+  )
   api.listBranches.mockResolvedValue([])
   api.listCommits.mockResolvedValue([])
   api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta'), repo('gamma')])
@@ -987,6 +1012,301 @@ describe('Pull', () => {
     await act(async () => {
       finish()
     })
+  })
+})
+
+describe('Push', () => {
+  const pushButton = (): HTMLButtonElement =>
+    screen.getByRole('button', { name: /^(Push|Publish)/ }) as HTMLButtonElement
+
+  /** Opens `alpha` in a focused tab with the given status, and waits for it to land. */
+  async function openWith(overrides: Partial<RepositoryStatus>): Promise<void> {
+    api.getStatus.mockImplementation(async (root) =>
+      status(`${root.split('/').pop()}-main`, overrides)
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+    await waitFor(() => expect(api.getStatus).toHaveBeenCalledWith('/repos/alpha'))
+    await waitFor(() => expect(api.getPublishTarget).toHaveBeenCalledWith('/repos/alpha'))
+  }
+
+  it('is disabled on the backdrop, where there is no repository to push from', async () => {
+    renderWithProviders(<App />)
+    await screen.findByRole('option', { name: 'alpha' })
+
+    expect(pushButton().textContent).toBe('Push')
+    expect(pushButton().disabled).toBe(true)
+  })
+
+  it('says how far ahead the branch is', async () => {
+    await openWith({ upstream: 'origin/main', ahead: 2 })
+
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+    expect(pushButton().textContent).toBe('Push2')
+  })
+
+  it('is disabled when the branch has nothing its upstream lacks', async () => {
+    await openWith({ upstream: 'origin/main', ahead: 0, behind: 3 })
+    await screen.findByText('alpha-main')
+
+    expect(pushButton().textContent).toBe('Push')
+    expect(pushButton().disabled).toBe(true)
+  })
+
+  it('is ready to push before it knows where else the branch could go', async () => {
+    api.getPublishTarget.mockImplementation(() => new Promise<never>(() => {}))
+    api.getStatus.mockImplementation(async (root) =>
+      status(`${root.split('/').pop()}-main`, { upstream: 'origin/main', ahead: 2 })
+    )
+    renderWithProviders(<App />)
+    await choose('alpha')
+
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+    expect(pushButton().textContent).toBe('Push2')
+  })
+
+  it('stays enabled for a diverged branch, showing how far ahead it is', async () => {
+    await openWith({ upstream: 'origin/main', ahead: 1, behind: 2 })
+
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+    expect(pushButton().textContent).toBe('Push1')
+  })
+
+  it('is disabled on a detached HEAD', async () => {
+    api.getPublishTarget.mockResolvedValue(publishTarget(null))
+    await openWith({ branch: null, detached: true, upstream: 'origin/main', ahead: 2 })
+
+    await waitFor(() => expect(pushButton().disabled).toBe(true))
+    expect(pushButton().textContent).toBe('Push')
+  })
+
+  it('reads Publish when the branch has no upstream', async () => {
+    await openWith({ upstream: null })
+
+    await waitFor(() => expect(pushButton().textContent).toBe('Publish'))
+    expect(pushButton().disabled).toBe(false)
+  })
+
+  it('reads Publish when the upstream is gone', async () => {
+    api.getPublishTarget.mockResolvedValue(publishTarget('alpha-main', { goneFrom: 'origin' }))
+    await openWith({ upstream: 'origin/alpha-main' })
+
+    await waitFor(() => expect(pushButton().textContent).toBe('Publish'))
+  })
+
+  it('stays Push, enabled, with no remote at all — and says why it can’t', async () => {
+    api.getPublishTarget.mockResolvedValue(publishTarget('alpha-main', { remotes: [] }))
+    api.pushRepository.mockRejectedValue(
+      new ApiError({ code: 'NO_REMOTE', message: 'This repository has no remote to push to.' })
+    )
+    await openWith({ upstream: null })
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+    expect(pushButton().textContent).toBe('Push')
+
+    fireEvent.click(pushButton())
+
+    expect((await screen.findByRole('alert')).textContent).toContain('no remote')
+    expect(screen.queryByRole('dialog')).toBeNull()
+  })
+
+  it('pushes the focused tab’s repository and re-reads its branches', async () => {
+    await openWith({ upstream: 'origin/main', ahead: 2 })
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+    const branchReads = api.listBranches.mock.calls.length
+
+    fireEvent.click(pushButton())
+
+    await waitFor(() => expect(api.pushRepository).toHaveBeenCalledWith('/repos/alpha'))
+    await waitFor(() => expect(api.listBranches.mock.calls.length).toBeGreaterThan(branchReads))
+  })
+
+  it('reports a rejected push in the row', async () => {
+    api.pushRepository.mockRejectedValue(
+      new ApiError({
+        code: 'PUSH_REJECTED',
+        message: 'alpha-main is behind its upstream. Pull first, then push.'
+      })
+    )
+    await openWith({ upstream: 'origin/main', ahead: 1 })
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+
+    fireEvent.click(pushButton())
+
+    expect((await screen.findByRole('alert')).textContent).toContain('Pull first')
+  })
+
+  it('says it is working and cannot be fired twice at once', async () => {
+    let finish = (): void => {}
+    api.pushRepository.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => resolve()
+        })
+    )
+    await openWith({ upstream: 'origin/main', ahead: 1 })
+    await waitFor(() => expect(pushButton().disabled).toBe(false))
+
+    fireEvent.click(pushButton())
+
+    await waitFor(() => expect(pushButton().getAttribute('aria-busy')).toBe('true'))
+    expect(pushButton().disabled).toBe(true)
+    fireEvent.click(pushButton())
+    expect(api.pushRepository).toHaveBeenCalledTimes(1)
+
+    await act(async () => {
+      finish()
+    })
+  })
+})
+
+describe('the Publish Branch dialog', () => {
+  const dialog = (): HTMLElement => screen.getByRole('dialog', { name: 'Publish Branch' })
+  const publishButton = (): HTMLButtonElement =>
+    within(dialog()).getByRole('button', { name: 'Publish Branch' }) as HTMLButtonElement
+  const cancelButton = (): HTMLButtonElement =>
+    within(dialog()).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement
+
+  /** Opens `alpha` with no upstream and the given publish target, then opens the dialog. */
+  async function openDialog(target: Partial<PublishTarget> = {}): Promise<void> {
+    api.getPublishTarget.mockResolvedValue(publishTarget('alpha-main', target))
+    renderWithProviders(<App />)
+    await choose('alpha')
+    const publish = await screen.findByRole('button', { name: 'Publish' })
+    await waitFor(() => expect((publish as HTMLButtonElement).disabled).toBe(false))
+    fireEvent.click(publish)
+    await screen.findByRole('dialog', { name: 'Publish Branch' })
+  }
+
+  /** Picks a remote from the dialog's Select. */
+  async function pickRemote(name: string): Promise<void> {
+    fireEvent.click(within(dialog()).getByRole('combobox', { name: 'Remote' }))
+    const option = await screen.findByRole('option', { name })
+    fireEvent.pointerDown(option, { pointerType: 'mouse' })
+    fireEvent.click(option)
+  }
+
+  const twoRemotes = [
+    { name: 'fork', url: 'git@example.com:fork/repo.git', hasBranch: true },
+    { name: 'origin', url: 'git@example.com:me/repo.git', hasBranch: false }
+  ]
+
+  it('names the branch and the one remote, with its URL', async () => {
+    await openDialog()
+
+    expect(dialog().textContent).toContain(
+      'Creates a new branch on the selected remote repository. The local branch will automatically push to and pull from the new remote branch.'
+    )
+    expect(dialog().textContent).toContain('alpha-main')
+    expect(dialog().textContent).toContain('origin')
+    expect(dialog().textContent).toContain('git@example.com:me/repo.git')
+    expect(within(dialog()).queryByRole('combobox')).toBeNull()
+  })
+
+  it('publishes to the remote, closes and goes back to Push', async () => {
+    await openDialog()
+    api.getStatus.mockResolvedValue(status('alpha-main', { upstream: 'origin/alpha-main' }))
+    api.getPublishTarget.mockResolvedValue(
+      publishTarget('alpha-main', {
+        remotes: [{ name: 'origin', url: 'git@example.com:me/repo.git', hasBranch: true }]
+      })
+    )
+
+    fireEvent.click(publishButton())
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(api.publishBranch).toHaveBeenCalledWith('/repos/alpha', 'origin')
+    const push = await screen.findByRole('button', { name: 'Push' })
+    expect((push as HTMLButtonElement).disabled).toBe(true)
+  })
+
+  it('offers several remotes in a Select, starting on origin', async () => {
+    await openDialog({ remotes: twoRemotes })
+
+    const select = within(dialog()).getByRole('combobox', { name: 'Remote' })
+    expect(select.textContent).toContain('origin')
+    expect(dialog().textContent).toContain('git@example.com:me/repo.git')
+  })
+
+  it('publishes to the remote the user picks, showing its URL', async () => {
+    await openDialog({ remotes: twoRemotes })
+
+    await pickRemote('fork')
+
+    await waitFor(() => expect(dialog().textContent).toContain('git@example.com:fork/repo.git'))
+    fireEvent.click(publishButton())
+    await waitFor(() => expect(api.publishBranch).toHaveBeenCalledWith('/repos/alpha', 'fork'))
+  })
+
+  it('says when the chosen remote already has the branch, following the selection', async () => {
+    await openDialog({ remotes: twoRemotes })
+    expect(dialog().textContent).not.toContain('already has')
+
+    await pickRemote('fork')
+
+    await waitFor(() => expect(dialog().textContent).toContain('fork already has alpha-main'))
+    expect(publishButton().disabled).toBe(false)
+  })
+
+  it('starts on the remote a gone upstream was on, and says it was deleted there', async () => {
+    api.getStatus.mockImplementation(async () =>
+      status('alpha-main', { upstream: 'fork/alpha-main' })
+    )
+    await openDialog({
+      remotes: twoRemotes.map((remote) => ({ ...remote, hasBranch: false })),
+      goneFrom: 'fork'
+    })
+
+    expect(within(dialog()).getByRole('combobox', { name: 'Remote' }).textContent).toContain('fork')
+    expect(dialog().textContent).toContain(
+      'alpha-main was deleted from fork. Publishing creates it again.'
+    )
+  })
+
+  it('shows a failure inside the dialog, which stays open to retry', async () => {
+    api.publishBranch.mockRejectedValueOnce(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'Permission denied (publickey).' })
+    )
+    await openDialog()
+
+    fireEvent.click(publishButton())
+
+    const alert = await within(dialog()).findByRole('alert')
+    expect(alert.textContent).toContain('Permission denied')
+    fireEvent.click(publishButton())
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(api.publishBranch).toHaveBeenCalledTimes(2)
+  })
+
+  it('stays open while publishing, with Publish Branch busy and Cancel disabled', async () => {
+    let finish = (): void => {}
+    api.publishBranch.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          finish = () => resolve()
+        })
+    )
+    await openDialog()
+
+    fireEvent.click(publishButton())
+
+    await waitFor(() => expect(publishButton().getAttribute('aria-busy')).toBe('true'))
+    expect(cancelButton().disabled).toBe(true)
+    fireEvent.keyDown(dialog(), { key: 'Escape' })
+    expect(screen.queryByRole('dialog')).not.toBeNull()
+
+    await act(async () => {
+      finish()
+    })
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  })
+
+  it('closes on Cancel without publishing', async () => {
+    await openDialog()
+
+    fireEvent.click(cancelButton())
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(api.publishBranch).not.toHaveBeenCalled()
   })
 })
 
