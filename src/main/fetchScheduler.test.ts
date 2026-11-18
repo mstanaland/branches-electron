@@ -97,15 +97,15 @@ describe('createFetchScheduler', () => {
   })
 
   it('schedules nothing for a repository with no remote, and asks git only once', async () => {
-    const hasRemote = vi.fn<FetchSchedulerDeps['hasRemote']>().mockResolvedValue(false)
-    const { deps, scheduler } = setup({ hasRemote })
+    const checkRemote = vi.fn<FetchSchedulerDeps['hasRemote']>().mockResolvedValue(false)
+    const { deps, scheduler } = setup({ hasRemote: checkRemote })
     scheduler.setFocused(true)
 
     scheduler.setActiveRepository('/local-only')
     await vi.advanceTimersByTimeAsync(INTERVAL * 10)
 
     expect(deps.fetch).not.toHaveBeenCalled()
-    expect(hasRemote).toHaveBeenCalledTimes(1)
+    expect(checkRemote).toHaveBeenCalledTimes(1)
   })
 
   it('reports a refresh only when the fetch moved a ref', async () => {

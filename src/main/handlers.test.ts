@@ -768,14 +768,14 @@ describe('setTabCount', () => {
   })
 })
 
-describe('listCommits', () => {
-  /** Handlers with `repo` already opened, as the renderer would have done. */
-  async function handlersFor(root: string): Promise<ReturnType<typeof createHandlers>> {
-    const handlers = handlersChoosing(root)
-    await handlers.openRepository()
-    return handlers
-  }
+/** Handlers with `repo` already opened, as the renderer would have done. */
+async function handlersFor(root: string): Promise<ReturnType<typeof createHandlers>> {
+  const handlers = handlersChoosing(root)
+  await handlers.openRepository()
+  return handlers
+}
 
+describe('listCommits', () => {
   it('lists a branch the user picked', async () => {
     const repo = await createRepoWithCommit()
     const handlers = await handlersFor(repo.root)

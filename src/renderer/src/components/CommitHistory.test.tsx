@@ -164,29 +164,29 @@ describe('selecting a commit', () => {
   })
 })
 
-describe('paging', () => {
-  /** `IntersectionObserver` isn't in jsdom; this one reports the sentinel as visible at once. */
-  function observeImmediately(): void {
-    class Immediate {
-      constructor(private readonly callback: IntersectionObserverCallback) {}
-      observe(target: Element): void {
-        this.callback(
-          [{ isIntersecting: true, target } as IntersectionObserverEntry],
-          this as unknown as IntersectionObserver
-        )
-      }
-      disconnect(): void {}
-      unobserve(): void {}
-      takeRecords(): IntersectionObserverEntry[] {
-        return []
-      }
+/** `IntersectionObserver` isn't in jsdom; this one reports the sentinel as visible at once. */
+function observeImmediately(): void {
+  class Immediate {
+    constructor(private readonly callback: IntersectionObserverCallback) {}
+    observe(target: Element): void {
+      this.callback(
+        [{ isIntersecting: true, target } as IntersectionObserverEntry],
+        this as unknown as IntersectionObserver
+      )
     }
-    vi.stubGlobal('IntersectionObserver', Immediate)
+    disconnect(): void {}
+    unobserve(): void {}
+    takeRecords(): IntersectionObserverEntry[] {
+      return []
+    }
   }
+  vi.stubGlobal('IntersectionObserver', Immediate)
+}
 
-  const fullPage = (prefix: string): Commit[] =>
-    Array.from({ length: COMMIT_PAGE_SIZE }, (_, index) => commit(`${prefix}${index}`))
+const fullPage = (prefix: string): Commit[] =>
+  Array.from({ length: COMMIT_PAGE_SIZE }, (_, index) => commit(`${prefix}${index}`))
 
+describe('paging', () => {
   afterEach(() => vi.unstubAllGlobals())
 
   it('asks for the next page anchored to the first page, not the branch', async () => {

@@ -517,10 +517,10 @@ describe('the active repository', () => {
   })
 })
 
-describe('Fetch', () => {
-  const fetchButton = (): HTMLButtonElement =>
-    screen.getByRole('button', { name: 'Fetch' }) as HTMLButtonElement
+const fetchButton = (): HTMLButtonElement =>
+  screen.getByRole('button', { name: 'Fetch' }) as HTMLButtonElement
 
+describe('Fetch', () => {
   it('fetches the focused tab\u2019s repository and re-reads its ahead/behind counts', async () => {
     renderWithProviders(<App />)
     await choose('alpha')
@@ -582,13 +582,8 @@ describe('Fetch', () => {
   })
 
   it('says it is working and cannot be fired twice at once', async () => {
-    let finish = (): void => {}
-    api.fetchRepository.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => resolve()
-        })
-    )
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.fetchRepository.mockReturnValue(promise)
     renderWithProviders(<App />)
     await choose('alpha')
     await screen.findByText('alpha-main')
@@ -607,13 +602,8 @@ describe('Fetch', () => {
   })
 
   it('stays in flight, and unrepeatable, across a tab switch and back', async () => {
-    let finish = (): void => {}
-    api.fetchRepository.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => resolve()
-        })
-    )
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.fetchRepository.mockReturnValue(promise)
     renderWithProviders(<App />)
     await choose('alpha')
     newTab()
@@ -672,14 +662,14 @@ describe('the sidebar', () => {
   })
 })
 
+/** The separator on one column boundary, by the column it resizes. */
+const boundary = (name: 'Sidebar width' | 'Changes width'): HTMLElement =>
+  screen.getByRole('separator', { name })
+
+const width = (name: 'Sidebar width' | 'Changes width'): number =>
+  Number(boundary(name).getAttribute('aria-valuenow'))
+
 describe('column widths', () => {
-  /** The separator on one column boundary, by the column it resizes. */
-  const boundary = (name: 'Sidebar width' | 'Changes width'): HTMLElement =>
-    screen.getByRole('separator', { name })
-
-  const width = (name: 'Sidebar width' | 'Changes width'): number =>
-    Number(boundary(name).getAttribute('aria-valuenow'))
-
   it('resizes with a pointer without moving focus to the separator', async () => {
     renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
     await screen.findByText('alpha-main')
@@ -1038,20 +1028,20 @@ describe('the Window menu', () => {
   })
 })
 
+const pullButton = (): HTMLButtonElement =>
+  screen.getByRole('button', { name: /^Pull/ }) as HTMLButtonElement
+
+/** Puts `alpha` behind its upstream by `behind`, then opens it in a focused tab. */
+async function openBehind(behind: number): Promise<void> {
+  api.getStatus.mockImplementation(async (root) =>
+    behindBy(`${root.split('/').pop()}-main`, behind)
+  )
+  renderWithProviders(<App />)
+  await choose('alpha')
+  await screen.findByText('alpha-main')
+}
+
 describe('Pull', () => {
-  const pullButton = (): HTMLButtonElement =>
-    screen.getByRole('button', { name: /^Pull/ }) as HTMLButtonElement
-
-  /** Puts `alpha` behind its upstream by `behind`, then opens it in a focused tab. */
-  async function openBehind(behind: number): Promise<void> {
-    api.getStatus.mockImplementation(async (root) =>
-      behindBy(`${root.split('/').pop()}-main`, behind)
-    )
-    renderWithProviders(<App />)
-    await choose('alpha')
-    await screen.findByText('alpha-main')
-  }
-
   it('is disabled on the backdrop, where there is no repository to pull into', async () => {
     renderWithProviders(<App />)
     await screen.findByRole('option', { name: 'alpha' })
@@ -1161,13 +1151,8 @@ describe('Pull', () => {
   })
 
   it('says it is working and cannot be fired twice at once', async () => {
-    let finish = (): void => {}
-    api.pullRepository.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => resolve()
-        })
-    )
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.pullRepository.mockReturnValue(promise)
     await openBehind(1)
     await waitFor(() => expect(pullButton().disabled).toBe(false))
 
@@ -1184,21 +1169,21 @@ describe('Pull', () => {
   })
 })
 
+const pushButton = (): HTMLButtonElement =>
+  screen.getByRole('button', { name: /^(Push|Publish)/ }) as HTMLButtonElement
+
+/** Opens `alpha` in a focused tab with the given status, and waits for it to land. */
+async function openWith(overrides: Partial<RepositoryStatus>): Promise<void> {
+  api.getStatus.mockImplementation(async (root) =>
+    status(`${root.split('/').pop()}-main`, overrides)
+  )
+  renderWithProviders(<App />)
+  await choose('alpha')
+  await waitFor(() => expect(api.getStatus).toHaveBeenCalledWith('/repos/alpha'))
+  await waitFor(() => expect(api.getPublishTarget).toHaveBeenCalledWith('/repos/alpha'))
+}
+
 describe('Push', () => {
-  const pushButton = (): HTMLButtonElement =>
-    screen.getByRole('button', { name: /^(Push|Publish)/ }) as HTMLButtonElement
-
-  /** Opens `alpha` in a focused tab with the given status, and waits for it to land. */
-  async function openWith(overrides: Partial<RepositoryStatus>): Promise<void> {
-    api.getStatus.mockImplementation(async (root) =>
-      status(`${root.split('/').pop()}-main`, overrides)
-    )
-    renderWithProviders(<App />)
-    await choose('alpha')
-    await waitFor(() => expect(api.getStatus).toHaveBeenCalledWith('/repos/alpha'))
-    await waitFor(() => expect(api.getPublishTarget).toHaveBeenCalledWith('/repos/alpha'))
-  }
-
   it('is disabled on the backdrop, where there is no repository to push from', async () => {
     renderWithProviders(<App />)
     await screen.findByRole('option', { name: 'alpha' })
@@ -1305,13 +1290,8 @@ describe('Push', () => {
   })
 
   it('says it is working and cannot be fired twice at once', async () => {
-    let finish = (): void => {}
-    api.pushRepository.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => resolve()
-        })
-    )
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.pushRepository.mockReturnValue(promise)
     await openWith({ upstream: 'origin/main', ahead: 1 })
     await waitFor(() => expect(pushButton().disabled).toBe(false))
 
@@ -1328,32 +1308,32 @@ describe('Push', () => {
   })
 })
 
+const dialog = (): HTMLElement => screen.getByRole('dialog', { name: 'Publish Branch' })
+const publishButton = (): HTMLButtonElement =>
+  within(dialog()).getByRole('button', { name: 'Publish Branch' }) as HTMLButtonElement
+const cancelButton = (): HTMLButtonElement =>
+  within(dialog()).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement
+
+/** Opens `alpha` with no upstream and the given publish target, then opens the dialog. */
+async function openDialog(target: Partial<PublishTarget> = {}): Promise<void> {
+  api.getPublishTarget.mockResolvedValue(publishTarget('alpha-main', target))
+  renderWithProviders(<App />)
+  await choose('alpha')
+  const publish = await screen.findByRole('button', { name: 'Publish' })
+  await waitFor(() => expect((publish as HTMLButtonElement).disabled).toBe(false))
+  fireEvent.click(publish)
+  await screen.findByRole('dialog', { name: 'Publish Branch' })
+}
+
+/** Picks a remote from the dialog's Select. */
+async function pickRemote(name: string): Promise<void> {
+  fireEvent.click(within(dialog()).getByRole('combobox', { name: 'Remote' }))
+  const option = await screen.findByRole('option', { name })
+  fireEvent.pointerDown(option, { pointerType: 'mouse' })
+  fireEvent.click(option)
+}
+
 describe('the Publish Branch dialog', () => {
-  const dialog = (): HTMLElement => screen.getByRole('dialog', { name: 'Publish Branch' })
-  const publishButton = (): HTMLButtonElement =>
-    within(dialog()).getByRole('button', { name: 'Publish Branch' }) as HTMLButtonElement
-  const cancelButton = (): HTMLButtonElement =>
-    within(dialog()).getByRole('button', { name: 'Cancel' }) as HTMLButtonElement
-
-  /** Opens `alpha` with no upstream and the given publish target, then opens the dialog. */
-  async function openDialog(target: Partial<PublishTarget> = {}): Promise<void> {
-    api.getPublishTarget.mockResolvedValue(publishTarget('alpha-main', target))
-    renderWithProviders(<App />)
-    await choose('alpha')
-    const publish = await screen.findByRole('button', { name: 'Publish' })
-    await waitFor(() => expect((publish as HTMLButtonElement).disabled).toBe(false))
-    fireEvent.click(publish)
-    await screen.findByRole('dialog', { name: 'Publish Branch' })
-  }
-
-  /** Picks a remote from the dialog's Select. */
-  async function pickRemote(name: string): Promise<void> {
-    fireEvent.click(within(dialog()).getByRole('combobox', { name: 'Remote' }))
-    const option = await screen.findByRole('option', { name })
-    fireEvent.pointerDown(option, { pointerType: 'mouse' })
-    fireEvent.click(option)
-  }
-
   const twoRemotes = [
     { name: 'fork', url: 'git@example.com:fork/repo.git', hasBranch: true },
     { name: 'origin', url: 'git@example.com:me/repo.git', hasBranch: false }
@@ -1447,13 +1427,8 @@ describe('the Publish Branch dialog', () => {
   })
 
   it('stays open while publishing, with Publish Branch busy and Cancel disabled', async () => {
-    let finish = (): void => {}
-    api.publishBranch.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => resolve()
-        })
-    )
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.publishBranch.mockReturnValue(promise)
     await openDialog()
 
     fireEvent.click(publishButton())
@@ -1479,10 +1454,10 @@ describe('the Publish Branch dialog', () => {
   })
 })
 
-describe('Refresh', () => {
-  const refreshButton = (): HTMLButtonElement =>
-    screen.getByRole('button', { name: 'Refresh' }) as HTMLButtonElement
+const refreshButton = (): HTMLButtonElement =>
+  screen.getByRole('button', { name: 'Refresh' }) as HTMLButtonElement
 
+describe('Refresh', () => {
   it('re-reads the focused tab’s repository without reaching the remote', async () => {
     renderWithProviders(<App />)
     await choose('alpha')
@@ -1504,13 +1479,8 @@ describe('Refresh', () => {
     renderWithProviders(<App />)
     await choose('alpha')
     await screen.findByText('alpha-main')
-    let finish = (): void => {}
-    api.getStatus.mockImplementation(
-      () =>
-        new Promise((resolve) => {
-          finish = () => resolve(status('alpha-next'))
-        })
-    )
+    const statusRead = Promise.withResolvers<RepositoryStatus>()
+    api.getStatus.mockReturnValue(statusRead.promise)
 
     fireEvent.click(refreshButton())
 
@@ -1521,7 +1491,7 @@ describe('Refresh', () => {
     expect(screen.queryByRole('status', { name: /loading/i })).toBeNull()
 
     await act(async () => {
-      finish()
+      statusRead.resolve(status('alpha-next'))
     })
     expect(await screen.findByText('alpha-next')).toBeTruthy()
     await waitFor(() => expect(refreshButton().disabled).toBe(false))
@@ -1529,30 +1499,30 @@ describe('Refresh', () => {
   })
 })
 
+const bar = (): HTMLElement | null => screen.queryByRole('progressbar', { name: 'In progress' })
+
+/** Lets `ms` of fake time pass, flushing the renders and promises it releases. */
+async function elapse(ms: number): Promise<void> {
+  await act(async () => {
+    await vi.advanceTimersByTimeAsync(ms)
+  })
+}
+
+/** Makes the next status reads hang until the returned function is called. */
+function slowStatus(): () => void {
+  const pending: Array<() => void> = []
+  api.getStatus.mockImplementation(
+    (root) =>
+      new Promise((resolve) => {
+        pending.push(() => resolve(status(`${root.split('/').pop()}-main`)))
+      })
+  )
+  return () => {
+    for (const finish of pending.splice(0)) finish()
+  }
+}
+
 describe('the in-progress bar', () => {
-  const bar = (): HTMLElement | null => screen.queryByRole('progressbar', { name: 'In progress' })
-
-  /** Lets `ms` of fake time pass, flushing the renders and promises it releases. */
-  async function elapse(ms: number): Promise<void> {
-    await act(async () => {
-      await vi.advanceTimersByTimeAsync(ms)
-    })
-  }
-
-  /** Makes the next status reads hang until the returned function is called. */
-  function slowStatus(): () => void {
-    const pending: Array<() => void> = []
-    api.getStatus.mockImplementation(
-      (root) =>
-        new Promise((resolve) => {
-          pending.push(() => resolve(status(`${root.split('/').pop()}-main`)))
-        })
-    )
-    return () => {
-      for (const finish of pending.splice(0)) finish()
-    }
-  }
-
   afterEach(() => {
     vi.useRealTimers()
   })
@@ -1598,13 +1568,8 @@ describe('the in-progress bar', () => {
   })
 
   it('shows while a fetch of the focused repository is in flight', async () => {
-    let finish = (): void => {}
-    api.fetchRepository.mockImplementation(
-      () =>
-        new Promise<void>((resolve) => {
-          finish = () => resolve()
-        })
-    )
+    const { promise, resolve: finish } = Promise.withResolvers<void>()
+    api.fetchRepository.mockReturnValue(promise)
     renderWithProviders(<App />)
     await choose('alpha')
     await screen.findByText('alpha-main')
@@ -1644,18 +1609,9 @@ describe('the in-progress bar', () => {
 })
 
 describe('a repository’s first load', () => {
-  /** A promise that stays pending until `finish` is called with what it should resolve to. */
-  function deferred<T>(): { promise: Promise<T>; finish: (value: T) => void } {
-    let finish = (_value: T): void => {}
-    const promise = new Promise<T>((resolve) => {
-      finish = resolve
-    })
-    return { promise, finish }
-  }
-
   it('shows the changes and branch columns as pending, not empty', async () => {
-    const statusRead = deferred<RepositoryStatus>()
-    const branchesRead = deferred<Branch[]>()
+    const statusRead = Promise.withResolvers<RepositoryStatus>()
+    const branchesRead = Promise.withResolvers<Branch[]>()
     api.getStatus.mockReturnValue(statusRead.promise)
     api.listBranches.mockReturnValue(branchesRead.promise)
     renderWithProviders(<App />)
@@ -1668,8 +1624,8 @@ describe('a repository’s first load', () => {
     expect(screen.queryByText('No branches yet.')).toBeNull()
 
     await act(async () => {
-      statusRead.finish(status('alpha-main'))
-      branchesRead.finish([])
+      statusRead.resolve(status('alpha-main'))
+      branchesRead.resolve([])
     })
 
     expect(await screen.findByText('No changes')).toBeTruthy()
@@ -1679,7 +1635,7 @@ describe('a repository’s first load', () => {
 
   it('shows a branch’s history as pending, not empty', async () => {
     api.listBranches.mockResolvedValue([mainBranch])
-    const commitsRead = deferred<Commit[]>()
+    const commitsRead = Promise.withResolvers<Commit[]>()
     api.listCommits.mockReturnValue(commitsRead.promise)
     renderWithProviders(<App />)
     await choose('alpha')
@@ -1690,7 +1646,7 @@ describe('a repository’s first load', () => {
     expect(screen.queryByText('No commits yet.')).toBeNull()
 
     await act(async () => {
-      commitsRead.finish([])
+      commitsRead.resolve([])
     })
 
     expect(await screen.findByText('No commits yet.')).toBeTruthy()
