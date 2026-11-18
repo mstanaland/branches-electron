@@ -16,6 +16,8 @@ export type { Draft, DraftState } from './drafts'
 export { describeError } from './apiErrorInfo'
 export type { ErrorInfo } from './apiErrorInfo'
 export { useFolderExpansion } from './collapsedFolders'
+export { DEFAULT_COLUMN_WIDTHS, MIN_COLUMN_WIDTHS, useColumnWidths } from './columnWidths'
+export type { ColumnWidthState, ColumnWidths, ResizableColumn } from './columnWidths'
 export type { FolderExpansion } from './collapsedFolders'
 export { keys } from './keys'
 export {

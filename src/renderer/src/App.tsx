@@ -8,14 +8,31 @@ import { Sidebar } from './components/Sidebar'
 import { TabStrip } from './components/TabStrip'
 import { TitleBar } from './components/TitleBar'
 import {
+  MIN_COLUMN_WIDTHS,
   useBackgroundFetch,
+  useColumnWidths,
   useOpenRepository,
   useRepositories,
   useTabMenu,
   useTabs,
   viewRef
 } from './data'
+import { ResizeHandle } from './ui'
+import { useElementWidth } from './useElementWidth'
 import styles from './App.module.css'
+
+/** The room right of the sidebar boundary: enough for the changes list and the diff. */
+const CONTENT_MIN = MIN_COLUMN_WIDTHS.changes + MIN_COLUMN_WIDTHS.diff
+
+/** Custom properties for a style prop, which React's own CSS types don't model. */
+function cssVariables(variables: Record<`--${string}`, string>): React.CSSProperties {
+  return variables as React.CSSProperties
+}
+
+/** The most a column may take: what the container holds, less what comes after it needs. */
+function room(containerWidth: number | null, after: number): number | undefined {
+  return containerWidth === null ? undefined : containerWidth - after
+}
 
 /**
  * The window: a **title bar** and a strip of **tabs** spanning it, and below them the **focused
@@ -29,6 +46,12 @@ import styles from './App.module.css'
  *
  * Every tab shortcut — Cmd+T, Cmd+W, Cmd+1 … Cmd+4 and the two step shortcuts — arrives as a
  * command from main's **Window menu** rather than a key handler here (ADR 0008).
+ *
+ * The two column boundaries — sidebar / changes and changes / diff — can be dragged or nudged
+ * with the arrow keys. Their widths belong to the window rather than to a tab, so they are held
+ * here and switching tab never moves them. The grid draws each column at its width, squeezed
+ * when the window is too narrow for everything after it to meet its minimum; the last column
+ * takes the rest.
  *
  * A tab whose repository has gone **missing** — tabs come back across launches, folders move
  * in between — gets the same treatment: an explanation and a way out, in place of panes that
@@ -44,6 +67,9 @@ function App(): React.JSX.Element {
   // not whatever tab is in front.
   useTabMenu()
   useBackgroundFetch()
+  const columns = useColumnWidths()
+  const [bodyRef, bodyWidth] = useElementWidth<HTMLDivElement>()
+  const [splitRef, splitWidth] = useElementWidth<HTMLDivElement>()
 
   const root = focused?.root ?? null
   // The saved entry when the focused tab's folder is known to be gone, which is the one case
@@ -61,11 +87,30 @@ function App(): React.JSX.Element {
       <TitleBar />
       {tabs.length > 0 && <TabStrip />}
       {root !== null && <InProgressBar key={root} root={root} />}
-      <div className={styles.body} data-sidebar={sidebarRoot === null ? 'false' : 'true'}>
+      <div
+        ref={bodyRef}
+        className={styles.body}
+        data-sidebar={sidebarRoot === null ? 'false' : 'true'}
+        style={cssVariables({
+          '--sidebar-width': `${columns.widths.sidebar}px`,
+          '--sidebar-min': `${MIN_COLUMN_WIDTHS.sidebar}px`,
+          '--content-min': `${CONTENT_MIN}px`
+        })}
+      >
         {sidebarRoot !== null && (
-          <aside className={styles.sidebar}>
-            <Sidebar root={sidebarRoot} />
-          </aside>
+          <>
+            <aside className={styles.sidebar}>
+              <Sidebar root={sidebarRoot} />
+            </aside>
+            <ResizeHandle
+              aria-label="Sidebar width"
+              value={columns.widths.sidebar}
+              min={MIN_COLUMN_WIDTHS.sidebar}
+              max={room(bodyWidth, CONTENT_MIN)}
+              onValueChange={(width) => columns.setWidth('sidebar', width)}
+              onReset={() => columns.resetWidth('sidebar')}
+            />
+          </>
         )}
         <main className={styles.content}>
           {root === null ? (
@@ -74,8 +119,25 @@ function App(): React.JSX.Element {
             <MissingRepository repository={missing} />
           ) : ref === null ? (
             // Keyed as a whole so switching tab starts both panes fresh.
-            <div key={root} className={styles.split}>
+            <div
+              key={root}
+              ref={splitRef}
+              className={styles.split}
+              style={cssVariables({
+                '--changes-width': `${columns.widths.changes}px`,
+                '--changes-min': `${MIN_COLUMN_WIDTHS.changes}px`,
+                '--diff-min': `${MIN_COLUMN_WIDTHS.diff}px`
+              })}
+            >
               <ChangedFiles root={root} />
+              <ResizeHandle
+                aria-label="Changes width"
+                value={columns.widths.changes}
+                min={MIN_COLUMN_WIDTHS.changes}
+                max={room(splitWidth, MIN_COLUMN_WIDTHS.diff)}
+                onValueChange={(width) => columns.setWidth('changes', width)}
+                onReset={() => columns.resetWidth('changes')}
+              />
               <DiffView root={root} />
             </div>
           ) : (

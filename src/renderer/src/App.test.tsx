@@ -672,6 +672,175 @@ describe('the sidebar', () => {
   })
 })
 
+describe('column widths', () => {
+  /** The separator on one column boundary, by the column it resizes. */
+  const boundary = (name: 'Sidebar width' | 'Changes width'): HTMLElement =>
+    screen.getByRole('separator', { name })
+
+  const width = (name: 'Sidebar width' | 'Changes width'): number =>
+    Number(boundary(name).getAttribute('aria-valuenow'))
+
+  it('resizes with a pointer without moving focus to the separator', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    const handle = boundary('Sidebar width')
+    const start = width('Sidebar width')
+    const focused = document.activeElement
+    // jsdom does not implement pointer capture.
+    handle.setPointerCapture = vi.fn<HTMLElement['setPointerCapture']>()
+    handle.hasPointerCapture = () => false
+
+    fireEvent.pointerDown(handle, { pointerId: 1, clientX: 260 })
+    expect(handle.getAttribute('data-dragging')).toBe('true')
+    fireEvent.pointerMove(handle, { pointerId: 1, clientX: 280 })
+    fireEvent.pointerUp(handle, { pointerId: 1, clientX: 280 })
+
+    expect(width('Sidebar width')).toBe(start + 20)
+    expect(handle.hasAttribute('data-dragging')).toBe(false)
+    expect(document.activeElement).toBe(focused)
+  })
+
+  it('nudges the sidebar boundary with the arrow keys', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    const start = width('Sidebar width')
+
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    expect(width('Sidebar width')).toBe(start + 20)
+
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowLeft' })
+    expect(width('Sidebar width')).toBe(start + 10)
+  })
+
+  it('nudges the changes / diff boundary with the arrow keys', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    const start = width('Changes width')
+
+    fireEvent.keyDown(boundary('Changes width'), { key: 'ArrowLeft' })
+    expect(width('Changes width')).toBe(start - 10)
+    // The sidebar stays where it was.
+    expect(width('Sidebar width')).toBe(260)
+  })
+
+  it('stops each column at its minimum width', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+
+    for (let press = 0; press < 50; press++) {
+      fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowLeft' })
+      fireEvent.keyDown(boundary('Changes width'), { key: 'ArrowLeft' })
+    }
+
+    expect(width('Sidebar width')).toBe(180)
+    expect(width('Changes width')).toBe(220)
+    expect(boundary('Sidebar width').getAttribute('aria-valuemin')).toBe('180')
+    expect(boundary('Changes width').getAttribute('aria-valuemin')).toBe('220')
+  })
+
+  it('resets a boundary to its default on double-click', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    fireEvent.keyDown(boundary('Changes width'), { key: 'ArrowRight' })
+
+    fireEvent.doubleClick(boundary('Sidebar width'))
+
+    expect(width('Sidebar width')).toBe(260)
+    // Only the boundary that was double-clicked.
+    expect(width('Changes width')).toBe(370)
+  })
+
+  it('exposes each boundary as a focusable, vertical separator', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+
+    for (const name of ['Sidebar width', 'Changes width'] as const) {
+      boundary(name).focus()
+      expect(document.activeElement).toBe(boundary(name))
+      expect(boundary(name).getAttribute('aria-orientation')).toBe('vertical')
+    }
+  })
+
+  it('keeps the same widths in every tab, through switching back and forth', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha', '/repos/beta'] })
+    await screen.findByText('alpha-main')
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    fireEvent.keyDown(boundary('Changes width'), { key: 'ArrowLeft' })
+
+    fireEvent.click(screen.getByRole('button', { name: 'beta' }))
+    await screen.findByText('beta-main')
+    expect(width('Sidebar width')).toBe(270)
+    expect(width('Changes width')).toBe(350)
+
+    fireEvent.click(screen.getByRole('button', { name: 'alpha' }))
+    await screen.findByText('alpha-main')
+    expect(width('Sidebar width')).toBe(270)
+    expect(width('Changes width')).toBe(350)
+  })
+
+  it('brings the widths back on the next launch', async () => {
+    const first = renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    fireEvent.keyDown(boundary('Changes width'), { key: 'ArrowRight' })
+    fireEvent.keyDown(boundary('Changes width'), { key: 'ArrowRight' })
+    first.unmount()
+
+    renderWithProviders(<App />)
+    await screen.findByText('alpha-main')
+
+    expect(width('Sidebar width')).toBe(270)
+    expect(width('Changes width')).toBe(380)
+  })
+
+  it('remembers a reset as the default', async () => {
+    const first = renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    fireEvent.doubleClick(boundary('Sidebar width'))
+    first.unmount()
+
+    renderWithProviders(<App />)
+    await screen.findByText('alpha-main')
+
+    expect(width('Sidebar width')).toBe(260)
+  })
+
+  it('starts unreadable widths at the default, and a saved one too narrow at the minimum', async () => {
+    localStorage.setItem('branches.columnWidths', JSON.stringify({ sidebar: 'wide', changes: 4 }))
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+
+    expect(width('Sidebar width')).toBe(260)
+    expect(width('Changes width')).toBe(220)
+  })
+
+  it('falls back to the defaults, and still resizes, when localStorage throws', async () => {
+    renderWithProviders(<App />, { tabs: ['/repos/alpha'] })
+    await screen.findByText('alpha-main')
+    cleanup()
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
+      throw new Error('blocked')
+    })
+
+    renderWithProviders(<App />)
+    // Tabs can't be read either, so this is the backdrop; open a repository to get columns.
+    await choose('alpha')
+    await screen.findByText('alpha-main')
+
+    expect(width('Sidebar width')).toBe(260)
+    expect(width('Changes width')).toBe(360)
+    fireEvent.keyDown(boundary('Sidebar width'), { key: 'ArrowRight' })
+    expect(width('Sidebar width')).toBe(270)
+    vi.restoreAllMocks()
+  })
+})
+
 describe('removing a repository from the saved list', () => {
   it('closes the tab showing it', async () => {
     api.showRepositoryMenu.mockResolvedValue(true)
