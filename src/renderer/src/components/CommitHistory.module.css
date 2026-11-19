@@ -30,7 +30,7 @@
   background: var(--color-hover);
 }
 
-.row[data-selected='true'] {
+.row[aria-selected='true'] {
   background: var(--color-hover);
 }
 

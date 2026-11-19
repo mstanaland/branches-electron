@@ -55,14 +55,15 @@
   min-height: 0;
 }
 
-/* The changes list, its boundary's handle and the diff, sized the same way as the columns
-   above: the changes list at its dragged width, unless the diff's minimum needs the room. */
+/* A list, its boundary's handle and what the list has selected — Working's changes and their
+   diff, or a history and its commit details — sized the same way as the columns above: the
+   list at its dragged width, unless the detail's minimum needs the room. */
 .split {
   display: grid;
   grid-template-columns:
-    minmax(var(--changes-min), var(--changes-width))
+    minmax(var(--list-min), var(--list-width))
     0
-    minmax(var(--diff-min), 1fr);
+    minmax(var(--detail-min), 1fr);
   flex: 1;
   min-height: 0;
 }

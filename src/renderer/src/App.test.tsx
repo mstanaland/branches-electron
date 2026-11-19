@@ -5,6 +5,7 @@ import { ApiError } from '../../shared/apiError'
 import type {
   Branch,
   Commit,
+  CommitDetails,
   PublishTarget,
   RepositoryStatus,
   SavedRepository
@@ -21,6 +22,7 @@ const api = vi.hoisted(() => ({
   getStatus: vi.fn<RendererApi['getStatus']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listCommits: vi.fn<RendererApi['listCommits']>(),
+  getCommitDetails: vi.fn<RendererApi['getCommitDetails']>(),
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
   fetchRepository: vi.fn<RendererApi['fetchRepository']>(),
   pullRepository: vi.fn<RendererApi['pullRepository']>(),
@@ -1651,5 +1653,175 @@ describe('a repository’s first load', () => {
 
     expect(await screen.findByText('No commits yet.')).toBeTruthy()
     expect(screen.queryByRole('status', { name: 'Loading history' })).toBeNull()
+  })
+})
+
+/* Fixtures and queries for the commit details tests below. */
+const tip: Commit = {
+  oid: 'a'.repeat(40),
+  shortOid: 'aaaaaaaa',
+  parents: ['b'.repeat(40)],
+  subject: 'Refresh on demand',
+  authorName: 'Ada Lovelace',
+  authorDate: '2026-11-18T05:34:25-05:00'
+}
+const parent: Commit = {
+  oid: 'b'.repeat(40),
+  shortOid: 'bbbbbbbb',
+  parents: [],
+  subject: 'Initial commit',
+  authorName: 'Ada Lovelace',
+  authorDate: '2026-11-17T05:34:25-05:00'
+}
+const detailsOf = (commit: Commit, overrides: Partial<CommitDetails> = {}): CommitDetails => ({
+  oid: commit.oid,
+  authorName: commit.authorName,
+  authorEmail: 'ada@example.com',
+  authorDate: commit.authorDate,
+  committerName: commit.authorName,
+  committerEmail: 'ada@example.com',
+  committerDate: commit.authorDate,
+  description: '',
+  ...overrides
+})
+const longDate = (iso: string): string =>
+  new Intl.DateTimeFormat(undefined, { dateStyle: 'long', timeStyle: 'long' }).format(new Date(iso))
+
+const option = (subject: string): Promise<HTMLElement> =>
+  screen.findByRole('option', { name: new RegExp(subject) })
+
+const pane = (): HTMLElement => screen.getByRole('region', { name: 'Commit details' })
+
+/** Opens alpha and selects its main branch, so the history and commit details are showing. */
+async function openHistory(commits: Commit[] = [tip, parent]): Promise<void> {
+  api.listBranches.mockResolvedValue([mainBranch])
+  api.listCommits.mockResolvedValue(commits)
+  api.getCommitDetails.mockImplementation(async (_root, oid) =>
+    detailsOf(commits.find((commit) => commit.oid === oid) ?? tip)
+  )
+  renderWithProviders(<App />)
+  await choose('alpha')
+  fireEvent.click(await screen.findByRole('treeitem', { name: 'main' }))
+}
+
+describe('commit details', () => {
+  it('asks for a commit to be selected until one is', async () => {
+    await openHistory()
+    await option('Refresh on demand')
+
+    expect(within(pane()).getByText('Select a commit to see its details')).toBeTruthy()
+    expect(api.getCommitDetails).not.toHaveBeenCalled()
+  })
+
+  it('shows the subject, author, author date and commit ID of the selected commit', async () => {
+    await openHistory()
+    fireEvent.click(await option('Refresh on demand'))
+
+    const details = pane()
+    expect(within(details).getByRole('heading', { name: 'Refresh on demand' })).toBeTruthy()
+    expect(await within(details).findByText('Ada Lovelace <ada@example.com>')).toBeTruthy()
+    expect(within(details).getByText(longDate(tip.authorDate))).toBeTruthy()
+    expect(within(details).getByText(tip.oid)).toBeTruthy()
+    expect(api.getCommitDetails).toHaveBeenCalledWith('/repos/alpha', tip.oid)
+  })
+
+  it('leaves out the committer when it is the author, and the description when there is none', async () => {
+    await openHistory()
+    fireEvent.click(await option('Refresh on demand'))
+    await within(pane()).findByText('Ada Lovelace <ada@example.com>')
+
+    expect(within(pane()).queryByText('Committer')).toBeNull()
+    expect(within(pane()).queryByText('Committer Date')).toBeNull()
+    expect(within(pane()).getAllByRole('definition')).toHaveLength(3)
+  })
+
+  it('shows the committer when it differs, and the description with its line breaks', async () => {
+    await openHistory()
+    api.getCommitDetails.mockResolvedValue(
+      detailsOf(tip, {
+        committerName: 'GitHub',
+        committerEmail: 'noreply@github.com',
+        committerDate: '2026-11-18T06:00:00-05:00',
+        description: 'First line.\n\nCo-Authored-By: B <b@example.com>'
+      })
+    )
+    fireEvent.click(await option('Refresh on demand'))
+
+    expect(await within(pane()).findByText('GitHub <noreply@github.com>')).toBeTruthy()
+    expect(within(pane()).getByText(longDate('2026-11-18T06:00:00-05:00'))).toBeTruthy()
+    const description = within(pane()).getByText(/First line\./)
+    expect(description.textContent).toBe('First line.\n\nCo-Authored-By: B <b@example.com>')
+  })
+
+  it('switches the subject at once when arrowing, before the next commit\u2019s details land', async () => {
+    await openHistory()
+    fireEvent.click(await option('Refresh on demand'))
+    await within(pane()).findByText(tip.oid)
+    api.getCommitDetails.mockReturnValue(new Promise(() => {}))
+
+    fireEvent.keyDown(await option('Refresh on demand'), { key: 'ArrowDown' })
+
+    expect(within(pane()).getByRole('heading', { name: 'Initial commit' })).toBeTruthy()
+    expect(within(pane()).queryByText(tip.oid)).toBeNull()
+    expect((await option('Initial commit')).getAttribute('aria-selected')).toBe('true')
+    expect((await option('Refresh on demand')).getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('says what went wrong when the details cannot be read', async () => {
+    await openHistory()
+    api.getCommitDetails.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'fatal: bad object' })
+    )
+    fireEvent.click(await option('Refresh on demand'))
+
+    expect((await within(pane()).findByRole('alert')).textContent).toContain('bad object')
+  })
+
+  it('drops the selection silently when a refresh no longer lists the commit', async () => {
+    await openHistory()
+    fireEvent.click(await option('Refresh on demand'))
+    await within(pane()).findByText(tip.oid)
+
+    api.listCommits.mockResolvedValue([parent])
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
+
+    expect(await within(pane()).findByText('Select a commit to see its details')).toBeTruthy()
+    expect(screen.queryByRole('option', { name: /Refresh on demand/ })).toBeNull()
+
+    // Dropped, not just hidden: the commit coming back doesn't bring the selection with it.
+    api.listCommits.mockResolvedValue([tip, parent])
+    fireEvent.click(screen.getByRole('button', { name: /refresh/i }))
+    expect((await option('Refresh on demand')).getAttribute('aria-selected')).toBe('false')
+    expect(within(pane()).getByText('Select a commit to see its details')).toBeTruthy()
+  })
+
+  it('keeps the selected commit through a tab switch and back', async () => {
+    await openHistory()
+    fireEvent.click(await option('Refresh on demand'))
+    await within(pane()).findByText(tip.oid)
+
+    newTab()
+    await choose('beta')
+    fireEvent.click(screen.getByRole('button', { name: 'alpha' }))
+
+    expect(await within(pane()).findByText(tip.oid)).toBeTruthy()
+  })
+
+  it('gives the history list its own boundary, separate from the changes list\u2019s', async () => {
+    await openHistory()
+    await option('Refresh on demand')
+    const history = screen.getByRole('separator', { name: 'History width' })
+    expect(history.getAttribute('aria-valuenow')).toBe('500')
+    expect(history.getAttribute('aria-valuemin')).toBe('320')
+
+    fireEvent.keyDown(history, { key: 'ArrowLeft' })
+    expect(history.getAttribute('aria-valuenow')).toBe('490')
+
+    fireEvent.click(screen.getByRole('button', { name: /working/i }))
+    expect(
+      (await screen.findByRole('separator', { name: 'Changes width' })).getAttribute(
+        'aria-valuenow'
+      )
+    ).toBe('360')
   })
 })

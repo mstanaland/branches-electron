@@ -3,6 +3,7 @@ import type {
   BranchMenuAction,
   ChangeDiff,
   Commit,
+  CommitDetails,
   PublishTarget,
   RepositoryStatus,
   SavedRepository
@@ -55,6 +56,13 @@ export interface BranchesApi {
     limit: number,
     skip: number
   ) => Promise<ApiResult<Commit[]>>
+  /**
+   * What **commit details** shows about one commit beyond its row: author and committer with
+   * their emails and dates, and the commit description. `oid` must be a full object id, as
+   * the history list gives it; anything else is `INVALID_REF`. `root` must be a saved
+   * repository or one the user opened this session.
+   */
+  getCommitDetails: (root: string, oid: string) => Promise<ApiResult<CommitDetails>>
   /**
    * The staged and unstaged diffs of one change. `path` is relative to the repository root
    * and must not climb out of it. For a renamed file pass `originalPath` (else null) so the

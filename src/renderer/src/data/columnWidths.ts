@@ -1,21 +1,30 @@
 import { useState } from 'react'
 
 /** The columns with a draggable boundary on their right. The last column takes the rest. */
-export type ResizableColumn = 'sidebar' | 'changes'
+/**
+ * `changes` is Working's list of changes and `history` the History view's commit list: the
+ * same place in the window, but they hold different things, so each keeps its own width.
+ */
+export type ResizableColumn = 'sidebar' | 'changes' | 'history'
 
 export type ColumnWidths = Readonly<Record<ResizableColumn, number>>
 
 /** What a first launch shows, and what double-clicking a boundary goes back to. */
-export const DEFAULT_COLUMN_WIDTHS: ColumnWidths = { sidebar: 260, changes: 360 }
+export const DEFAULT_COLUMN_WIDTHS: ColumnWidths = { sidebar: 260, changes: 360, history: 500 }
 
 /**
  * The narrowest each column may be, so a stray drag cannot collapse one. Together they fit
- * the window's minimum width (720 in main), so every column can always meet its minimum.
+ * the window's minimum width (800 in main), so every column can always meet its minimum:
+ * sidebar + history + commit details is the widest set, at 800.
  */
-export const MIN_COLUMN_WIDTHS: Readonly<Record<ResizableColumn | 'diff', number>> = {
+export const MIN_COLUMN_WIDTHS: Readonly<
+  Record<ResizableColumn | 'diff' | 'commitDetails', number>
+> = {
   sidebar: 180,
   changes: 220,
-  diff: 300
+  diff: 300,
+  history: 320,
+  commitDetails: 300
 }
 
 const STORAGE_KEY = 'branches.columnWidths'
@@ -40,7 +49,7 @@ function readStored(): ColumnWidths {
       ? Math.max(MIN_COLUMN_WIDTHS[column], Math.round(width))
       : DEFAULT_COLUMN_WIDTHS[column]
   }
-  return { sidebar: read('sidebar'), changes: read('changes') }
+  return { sidebar: read('sidebar'), changes: read('changes'), history: read('history') }
 }
 
 function writeStored(widths: ColumnWidths): void {

@@ -826,3 +826,37 @@ describe('listCommits', () => {
     ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
   })
 })
+
+describe('getCommitDetails', () => {
+  it('describes a commit by its full oid', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(handlers.getCommitDetails(repo.root, oid)).resolves.toMatchObject({
+      oid,
+      authorName: 'Test'
+    })
+  })
+
+  it('refuses anything but a full oid, before it reaches git', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    for (const ref of ['main', 'HEAD', oid.slice(0, 8), `${oid}x`, '--output=/tmp/x', '']) {
+      await expect(handlers.getCommitDetails(repo.root, ref)).rejects.toMatchObject({
+        code: 'INVALID_REF'
+      })
+    }
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(handlersChoosing(null).getCommitDetails(repo.root, oid)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+})

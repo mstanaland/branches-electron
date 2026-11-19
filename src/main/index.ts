@@ -39,7 +39,7 @@ function createWindow(): void {
   const mainWindow = new BrowserWindow({
     width: 1100,
     height: 720,
-    minWidth: 720,
+    minWidth: 800,
     minHeight: 480,
     show: false,
     title: 'Branches',

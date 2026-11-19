@@ -1,5 +1,6 @@
 import { InProgressBar } from './components/InProgressBar'
 import { ChangedFiles } from './components/ChangedFiles'
+import { CommitDetails } from './components/CommitDetails'
 import { CommitHistory } from './components/CommitHistory'
 import { DiffView } from './components/DiffView'
 import { MissingRepository } from './components/MissingRepository'
@@ -21,8 +22,12 @@ import { ResizeHandle } from './ui'
 import { useElementWidth } from './useElementWidth'
 import styles from './App.module.css'
 
-/** The room right of the sidebar boundary: enough for the changes list and the diff. */
-const CONTENT_MIN = MIN_COLUMN_WIDTHS.changes + MIN_COLUMN_WIDTHS.diff
+/**
+ * The room right of the sidebar boundary: enough for Working's changes list and diff, or the
+ * History view's commit list and **commit details**, whichever the tab is showing.
+ */
+const WORKING_MIN = MIN_COLUMN_WIDTHS.changes + MIN_COLUMN_WIDTHS.diff
+const HISTORY_MIN = MIN_COLUMN_WIDTHS.history + MIN_COLUMN_WIDTHS.commitDetails
 
 /** Custom properties for a style prop, which React's own CSS types don't model. */
 function cssVariables(variables: Record<`--${string}`, string>): React.CSSProperties {
@@ -47,7 +52,8 @@ function room(containerWidth: number | null, after: number): number | undefined 
  * Every tab shortcut — Cmd+T, Cmd+W, Cmd+1 … Cmd+4 and the two step shortcuts — arrives as a
  * command from main's **Window menu** rather than a key handler here (ADR 0008).
  *
- * The two column boundaries — sidebar / changes and changes / diff — can be dragged or nudged
+ * The column boundaries — sidebar / changes and changes / diff in Working, sidebar / history
+ * and history / commit details in a history — can be dragged or nudged
  * with the arrow keys. Their widths belong to the window rather than to a tab, so they are held
  * here and switching tab never moves them. The grid draws each column at its width, squeezed
  * when the window is too narrow for everything after it to meet its minimum; the last column
@@ -81,6 +87,7 @@ function App(): React.JSX.Element {
   const sidebarRoot = missing === null ? root : null
   // Null for Working, which is the only view that isn't a history of something.
   const ref = focused === null ? null : viewRef(focused.view)
+  const contentMin = ref === null ? WORKING_MIN : HISTORY_MIN
 
   return (
     <div className={styles.app}>
@@ -94,7 +101,7 @@ function App(): React.JSX.Element {
         style={cssVariables({
           '--sidebar-width': `${columns.widths.sidebar}px`,
           '--sidebar-min': `${MIN_COLUMN_WIDTHS.sidebar}px`,
-          '--content-min': `${CONTENT_MIN}px`
+          '--content-min': `${contentMin}px`
         })}
       >
         {sidebarRoot !== null && (
@@ -106,7 +113,7 @@ function App(): React.JSX.Element {
               aria-label="Sidebar width"
               value={columns.widths.sidebar}
               min={MIN_COLUMN_WIDTHS.sidebar}
-              max={room(bodyWidth, CONTENT_MIN)}
+              max={room(bodyWidth, contentMin)}
               onValueChange={(width) => columns.setWidth('sidebar', width)}
               onReset={() => columns.resetWidth('sidebar')}
             />
@@ -124,9 +131,9 @@ function App(): React.JSX.Element {
               ref={splitRef}
               className={styles.split}
               style={cssVariables({
-                '--changes-width': `${columns.widths.changes}px`,
-                '--changes-min': `${MIN_COLUMN_WIDTHS.changes}px`,
-                '--diff-min': `${MIN_COLUMN_WIDTHS.diff}px`
+                '--list-width': `${columns.widths.changes}px`,
+                '--list-min': `${MIN_COLUMN_WIDTHS.changes}px`,
+                '--detail-min': `${MIN_COLUMN_WIDTHS.diff}px`
               })}
             >
               <ChangedFiles root={root} />
@@ -141,7 +148,27 @@ function App(): React.JSX.Element {
               <DiffView root={root} />
             </div>
           ) : (
-            <CommitHistory root={root} commitRef={ref} />
+            <div
+              key={root}
+              ref={splitRef}
+              className={styles.split}
+              style={cssVariables({
+                '--list-width': `${columns.widths.history}px`,
+                '--list-min': `${MIN_COLUMN_WIDTHS.history}px`,
+                '--detail-min': `${MIN_COLUMN_WIDTHS.commitDetails}px`
+              })}
+            >
+              <CommitHistory root={root} commitRef={ref} />
+              <ResizeHandle
+                aria-label="History width"
+                value={columns.widths.history}
+                min={MIN_COLUMN_WIDTHS.history}
+                max={room(splitWidth, MIN_COLUMN_WIDTHS.commitDetails)}
+                onValueChange={(width) => columns.setWidth('history', width)}
+                onReset={() => columns.resetWidth('history')}
+              />
+              <CommitDetails root={root} commitRef={ref} />
+            </div>
           )}
         </main>
       </div>

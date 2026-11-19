@@ -40,6 +40,7 @@ const api: WindowApi = {
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
   listCommits: (root, ref, limit, skip) =>
     ipcRenderer.invoke('repository:commits', root, ref, limit, skip),
+  getCommitDetails: (root, oid) => ipcRenderer.invoke('repository:commit-details', root, oid),
   getDiff: (root, path, originalPath) =>
     ipcRenderer.invoke('repository:diff', root, path, originalPath),
   stageFiles: (root, paths) => ipcRenderer.invoke('repository:stage', root, paths),

@@ -1,0 +1,73 @@
+/* The whole column scrolls as one, under the subject band, which stays put. */
+.pane {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow-y: auto;
+  border-left: 1px solid var(--color-border);
+}
+
+/* One line, truncated: the full subject is in the list beside it. Sticky, and opaque so the
+   column scrolling under it doesn't show through. */
+.subject {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  flex: none;
+  margin: 0;
+  padding: 12px 16px;
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 12px 16px 16px;
+}
+
+.metadata {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 16px;
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Each label/value pair is one grid row; the wrapper only groups them for the `dl`. */
+.row {
+  display: contents;
+}
+
+.label {
+  color: var(--color-text-muted);
+}
+
+.value,
+.oid {
+  margin: 0;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  user-select: text;
+}
+
+.oid {
+  font-family: var(--font-mono);
+}
+
+/* Line breaks are the author's; long lines wrap to the column. */
+.description {
+  margin: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  user-select: text;
+}

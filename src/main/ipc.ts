@@ -127,6 +127,9 @@ export function registerIpc(deps: IpcDeps): void {
     (_event, root: string, ref: string, limit: number, skip: number) =>
       settle(() => handlers.listCommits(root, ref, limit, skip))
   )
+  ipcMain.handle('repository:commit-details', (_event, root: string, oid: string) =>
+    settle(() => handlers.getCommitDetails(root, oid))
+  )
   ipcMain.handle(
     'repository:diff',
     (_event, root: string, path: string, originalPath: string | null) =>

@@ -72,6 +72,25 @@ export interface Commit {
   authorDate: string
 }
 
+/**
+ * What **commit details** shows about one commit beyond its row in the history: who wrote it
+ * and who committed it, when, and its **commit description**. The subject is the row's.
+ */
+export interface CommitDetails {
+  /** Full object id: the **commit ID**. */
+  oid: string
+  authorName: string
+  authorEmail: string
+  /** ISO 8601. */
+  authorDate: string
+  committerName: string
+  committerEmail: string
+  /** ISO 8601. */
+  committerDate: string
+  /** Everything below the subject, line breaks kept. Empty when there is none. */
+  description: string
+}
+
 /** What a user can choose from a branch's context menu. */
 export type BranchMenuAction = 'checkout'
 
