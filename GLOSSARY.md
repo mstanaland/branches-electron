@@ -230,12 +230,27 @@ _Avoid_: No branch, headless
 ### Commits
 
 **Commit**:
-One commit reachable from a branch. It has a **commit subject**, an author, a date and a **short oid**, and one parent — or several, which makes it a **merge**.
+One commit reachable from a branch. It has a **commit subject**, an author, a date and a **short oid**, and one parent — or several, which makes it a **merge**. It also has a committer, who made the commit from the author's work: usually the author, but not always — a squash merge on a hosting service is committed by the service.
 _Avoid_: Revision, changeset, SHA (for the commit itself)
 
 **Short oid**:
 The first eight characters of a commit's object id, always eight. Git's own abbreviation varies in length by repository; this one doesn't, so the same commit reads the same everywhere in the app.
 _Avoid_: SHA, hash, short hash, abbreviated id
+
+**Commit ID**:
+A commit's full object id, all forty characters. Shown only in the **commit details**, where it is
+there to be copied; everywhere else a commit is named by its **short oid**.
+_Avoid_: Commit hash, SHA, hash
+
+**Commit details**:
+What the **history** shows beside its list for the one selected commit: its **commit subject**,
+who wrote and committed it and when, its **commit ID**, its **commit description**, and the files
+it changed, each opening onto its diff. A **merge** shows what it changed against its first parent.
+_Avoid_: Commit pane, inspector, commit view
+
+**Hunk**:
+One contiguous run of changed lines in a file's diff, with the unchanged lines around it.
+_Avoid_: Chunk, block
 
 **Lane**:
 One vertical track in the **history**. A commit sits in exactly one lane, and lanes join where a **merge** brings two lines of work together.
