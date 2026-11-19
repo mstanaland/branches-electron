@@ -16,6 +16,8 @@ export interface Tab {
   /** Per session: a branch open last launch may not exist this one (ADR 0006). */
   readonly view: View
   readonly selectedPath: string | null
+  /** Oid of the commit selected in the history, whose **commit details** are shown. */
+  readonly selectedCommit: string | null
 }
 
 export interface TabsState {
@@ -53,6 +55,8 @@ export interface TabsState {
   setView: (view: View) => void
   /** Changes the focused tab's selected change. Nothing happens on the backdrop. */
   setSelectedPath: (path: string | null) => void
+  /** Changes the focused tab's selected commit. Nothing happens on the backdrop. */
+  setSelectedCommit: (oid: string | null) => void
 }
 
 interface Stored {
@@ -63,6 +67,14 @@ interface Stored {
 /** Ids only have to be unique within one launch's strip, and restored ones come from storage. */
 function newId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `tab-${Date.now()}-${Math.random().toString(36)}`
+}
+
+/**
+ * A tab as it starts: at Working with nothing selected (ADR 0006). The one place that lists a
+ * tab's per-session fields, so a new one can't be forgotten where tabs are made.
+ */
+function freshTab(root: string | null, id: string = newId()): Tab {
+  return { id, root, view: WORKING, selectedPath: null, selectedCommit: null }
 }
 
 /**
@@ -119,9 +131,7 @@ function writeStored(tabs: readonly Tab[], focusedId: string | null): void {
  * tab is the focused one.
  */
 export function seedTabs(roots: readonly (string | null)[]): void {
-  const tabs = roots
-    .slice(0, MAX_TABS)
-    .map((root) => ({ id: newId(), root, view: WORKING, selectedPath: null }))
+  const tabs = roots.slice(0, MAX_TABS).map((root) => freshTab(root))
   writeStored(tabs, tabs[0]?.id ?? null)
 }
 
@@ -130,11 +140,11 @@ interface State {
   focusedId: string | null
 }
 
-/** Views and selected changes don't persist: a restored tab starts at Working (ADR 0006). */
+/** Views and selections don't persist: a restored tab starts at Working (ADR 0006). */
 function initialState(): State {
   const stored = readStored()
   return {
-    tabs: stored.tabs.map((tab) => ({ ...tab, view: WORKING, selectedPath: null })),
+    tabs: stored.tabs.map((tab) => freshTab(tab.root, tab.id)),
     focusedId: stored.focusedId
   }
 }
@@ -167,7 +177,7 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
     () =>
       setState((current) => {
         if (current.tabs.length >= MAX_TABS) return current
-        const tab: Tab = { id: newId(), root: null, view: WORKING, selectedPath: null }
+        const tab = freshTab(null)
         return { tabs: [...current.tabs, tab], focusedId: tab.id }
       }),
     []
@@ -194,7 +204,7 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
           }
         }
         if (current.tabs.length >= MAX_TABS) return current
-        const tab: Tab = { id: newId(), root, view: WORKING, selectedPath: null }
+        const tab = freshTab(root)
         return { tabs: [...current.tabs, tab], focusedId: tab.id }
       }),
     []
@@ -266,13 +276,25 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
   )
 
   const setView = useCallback(
-    (view: View) => updateFocused((tab) => (isSameView(tab.view, view) ? tab : { ...tab, view })),
+    // A commit selected in one branch's history means nothing in another's.
+    (view: View) =>
+      updateFocused((tab) =>
+        isSameView(tab.view, view) ? tab : { ...tab, view, selectedCommit: null }
+      ),
     [updateFocused]
   )
 
   const setSelectedPath = useCallback(
     (selectedPath: string | null) =>
       updateFocused((tab) => (tab.selectedPath === selectedPath ? tab : { ...tab, selectedPath })),
+    [updateFocused]
+  )
+
+  const setSelectedCommit = useCallback(
+    (selectedCommit: string | null) =>
+      updateFocused((tab) =>
+        tab.selectedCommit === selectedCommit ? tab : { ...tab, selectedCommit }
+      ),
     [updateFocused]
   )
 
@@ -291,7 +313,8 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
       closeFocused,
       closeRepository,
       setView,
-      setSelectedPath
+      setSelectedPath,
+      setSelectedCommit
     }
   }, [
     state,
@@ -304,7 +327,8 @@ export function TabsProvider({ children }: { children: ReactNode }): React.JSX.E
     closeFocused,
     closeRepository,
     setView,
-    setSelectedPath
+    setSelectedPath,
+    setSelectedCommit
   ])
 
   return <TabsContext.Provider value={value}>{children}</TabsContext.Provider>
@@ -329,6 +353,9 @@ export interface Selection {
   /** Path of the focused tab's one selected change. */
   selectedPath: string | null
   setSelectedPath: (path: string | null) => void
+  /** Oid of the focused tab's selected commit in the history. Cleared when the view changes. */
+  selectedCommit: string | null
+  setSelectedCommit: (oid: string | null) => void
 }
 
 /**
@@ -336,15 +363,17 @@ export interface Selection {
  * are in front of the user rather than about the strip itself.
  */
 export function useSelection(): Selection {
-  const { focused, setView, setSelectedPath } = useTabs()
+  const { focused, setView, setSelectedPath, setSelectedCommit } = useTabs()
   return useMemo(
     () => ({
       activeRoot: focused?.root ?? null,
       view: focused?.view ?? WORKING,
       setView,
       selectedPath: focused?.selectedPath ?? null,
-      setSelectedPath
+      setSelectedPath,
+      selectedCommit: focused?.selectedCommit ?? null,
+      setSelectedCommit
     }),
-    [focused, setView, setSelectedPath]
+    [focused, setView, setSelectedPath, setSelectedCommit]
   )
 }

@@ -22,6 +22,9 @@ export const keys = {
    * detached HEAD — so switching between two branches keeps both their pages cached.
    */
   commits: (root: string, ref: string) => ['repository', root, 'commits', ref] as const,
+  /** What **commit details** shows about one commit beyond its row. */
+  commitDetails: (root: string, oid: string) =>
+    ['repository', root, 'commit-details', oid] as const,
   /** Every cached history in one repository, whatever ref it is of. */
   commitsOfAny: (root: string) => ['repository', root, 'commits'] as const,
   /** The diffs of every change in one repository, for invalidating them together. */

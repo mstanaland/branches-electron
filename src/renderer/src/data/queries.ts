@@ -49,6 +49,19 @@ export function useDiff(root: string | null, path: string | null, originalPath: 
   })
 }
 
+/**
+ * Author, committer and description of one commit, for **commit details**. Idle while there is
+ * no repository or no commit selected. A commit never changes, so what was read stays good.
+ */
+export function useCommitDetails(root: string | null, oid: string | null) {
+  return useQuery({
+    queryKey: keys.commitDetails(root ?? '', oid ?? ''),
+    queryFn: () => api.getCommitDetails(root as string, oid as string),
+    enabled: root !== null && oid !== null,
+    staleTime: Infinity
+  })
+}
+
 /** Commits fetched per page. Big enough that scrolling rarely asks for another. */
 export const COMMIT_PAGE_SIZE = 200
 

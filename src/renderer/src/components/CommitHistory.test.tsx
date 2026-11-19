@@ -36,13 +36,14 @@ function commit(seed: string, overrides: Partial<Commit> = {}): Commit {
 
 function show(commits: Commit[], ref = 'main'): void {
   api.listCommits.mockResolvedValue(commits)
-  renderWithProviders(<CommitHistory root={ROOT} commitRef={ref} />)
+  renderWithProviders(<CommitHistory root={ROOT} commitRef={ref} />, { tabs: [ROOT] })
 }
 
-const rows = (): HTMLElement[] => screen.getAllByRole('listitem')
+const rows = (): HTMLElement[] => screen.getAllByRole('option')
 
 beforeEach(() => {
   vi.resetAllMocks()
+  localStorage.clear()
 })
 
 afterEach(cleanup)
@@ -51,7 +52,7 @@ describe('the list', () => {
   it('shows the author, the date, the short oid and the subject', async () => {
     show([commit('ab12cd34ef')])
 
-    const row = await screen.findByRole('listitem')
+    const row = await screen.findByRole('option')
     expect(within(row).getByText('Michael Stanaland')).toBeTruthy()
     expect(within(row).getByText('ab12cd34')).toBeTruthy()
     expect(within(row).getByText('Subject ab12cd34ef')).toBeTruthy()
@@ -64,7 +65,7 @@ describe('the list', () => {
 
   it('keeps the order it was given, newest first', async () => {
     show([commit('aaa'), commit('bbb'), commit('ccc')])
-    await screen.findAllByRole('listitem')
+    await screen.findAllByRole('option')
 
     expect(rows().map((row) => row.getAttribute('data-oid'))).toEqual([
       oidOf('aaa'),
@@ -75,7 +76,7 @@ describe('the list', () => {
 
   it('asks for the branch it was given', async () => {
     show([commit('aaa')], 'feature/login')
-    await screen.findByRole('listitem')
+    await screen.findByRole('option')
 
     expect(api.listCommits).toHaveBeenCalledWith(ROOT, 'feature/login', COMMIT_PAGE_SIZE, 0)
   })
@@ -83,7 +84,7 @@ describe('the list', () => {
   it('survives a date git gave that cannot be parsed', async () => {
     show([commit('aaa', { authorDate: 'not a date' })])
 
-    const row = await screen.findByRole('listitem')
+    const row = await screen.findByRole('option')
     // The row is still there and still readable; only the date is missing.
     expect(within(row).getByText('Subject aaa')).toBeTruthy()
   })
@@ -94,22 +95,22 @@ describe('empty and failed', () => {
     show([])
 
     await screen.findByText('No commits yet.')
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.queryAllByRole('option')).toHaveLength(0)
   })
 
   it('shows nothing at all while the first page is loading', () => {
     api.listCommits.mockReturnValue(new Promise(() => {}))
-    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />)
+    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />, { tabs: [ROOT] })
 
     expect(screen.queryByText('No commits yet.')).toBeNull()
-    expect(screen.queryAllByRole('listitem')).toHaveLength(0)
+    expect(screen.queryAllByRole('option')).toHaveLength(0)
   })
 
   it('reports a failure', async () => {
     api.listCommits.mockRejectedValue(
       new ApiError({ code: 'COMMAND_FAILED', message: 'git said no' })
     )
-    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />)
+    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />, { tabs: [ROOT] })
 
     await screen.findByRole('alert')
     expect(screen.getByRole('alert').textContent).toBe('git said no')
@@ -117,7 +118,9 @@ describe('empty and failed', () => {
 
   it('stays out of the way when the repository is gone', async () => {
     api.listCommits.mockRejectedValue(new ApiError({ code: 'NOT_A_REPOSITORY', message: 'gone' }))
-    const { container } = renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />)
+    const { container } = renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />, {
+      tabs: [ROOT]
+    })
 
     await waitFor(() => expect(container.querySelector('section')).toBeNull())
   })
@@ -126,36 +129,36 @@ describe('empty and failed', () => {
 describe('selecting a commit', () => {
   it('highlights the row that was clicked', async () => {
     show([commit('aaa'), commit('bbb')])
-    await screen.findAllByRole('listitem')
+    await screen.findAllByRole('option')
 
     fireEvent.click(rows()[1])
 
-    expect(rows()[1].getAttribute('data-selected')).toBe('true')
-    expect(rows()[0].getAttribute('data-selected')).toBeNull()
+    expect(rows()[1].getAttribute('aria-selected')).toBe('true')
+    expect(rows()[0].getAttribute('aria-selected')).toBe('false')
   })
 
   it('moves the highlight with the arrow keys, Home and End', async () => {
     show([commit('aaa'), commit('bbb'), commit('ccc')])
-    await screen.findAllByRole('listitem')
+    await screen.findAllByRole('option')
 
     fireEvent.click(rows()[0])
     fireEvent.keyDown(rows()[0], { key: 'ArrowDown' })
-    expect(rows()[1].getAttribute('data-selected')).toBe('true')
+    expect(rows()[1].getAttribute('aria-selected')).toBe('true')
 
     fireEvent.keyDown(rows()[1], { key: 'End' })
-    expect(rows()[2].getAttribute('data-selected')).toBe('true')
+    expect(rows()[2].getAttribute('aria-selected')).toBe('true')
 
     fireEvent.keyDown(rows()[2], { key: 'Home' })
-    expect(rows()[0].getAttribute('data-selected')).toBe('true')
+    expect(rows()[0].getAttribute('aria-selected')).toBe('true')
 
     // Already at the top: Up stays put rather than wrapping round.
     fireEvent.keyDown(rows()[0], { key: 'ArrowUp' })
-    expect(rows()[0].getAttribute('data-selected')).toBe('true')
+    expect(rows()[0].getAttribute('aria-selected')).toBe('true')
   })
 
   it('is one tab stop: the selected row, or the first one', async () => {
     show([commit('aaa'), commit('bbb')])
-    await screen.findAllByRole('listitem')
+    await screen.findAllByRole('option')
 
     expect(rows().map((row) => row.getAttribute('tabindex'))).toEqual(['0', '-1'])
 
@@ -193,7 +196,7 @@ describe('paging', () => {
     observeImmediately()
     const first = fullPage('a')
     api.listCommits.mockResolvedValueOnce(first).mockResolvedValueOnce([commit('zzz')])
-    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />)
+    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />, { tabs: [ROOT] })
 
     await screen.findByText('Subject zzz')
     // The branch can move between pages; the oid the list started from cannot.
@@ -210,7 +213,7 @@ describe('paging', () => {
   it('stops at a short page', async () => {
     observeImmediately()
     api.listCommits.mockResolvedValue([commit('aaa')])
-    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />)
+    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />, { tabs: [ROOT] })
 
     await screen.findByText('Subject aaa')
     await waitFor(() => expect(api.listCommits).toHaveBeenCalledTimes(1))

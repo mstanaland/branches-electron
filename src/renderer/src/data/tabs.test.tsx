@@ -202,6 +202,32 @@ describe('what a tab holds', () => {
     expect(result.current.selection.selectedPath).toBe('src/a.ts')
   })
 
+  it('keeps a selected commit per tab, across a tab switch', () => {
+    const { result } = setup()
+    act(() => result.current.tabs.chooseRepository('/repos/a'))
+    act(() => result.current.selection.setView({ kind: 'branch', name: 'main' }))
+    act(() => result.current.selection.setSelectedCommit('a'.repeat(40)))
+
+    act(() => result.current.tabs.chooseRepository('/repos/b'))
+    expect(result.current.selection.selectedCommit).toBeNull()
+
+    act(() => result.current.tabs.focusTab(result.current.tabs.tabs[0].id))
+    expect(result.current.selection.selectedCommit).toBe('a'.repeat(40))
+  })
+
+  it('clears the selected commit when a different branch is selected, but not the same one', () => {
+    const { result } = setup()
+    act(() => result.current.tabs.chooseRepository('/repos/a'))
+    act(() => result.current.selection.setView({ kind: 'branch', name: 'main' }))
+    act(() => result.current.selection.setSelectedCommit('a'.repeat(40)))
+
+    act(() => result.current.selection.setView({ kind: 'branch', name: 'main' }))
+    expect(result.current.selection.selectedCommit).toBe('a'.repeat(40))
+
+    act(() => result.current.selection.setView({ kind: 'branch', name: 'feature' }))
+    expect(result.current.selection.selectedCommit).toBeNull()
+  })
+
   it('has nothing to change on the backdrop', () => {
     const { result } = setup()
 

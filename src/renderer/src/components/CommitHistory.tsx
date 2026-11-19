@@ -1,9 +1,9 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
 import { MAX_LANES, buildCommitGraph } from '../../../shared/commitGraph'
 import type { CommitGraphRow } from '../../../shared/commitGraph'
 import type { Commit } from '../../../shared/git'
-import { describeError, useCommits } from '../data'
+import { describeError, useCommits, useSelection } from '../data'
 import { EmptyState, Pending } from '../ui'
 import shared from './shared.module.css'
 import styles from './CommitHistory.module.css'
@@ -111,8 +111,9 @@ function CommitRow({
 }): React.JSX.Element {
   return (
     <li
+      role="option"
+      aria-selected={selected}
       data-oid={commit.oid}
-      data-selected={selected ? 'true' : undefined}
       className={styles.row}
       tabIndex={tabStop ? 0 : -1}
       onClick={onSelect}
@@ -162,7 +163,8 @@ export function CommitHistory({
   // lane that started mid-page would otherwise land in a different position each time.
   const graph = useMemo(() => buildCommitGraph(listed), [listed])
 
-  const [selectedOid, setSelectedOid] = useState<string | null>(null)
+  // Per tab, so it survives a tab switch and shows in **commit details** beside the list.
+  const { selectedCommit: selectedOid, setSelectedCommit: setSelectedOid } = useSelection()
   const selectedIndex = listed.findIndex((commit) => commit.oid === selectedOid)
   // One tab stop for the whole list: the selected row, or the first one.
   const tabStopIndex = selectedIndex === -1 ? 0 : selectedIndex
@@ -180,8 +182,17 @@ export function CommitHistory({
       // Optional: jsdom has no scrolling, and a row that can't be scrolled to is still focused.
       row?.scrollIntoView?.({ block: 'nearest' })
     },
-    [listed]
+    [listed, setSelectedOid]
   )
+
+  // A selected commit that a settled read no longer lists — the branch was rewritten under
+  // it — is dropped silently, as a selected branch that leaves the list is (ADR 0006). Only
+  // once the read has settled, so a refetch in flight never clears what it is about to list.
+  const settled = commits.isSuccess && !commits.isFetching
+  const selectionListed = selectedOid === null || selectedIndex !== -1
+  useEffect(() => {
+    if (settled && !selectionListed) setSelectedOid(null)
+  }, [settled, selectionListed, setSelectedOid])
 
   const onKeyDown = useCallback(
     (index: number) =>
@@ -234,7 +245,7 @@ export function CommitHistory({
       {commits.isPending && !error && <Pending label="Loading history" />}
       {commits.isSuccess && listed.length === 0 && <EmptyState title="No commits yet." />}
       {listed.length > 0 && (
-        <ul ref={listRef} className={styles.list} aria-label="Commits">
+        <ul ref={listRef} role="listbox" className={styles.list} aria-label="Commits">
           {listed.map((commit, index) => (
             <CommitRow
               key={commit.oid}

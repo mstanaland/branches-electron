@@ -23,6 +23,7 @@ export { keys } from './keys'
 export {
   COMMIT_PAGE_SIZE,
   useBranches,
+  useCommitDetails,
   useCommits,
   useDiff,
   usePublishTarget,

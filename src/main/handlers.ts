@@ -4,6 +4,7 @@ import type {
   BranchMenuAction,
   ChangeDiff,
   Commit,
+  CommitDetails,
   PublishTarget,
   RepositoryStatus,
   SavedRepository
@@ -18,6 +19,7 @@ import {
   hasRemote,
   isRepositoryRoot,
   listBranches,
+  getCommitDetails,
   getDiff,
   getPublishTarget,
   getStatus,
@@ -63,6 +65,7 @@ export interface Handlers {
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
+  getCommitDetails: (root: string, oid: string) => Promise<CommitDetails>
   getDiff: (root: string, path: string, originalPath: string | null) => Promise<ChangeDiff>
   stageFiles: (root: string, paths: readonly string[]) => Promise<void>
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
@@ -84,9 +87,20 @@ export interface Handlers {
  * against what exists rather than trusted: nothing user-written becomes a git argument.
  */
 async function assertRef(root: string, ref: string): Promise<void> {
-  if (/^[0-9a-f]{40}$/.test(ref)) return
+  if (isFullOid(ref)) return
   if ((await listBranches(root)).some((branch) => branch.name === ref)) return
   throw new ApiError({ code: 'INVALID_REF', message: `${ref} is not a branch or a commit id.` })
+}
+
+function isFullOid(value: string): boolean {
+  return /^[0-9a-f]{40}$/.test(value)
+}
+
+/** An oid off IPC that becomes a git argument: a full object id and nothing else. */
+function assertFullOid(oid: string): void {
+  if (!isFullOid(oid)) {
+    throw new ApiError({ code: 'INVALID_REF', message: `${oid} is not a commit id.` })
+  }
 }
 
 /** Paging numbers off IPC: they go into git arguments, so they must really be numbers. */
@@ -179,6 +193,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       await assertOpen(root)
       await assertRef(root, ref)
       return listCommits(root, ref, assertCount(limit, 'limit'), assertCount(skip, 'skip'))
+    },
+    async getCommitDetails(root, oid) {
+      await assertOpen(root)
+      assertFullOid(oid)
+      return getCommitDetails(root, oid)
     },
     async getDiff(root, path, originalPath) {
       await assertOpen(root)
