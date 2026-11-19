@@ -91,6 +91,21 @@ export interface CommitDetails {
   description: string
 }
 
+/** What a commit did to one file. Copies are never detected, so there is no `copied`. */
+export type CommitFileKind = 'added' | 'modified' | 'deleted' | 'renamed' | 'typeChanged'
+
+/**
+ * One file a commit changed, as **commit details** lists it: against the commit's parent, the
+ * empty tree for a root commit, or the first parent for a **merge**.
+ */
+export interface CommitFile {
+  kind: CommitFileKind
+  /** Path relative to the repository root, after the commit. */
+  path: string
+  /** For a rename, the path the file came from. Null otherwise. */
+  originalPath: string | null
+}
+
 /** What a user can choose from a branch's context menu. */
 export type BranchMenuAction = 'checkout'
 

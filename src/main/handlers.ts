@@ -5,6 +5,8 @@ import type {
   ChangeDiff,
   Commit,
   CommitDetails,
+  CommitFile,
+  FileDiff,
   PublishTarget,
   RepositoryStatus,
   SavedRepository
@@ -20,9 +22,11 @@ import {
   isRepositoryRoot,
   listBranches,
   getCommitDetails,
+  getCommitFileDiff,
   getDiff,
   getPublishTarget,
   getStatus,
+  listCommitFiles,
   listCommits,
   publishBranch,
   pullFastForward,
@@ -66,6 +70,13 @@ export interface Handlers {
   listBranches: (root: string) => Promise<Branch[]>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
   getCommitDetails: (root: string, oid: string) => Promise<CommitDetails>
+  listCommitFiles: (root: string, oid: string) => Promise<CommitFile[]>
+  getCommitFileDiff: (
+    root: string,
+    oid: string,
+    path: string,
+    originalPath: string | null
+  ) => Promise<FileDiff>
   getDiff: (root: string, path: string, originalPath: string | null) => Promise<ChangeDiff>
   stageFiles: (root: string, paths: readonly string[]) => Promise<void>
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
@@ -198,6 +209,21 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       await assertOpen(root)
       assertFullOid(oid)
       return getCommitDetails(root, oid)
+    },
+    async listCommitFiles(root, oid) {
+      await assertOpen(root)
+      assertFullOid(oid)
+      return listCommitFiles(root, oid)
+    },
+    async getCommitFileDiff(root, oid, path, originalPath) {
+      await assertOpen(root)
+      assertFullOid(oid)
+      // Unlike `getDiff` there is no `assertInsideRoot`: this reads committed objects, never
+      // the work tree, so a symlink there leads nowhere. The checks still keep a path that is
+      // absolute, empty or climbing out from reaching git.
+      assertRelativePath(path)
+      if (originalPath !== null) assertRelativePath(originalPath)
+      return getCommitFileDiff(root, oid, path, originalPath)
     },
     async getDiff(root, path, originalPath) {
       await assertOpen(root)

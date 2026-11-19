@@ -24,6 +24,8 @@ export {
   COMMIT_PAGE_SIZE,
   useBranches,
   useCommitDetails,
+  useCommitFileDiff,
+  useCommitFiles,
   useCommits,
   useDiff,
   usePublishTarget,

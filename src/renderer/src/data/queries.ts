@@ -62,6 +62,36 @@ export function useCommitDetails(root: string | null, oid: string | null) {
   })
 }
 
+/**
+ * The files one commit changed, for **commit details**. Idle while there is no repository or
+ * no commit. A commit never changes, so what was read stays good.
+ */
+export function useCommitFiles(root: string | null, oid: string | null) {
+  return useQuery({
+    queryKey: keys.commitFiles(root ?? '', oid ?? ''),
+    queryFn: () => api.listCommitFiles(root as string, oid as string),
+    enabled: root !== null && oid !== null,
+    staleTime: Infinity
+  })
+}
+
+/**
+ * The diff of one file a commit changed. Mounted only when its row is expanded, so a commit's
+ * diffs are read one at a time as they are opened rather than all up front.
+ */
+export function useCommitFileDiff(
+  root: string,
+  oid: string,
+  path: string,
+  originalPath: string | null
+) {
+  return useQuery({
+    queryKey: keys.commitFileDiff(root, oid, path, originalPath),
+    queryFn: () => api.getCommitFileDiff(root, oid, path, originalPath),
+    staleTime: Infinity
+  })
+}
+
 /** Commits fetched per page. Big enough that scrolling rarely asks for another. */
 export const COMMIT_PAGE_SIZE = 200
 

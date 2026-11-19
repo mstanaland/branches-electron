@@ -23,6 +23,8 @@ const api = vi.hoisted(() => ({
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listCommits: vi.fn<RendererApi['listCommits']>(),
   getCommitDetails: vi.fn<RendererApi['getCommitDetails']>(),
+  listCommitFiles: vi.fn<RendererApi['listCommitFiles']>(),
+  getCommitFileDiff: vi.fn<RendererApi['getCommitFileDiff']>(),
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
   fetchRepository: vi.fn<RendererApi['fetchRepository']>(),
   pullRepository: vi.fn<RendererApi['pullRepository']>(),
@@ -1699,6 +1701,7 @@ async function openHistory(commits: Commit[] = [tip, parent]): Promise<void> {
   api.getCommitDetails.mockImplementation(async (_root, oid) =>
     detailsOf(commits.find((commit) => commit.oid === oid) ?? tip)
   )
+  api.listCommitFiles.mockResolvedValue([])
   renderWithProviders(<App />)
   await choose('alpha')
   fireEvent.click(await screen.findByRole('treeitem', { name: 'main' }))
@@ -1765,6 +1768,18 @@ describe('commit details', () => {
     expect(within(pane()).queryByText(tip.oid)).toBeNull()
     expect((await option('Initial commit')).getAttribute('aria-selected')).toBe('true')
     expect((await option('Refresh on demand')).getAttribute('aria-selected')).toBe('false')
+  })
+
+  it('lists the files the selected commit changed below its details', async () => {
+    await openHistory()
+    api.listCommitFiles.mockResolvedValue([
+      { kind: 'modified', path: 'src/App.tsx', originalPath: null }
+    ])
+    fireEvent.click(await option('Refresh on demand'))
+
+    const row = await within(pane()).findByRole('button', { name: /src\/App\.tsx/ })
+    expect(row.getAttribute('aria-expanded')).toBe('false')
+    expect(api.listCommitFiles).toHaveBeenCalledWith('/repos/alpha', tip.oid)
   })
 
   it('says what went wrong when the details cannot be read', async () => {

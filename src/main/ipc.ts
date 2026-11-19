@@ -130,6 +130,14 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('repository:commit-details', (_event, root: string, oid: string) =>
     settle(() => handlers.getCommitDetails(root, oid))
   )
+  ipcMain.handle('repository:commit-files', (_event, root: string, oid: string) =>
+    settle(() => handlers.listCommitFiles(root, oid))
+  )
+  ipcMain.handle(
+    'repository:commit-file-diff',
+    (_event, root: string, oid: string, path: string, originalPath: string | null) =>
+      settle(() => handlers.getCommitFileDiff(root, oid, path, originalPath))
+  )
   ipcMain.handle(
     'repository:diff',
     (_event, root: string, path: string, originalPath: string | null) =>

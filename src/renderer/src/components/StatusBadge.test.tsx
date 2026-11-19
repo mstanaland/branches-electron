@@ -22,6 +22,12 @@ describe('StatusBadge', () => {
     expect(badge.getAttribute('data-variant')).toBe(variant)
   })
 
+  it('names no side when given none, as for a file a commit changed', () => {
+    render(<StatusBadge status="modified" />)
+
+    expect(screen.getByRole('img', { name: 'Modified' })).toBeTruthy()
+  })
+
   it('names the side in its accessible name', () => {
     render(<StatusBadge status="modified" side="staged" />)
 
