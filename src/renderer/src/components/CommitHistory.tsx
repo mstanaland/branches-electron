@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
-import { MAX_LANES, buildCommitGraph } from '../../../shared/commitGraph'
+import { MAX_LANES, buildCommitGraph, outEdgeColorLane } from '../../../shared/commitGraph'
 import type { CommitGraphRow } from '../../../shared/commitGraph'
 import type { Commit } from '../../../shared/git'
 import { describeError, useCommits, useSelection } from '../data'
@@ -9,9 +9,9 @@ import shared from './shared.module.css'
 import styles from './CommitHistory.module.css'
 
 /** Must match `--row-height` in the stylesheet: the SVG is sized in script, not by CSS. */
-const ROW_HEIGHT = 48
-const LANE_WIDTH = 14
-const NODE_RADIUS = 4
+const ROW_HEIGHT = 52
+const LANE_WIDTH = 10
+const NODE_RADIUS = 5
 
 /** Built once: an `Intl` formatter per row would be the most expensive thing on screen. */
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'short' })
@@ -78,16 +78,19 @@ function GraphCell({
           fill="none"
         />
       ))}
-      {row.out.map((lane, index) => (
-        <path
-          key={`out-${lane}-${index}`}
-          d={edgePath(nodeX, middle, laneX(lane), ROW_HEIGHT)}
-          stroke={laneColor(lane)}
-          strokeWidth={2}
-          fill="none"
-        />
-      ))}
-      <circle cx={nodeX} cy={middle} r={NODE_RADIUS} fill={laneColor(row.lane)} />
+      {row.out.map((lane, index) => {
+        return (
+          <path
+            key={`out-${lane}-${index}`}
+            d={edgePath(nodeX, middle, laneX(lane), ROW_HEIGHT)}
+            stroke={laneColor(outEdgeColorLane(row, lane))}
+            strokeWidth={2}
+            fill="none"
+          />
+        )
+      })}
+      <circle cx={nodeX} cy={middle} r={NODE_RADIUS} fill="var(--color-text-muted)" />
+      <circle cx={nodeX} cy={middle} r={NODE_RADIUS - 1.5} fill="white" />
     </svg>
   )
 }
@@ -120,15 +123,19 @@ function CommitRow({
       onFocus={onSelect}
       onKeyDown={onKeyDown}
     >
-      <GraphCell row={row} laneCount={laneCount} />
-      <div className={styles.details}>
-        <div className={styles.line}>
-          <span className={styles.author}>{commit.authorName}</span>
-          <span className={styles.date}>{formatDate(commit.authorDate)}</span>
-        </div>
-        <div className={styles.line}>
-          <span className={styles.oid}>{commit.shortOid}</span>
-          <span className={styles.subject}>{commit.subject}</span>
+      <div className={styles.rowContent}>
+        <GraphCell row={row} laneCount={laneCount} />
+        <div className={styles.details}>
+          <div className={styles.line}>
+            <span className={styles.subject}>{commit.subject}</span>
+          </div>
+          <div className={styles.line}>
+            <span className={styles.authorAndId}>
+              <span className={styles.author}>{commit.authorName}</span>
+              <span className={styles.oid}>{commit.shortOid}</span>
+            </span>
+            <span className={styles.date}>{formatDate(commit.authorDate)}</span>
+          </div>
         </div>
       </div>
     </li>

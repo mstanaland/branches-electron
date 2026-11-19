@@ -398,21 +398,16 @@ describe('switching tabs', () => {
 })
 
 describe('closing tabs', () => {
-  it('offers × on the focused tab, and on a tab the pointer is over', async () => {
+  it('gives every open tab a close button', async () => {
     renderWithProviders(<App />)
     await choose('alpha')
     newTab()
     await choose('beta')
 
+    // The × is shown with CSS on the focused tab and on hover. jsdom does not apply that,
+    // so both buttons are in the tree here.
     expect(screen.getByRole('button', { name: 'Close beta' })).toBeTruthy()
-    expect(screen.queryByRole('button', { name: 'Close alpha' })).toBeNull()
-
-    const [alphaTab] = screen.getAllByRole('listitem')
-    fireEvent.pointerEnter(alphaTab)
     expect(screen.getByRole('button', { name: 'Close alpha' })).toBeTruthy()
-
-    fireEvent.pointerLeave(alphaTab)
-    expect(screen.queryByRole('button', { name: 'Close alpha' })).toBeNull()
   })
 
   it('closes the tab, leaving the others and focusing a neighbour', async () => {

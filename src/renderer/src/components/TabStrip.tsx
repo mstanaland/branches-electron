@@ -1,11 +1,10 @@
-import { useState } from 'react'
-import { FolderX, Plus, X } from 'lucide-react'
+import { Plus } from 'lucide-react'
 import { useRepositories, useTabs } from '../data'
 import type { SavedRepository } from '../../../shared/git'
 import type { Tab } from '../data'
-import { cannotBeFound } from './MissingRepository'
 import { Button } from '../ui'
 import styles from './TabStrip.module.css'
+import { TabItem } from './TabItem'
 
 /** What a tab is called: its repository's saved name, else the folder, else the empty kind. */
 function tabLabel(tab: Tab, saved: readonly SavedRepository[] | undefined): string {
@@ -20,7 +19,7 @@ function tabLabel(tab: Tab, saved: readonly SavedRepository[] | undefined): stri
  * because tabs come back across launches and folders move in between; it is flagged rather
  * than dropped, so the user sees what happened instead of losing a tab silently.
  */
-function isMissing(tab: Tab, saved: readonly SavedRepository[] | undefined): boolean {
+function getIsMissing(tab: Tab, saved: readonly SavedRepository[] | undefined): boolean {
   return tab.root !== null && saved?.find((r) => r.root === tab.root)?.missing === true
 }
 
@@ -38,51 +37,25 @@ function isMissing(tab: Tab, saved: readonly SavedRepository[] | undefined): boo
 export function TabStrip(): React.JSX.Element {
   const { tabs, focused, canOpenTab, openTab, focusTab, closeTab } = useTabs()
   const repositories = useRepositories()
-  // The `×` shows on the focused tab and on whichever tab the pointer is over, so the strip
-  // is not a row of clutter. Tracked here rather than in CSS so it is one rule, and testable.
-  const [hoveredId, setHoveredId] = useState<string | null>(null)
 
   return (
     <div className={styles.strip}>
-      <nav aria-label="Tabs">
-        <ul className={styles.tabs}>
+      <nav aria-label="Tabs" className={styles.nav}>
+        <ul className={styles.tabsList}>
           {tabs.map((tab) => {
             const label = tabLabel(tab, repositories.data)
-            const missing = isMissing(tab, repositories.data)
             const isFocused = tab.id === focused?.id
+            const isMissing = getIsMissing(tab, repositories.data)
+
             return (
-              <li
+              <TabItem
                 key={tab.id}
-                className={styles.tab}
-                data-focused={isFocused ? 'true' : undefined}
-                data-missing={missing ? 'true' : undefined}
-                onPointerEnter={() => setHoveredId(tab.id)}
-                onPointerLeave={() =>
-                  setHoveredId((current) => (current === tab.id ? null : current))
-                }
-              >
-                <Button
-                  variant="quiet"
-                  className={styles.label}
-                  aria-current={isFocused ? 'true' : undefined}
-                  // The icon is decorative, so the flag has to reach assistive tech as text.
-                  aria-description={missing ? `${cannotBeFound(label)}.` : undefined}
-                  onClick={() => focusTab(tab.id)}
-                >
-                  {missing && <FolderX className={styles.missing} />}
-                  <span className={styles.labelText}>{label}</span>
-                </Button>
-                {(isFocused || tab.id === hoveredId) && (
-                  <Button
-                    variant="quiet"
-                    className={styles.close}
-                    aria-label={`Close ${label}`}
-                    onClick={() => closeTab(tab.id)}
-                  >
-                    <X />
-                  </Button>
-                )}
-              </li>
+                label={label}
+                isFocused={isFocused}
+                isMissing={isMissing}
+                onClose={() => closeTab(tab.id)}
+                onClick={() => focusTab(tab.id)}
+              />
             )
           })}
         </ul>

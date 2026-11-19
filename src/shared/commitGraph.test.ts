@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { MAX_LANES, buildCommitGraph } from './commitGraph'
+import { MAX_LANES, buildCommitGraph, outEdgeColorLane } from './commitGraph'
 import type { Commit } from './git'
 
 /**
@@ -130,5 +130,28 @@ describe('buildCommitGraph', () => {
     // The lanes are still assigned, so the edges are right; only the column is capped.
     expect(graph.rows[0].out).toHaveLength(MAX_LANES + 4)
     expect(graph.laneCount).toBe(MAX_LANES)
+  })
+})
+
+describe('outEdgeColorLane', () => {
+  // m merges s into the main line; both sides go back to the same root.
+  const rows = buildCommitGraph([
+    commit('m', 'a', 's'),
+    commit('a', 'r'),
+    commit('s', 'r'),
+    commit('r')
+  ]).rows
+
+  it('colours an edge that continues a lane in that lane', () => {
+    expect(outEdgeColorLane(rows[1], 0)).toBe(0)
+  })
+
+  it('colours an edge that opens a lane for a merged parent in the new lane', () => {
+    expect(outEdgeColorLane(rows[0], 1)).toBe(1)
+  })
+
+  it('colours an edge that bends into an open lane in the node lane', () => {
+    // s ends its branch by joining lane 0, but the edge is still part of lane 1.
+    expect(outEdgeColorLane(rows[2], 0)).toBe(1)
   })
 })

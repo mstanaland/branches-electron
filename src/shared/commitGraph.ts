@@ -104,3 +104,14 @@ export function buildCommitGraph(commits: readonly Commit[]): CommitGraph {
 
   return { rows, laneCount: Math.min(widest, MAX_LANES) }
 }
+
+/**
+ * Lane whose colour an `out` edge is drawn in. An edge that opens or continues a lane takes
+ * that lane's colour. An edge that bends into a lane already open, a line already passing
+ * through the row, is the end of the node's own line joining it, so it keeps the node's
+ * colour. Otherwise the last stretch of a branch would turn the trunk's colour where it
+ * meets the trunk.
+ */
+export function outEdgeColorLane(row: CommitGraphRow, target: number): number {
+  return row.through.includes(target) ? row.lane : target
+}

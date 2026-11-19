@@ -16,6 +16,7 @@
   --color-accent-text: #ffffff;
   --color-hover: rgba(0, 0, 0, 0.06);
   --color-danger: #c4271b;
+  --color-focus: #0ea5e9;
 
   --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
 
@@ -39,14 +40,14 @@
 
   /* The history graph's lanes, cycled through in order. Distinct hues rather than shades,
      so two lines crossing stay telling apart. */
-  --graph-lane-1: #0a64d6;
-  --graph-lane-2: #d1660c;
-  --graph-lane-3: #1b7f3b;
-  --graph-lane-4: #8a3ffc;
-  --graph-lane-5: #b3261e;
-  --graph-lane-6: #0f7b8a;
-  --graph-lane-7: #a35b00;
-  --graph-lane-8: #b32d8a;
+  --graph-lane-1: #3b82f6;
+  --graph-lane-2: #ef4444;
+  --graph-lane-3: #10b981;
+  --graph-lane-4: #8b5cf6;
+  --graph-lane-5: #f59e0b;
+  --graph-lane-6: #06b6d4;
+  --graph-lane-7: #a16207;
+  --graph-lane-8: #be185d;
 
   --diff-added-bg: #e6f6ea;
   --diff-added-gutter-bg: #cdeed6;
