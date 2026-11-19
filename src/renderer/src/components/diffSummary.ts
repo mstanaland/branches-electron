@@ -7,12 +7,13 @@ function count(n: number, singular: string, plural: string): string {
 /**
  * One line about a file's diff, counted from its hunks: "3 hunks, 230 insertions, 1 deletion".
  * A truncated diff says so rather than giving counts of the part that was read. Null when there
- * are no hunks to count — a binary file or a change to the mode or name only — since those
- * show their own notice.
+ * are no hunks to count — a binary file, an empty file, or a change to the mode or name
+ * only — since those show their own notice.
  */
 export function diffSummary(diff: FileDiff): string | null {
-  if (diff.binary || diff.hunks.length === 0) return null
+  if (diff.binary) return null
   if (diff.truncated) return 'Diff truncated: too large to count in full'
+  if (diff.hunks.length === 0) return null
 
   let insertions = 0
   let deletions = 0

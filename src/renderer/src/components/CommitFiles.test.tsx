@@ -185,6 +185,17 @@ describe('an expanded file', () => {
     expect(await screen.findByText('No content changes')).toBeTruthy()
   })
 
+  it('says an added or deleted empty file is empty', async () => {
+    api.listCommitFiles.mockResolvedValue([file('empty.txt', 'added')])
+    api.getCommitFileDiff.mockResolvedValue({ binary: false, hunks: [], truncated: false })
+    show()
+
+    fireEvent.click(await screen.findByRole('button', { name: /empty\.txt/ }))
+
+    expect(await screen.findByText('Empty file')).toBeTruthy()
+    expect(screen.queryByText('No content changes')).toBeNull()
+  })
+
   it('shows a failed diff inside that file only', async () => {
     api.listCommitFiles.mockResolvedValue([file('bad.txt'), file('good.txt')])
     api.getCommitFileDiff.mockImplementation(async (_root, _oid, path) => {

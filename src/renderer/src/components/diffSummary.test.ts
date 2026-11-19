@@ -35,6 +35,10 @@ describe('diffSummary', () => {
     )
   })
 
+  it('says a diff cut short before its first hunk was truncated', () => {
+    expect(diffSummary(text([], true))).toBe('Diff truncated: too large to count in full')
+  })
+
   it('has nothing to say about a binary file or a change with no hunks', () => {
     expect(diffSummary({ binary: true })).toBeNull()
     expect(diffSummary(text([]))).toBeNull()

@@ -102,6 +102,16 @@ describe('listCommitFiles', () => {
     expect(await listCommitFiles(repo.root, await head(repo))).toEqual([])
   })
 
+  it('lists nothing for a merge identical to its first parent', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('checkout', '-q', '-b', 'side')
+    await repo.git('commit', '-q', '--allow-empty', '-m', 'Side, empty')
+    await repo.git('checkout', '-q', 'main')
+    await repo.git('merge', '-q', '--no-ff', '-m', 'Merge side', 'side')
+
+    expect(await listCommitFiles(repo.root, await head(repo))).toEqual([])
+  })
+
   it('lists a mode-only change as modified', async () => {
     const repo = await createRepoWithCommit()
     await chmod(join(repo.root, 'README.md'), 0o755)

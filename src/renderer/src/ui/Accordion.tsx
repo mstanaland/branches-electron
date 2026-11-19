@@ -4,19 +4,15 @@ import styles from './Accordion.module.css'
 
 export interface AccordionProps {
   children: React.ReactNode
-  className?: string
 }
 
 /**
  * A list of items that each open onto their content. Every item starts collapsed, and any
  * number can be open at once. Uncontrolled: remount it (a `key`) to collapse everything.
  */
-export function Accordion({ children, className }: AccordionProps): React.JSX.Element {
+export function Accordion({ children }: AccordionProps): React.JSX.Element {
   return (
-    <BaseAccordion.Root
-      multiple
-      className={className ? `${styles.accordion} ${className}` : styles.accordion}
-    >
+    <BaseAccordion.Root multiple className={styles.accordion}>
       {children}
     </BaseAccordion.Root>
   )

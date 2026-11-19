@@ -43,6 +43,14 @@ function FileTitle({ file }: { file: CommitFile }): React.JSX.Element {
   )
 }
 
+/**
+ * Why a text diff has no hunks: an added or deleted file that was empty, or else a change to
+ * the mode or the name only.
+ */
+function noHunksTitle(file: CommitFile): string {
+  return file.kind === 'added' || file.kind === 'deleted' ? 'Empty file' : 'No content changes'
+}
+
 /** What an expanded row shows. Mounted only while expanded, which is when its diff is read. */
 function FileChanges({
   root,
@@ -67,15 +75,19 @@ function FileChanges({
   if (!diff.data) {
     return <div className={styles.changes}>{pending && <Pending label="Loading diff" />}</div>
   }
+  const summary = diffSummary(diff.data)
   if (!diff.data.binary && diff.data.hunks.length === 0) {
     return (
       <div className={styles.changes}>
-        <EmptyState title="No content changes" />
+        {summary !== null ? (
+          <p className={styles.summary}>{summary}</p>
+        ) : (
+          <EmptyState title={noHunksTitle(file)} />
+        )}
       </div>
     )
   }
 
-  const summary = diffSummary(diff.data)
   return (
     <div className={styles.changes}>
       {summary !== null && <p className={styles.summary}>{summary}</p>}
