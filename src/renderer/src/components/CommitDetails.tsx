@@ -1,6 +1,7 @@
 import type { Commit, CommitDetails as Details } from '../../../shared/git'
 import { describeError, useCommitDetails, useCommits, useDelayed, useSelection } from '../data'
 import { EmptyState, Pending } from '../ui'
+import { CommitFiles } from './CommitFiles'
 import shared from './shared.module.css'
 import styles from './CommitDetails.module.css'
 
@@ -79,12 +80,15 @@ function Body({ root, commit }: { root: string; commit: Commit }): React.JSX.Ele
           )}
         </>
       )}
+      {/* Read alongside the details rather than after them: neither needs the other. */}
+      <CommitFiles root={root} commit={commit} />
     </div>
   )
 }
 
 /**
- * **Commit details**: what the history shows beside its list for the one selected commit.
+ * **Commit details**: what the history shows beside its list for the one selected commit, down
+ * to the files it changed and their diffs.
  *
  * The subject comes from the list's own row, so it changes the moment the selection does;
  * the rest is read per commit and shows pending until it lands, never the previous commit's

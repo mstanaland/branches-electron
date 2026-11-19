@@ -2,7 +2,7 @@ import type { ChangeDiff, DiffHunk, DiffLine, FileDiff } from '../../shared/git'
 import { runGit } from './run'
 
 /** Diffs bigger than this many bytes are cut short; the rest would only slow the UI down. */
-const MAX_DIFF_OUTPUT = 1024 * 1024
+export const MAX_DIFF_OUTPUT = 1024 * 1024
 
 const HUNK_HEADER = /^@@ -(\d+)(?:,(\d+))? \+(\d+)(?:,(\d+))? @@/
 

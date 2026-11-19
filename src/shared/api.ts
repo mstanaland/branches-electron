@@ -4,6 +4,8 @@ import type {
   ChangeDiff,
   Commit,
   CommitDetails,
+  CommitFile,
+  FileDiff,
   PublishTarget,
   RepositoryStatus,
   SavedRepository
@@ -63,6 +65,25 @@ export interface BranchesApi {
    * repository or one the user opened this session.
    */
   getCommitDetails: (root: string, oid: string) => Promise<ApiResult<CommitDetails>>
+  /**
+   * The files one commit changed, for **commit details**: against its parent, against the
+   * empty tree for a root commit (every file added), and against the first parent for a
+   * **merge**. Renames are detected, copies are not. An empty list when it changed nothing.
+   * `oid` must be a full object id (`INVALID_REF` otherwise). `root` must be a saved
+   * repository or one the user opened this session.
+   */
+  listCommitFiles: (root: string, oid: string) => Promise<ApiResult<CommitFile[]>>
+  /**
+   * The diff of one file `oid` changed, compared as `listCommitFiles` compares it, and cut
+   * short (`truncated`) past the same size as a working diff. `path` and `originalPath` are as
+   * `listCommitFiles` gave them: relative to the root and not climbing out of it.
+   */
+  getCommitFileDiff: (
+    root: string,
+    oid: string,
+    path: string,
+    originalPath: string | null
+  ) => Promise<ApiResult<FileDiff>>
   /**
    * The staged and unstaged diffs of one change. `path` is relative to the repository root
    * and must not climb out of it. For a renamed file pass `originalPath` (else null) so the

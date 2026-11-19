@@ -1,0 +1,76 @@
+.files {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+/* Right-aligned in a fixed width, so every badge and path lines up whatever the word. */
+.kind {
+  flex: none;
+  width: 9ch;
+  text-align: right;
+}
+
+.kind[data-kind='added'] {
+  color: var(--badge-success-text);
+}
+
+.kind[data-kind='modified'] {
+  color: var(--badge-warning-text);
+}
+
+.kind[data-kind='deleted'] {
+  color: var(--badge-destructive-text);
+}
+
+.kind[data-kind='renamed'] {
+  color: var(--badge-info-text);
+}
+
+.kind[data-kind='typeChanged'] {
+  color: var(--color-text-muted);
+}
+
+.badge {
+  display: inline-flex;
+  flex: none;
+}
+
+.path {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.arrow {
+  flex: none;
+  color: var(--color-text-muted);
+}
+
+.changes {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 4px 0 12px;
+}
+
+.summary {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-text-muted);
+}

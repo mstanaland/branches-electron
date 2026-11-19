@@ -25,6 +25,11 @@ export const keys = {
   /** What **commit details** shows about one commit beyond its row. */
   commitDetails: (root: string, oid: string) =>
     ['repository', root, 'commit-details', oid] as const,
+  /** The files one commit changed. */
+  commitFiles: (root: string, oid: string) => ['repository', root, 'commit-files', oid] as const,
+  /** The diff of one file one commit changed. `originalPath` is part of it, as for `diff`. */
+  commitFileDiff: (root: string, oid: string, path: string, originalPath: string | null) =>
+    ['repository', root, 'commit-file-diff', oid, path, originalPath] as const,
   /** Every cached history in one repository, whatever ref it is of. */
   commitsOfAny: (root: string) => ['repository', root, 'commits'] as const,
   /** The diffs of every change in one repository, for invalidating them together. */

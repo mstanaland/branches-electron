@@ -860,3 +860,81 @@ describe('getCommitDetails', () => {
     })
   })
 })
+
+describe('listCommitFiles', () => {
+  it('lists the files a commit changed, by its full oid', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(handlers.listCommitFiles(repo.root, oid)).resolves.toEqual([
+      { kind: 'added', path: 'README.md', originalPath: null }
+    ])
+  })
+
+  it('refuses anything but a full oid, before it reaches git', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+
+    for (const ref of ['main', 'HEAD', '--output=/tmp/x', '']) {
+      await expect(handlers.listCommitFiles(repo.root, ref)).rejects.toMatchObject({
+        code: 'INVALID_REF'
+      })
+    }
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(handlersChoosing(null).listCommitFiles(repo.root, oid)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+  })
+})
+
+describe('getCommitFileDiff', () => {
+  it('diffs one file of a commit', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(
+      handlers.getCommitFileDiff(repo.root, oid, 'README.md', null)
+    ).resolves.toMatchObject({ binary: false, truncated: false })
+  })
+
+  it('refuses anything but a full oid, before it reaches git', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+
+    await expect(
+      handlers.getCommitFileDiff(repo.root, 'HEAD', 'README.md', null)
+    ).rejects.toMatchObject({ code: 'INVALID_REF' })
+  })
+
+  it.each(['../outside.txt', '/etc/passwd', 'a/../../b', ''])(
+    'refuses the path %j, or that original path, before it reaches git',
+    async (path) => {
+      const repo = await createRepoWithCommit()
+      const handlers = await handlersFor(repo.root)
+      const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+      await expect(handlers.getCommitFileDiff(repo.root, oid, path, null)).rejects.toMatchObject({
+        code: 'INVALID_PATH'
+      })
+      await expect(
+        handlers.getCommitFileDiff(repo.root, oid, 'README.md', path)
+      ).rejects.toMatchObject({ code: 'INVALID_PATH' })
+    }
+  )
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+
+    await expect(
+      handlersChoosing(null).getCommitFileDiff(repo.root, oid, 'README.md', null)
+    ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+  })
+})
