@@ -6,7 +6,7 @@
   user-select: text;
   background: var(--color-hover);
   border-radius: var(--radius);
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
+  font-family: var(--font-mono);
+  font-size: var(--diff-font-size);
   overflow-wrap: anywhere;
 }

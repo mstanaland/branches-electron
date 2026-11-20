@@ -1,8 +1,12 @@
+/* @import './geist/geist.css'; */
+@import './geist-mono/geist-mono.css';
+@import './inter/inter.css';
+@import './reset.css';
+
 :root {
   color-scheme: light dark;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   font-size: 13px;
-  line-height: 1.4;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 
   --color-bg: #ffffff;
@@ -18,7 +22,9 @@
   --color-danger: #c4271b;
   --color-focus: #0ea5e9;
 
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --diff-font-size: 12px;
+  --diff-line-height: 20px;
 
   --radius: 6px;
   --control-height: 28px;
