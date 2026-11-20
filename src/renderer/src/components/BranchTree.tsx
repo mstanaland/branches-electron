@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LoaderCircle, GitBranchIcon, UnlinkIcon } from 'lucide-react'
+import { ChevronDown, ChevronRight, LoaderCircle, GitBranchIcon, CloudOffIcon } from 'lucide-react'
 import { useEffect, useId, useMemo, useState } from 'react'
 import { ApiError } from '../../../shared/apiError'
 import type { BranchTreeNode } from '../../../shared/branchTree'
@@ -97,7 +97,7 @@ function BranchRow({
             <AheadBehind ahead={branch.ahead} behind={branch.behind} />
             {branch.upstreamGone && (
               <Badge variant="destructive" role="img" aria-label="Upstream gone" isSquare>
-                <UnlinkIcon size={12} />
+                <CloudOffIcon size={12} />
               </Badge>
             )}
           </span>
