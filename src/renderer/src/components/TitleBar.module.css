@@ -28,7 +28,8 @@
 /* What a manual fetch failed with, beside the control that started it. Git's messages can run
    long, so it is clipped to a readable width, with the whole of it in a tooltip. */
 .error {
-  composes: error from './shared.module.css';
+  margin: 0 4px;
+  color: var(--color-danger);
   max-width: 320px;
   overflow: hidden;
   white-space: nowrap;
