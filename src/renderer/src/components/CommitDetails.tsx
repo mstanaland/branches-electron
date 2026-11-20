@@ -112,7 +112,9 @@ export function CommitDetails({
   return (
     <section className={styles.pane} aria-label="Commit details">
       {commit === undefined ? (
-        <EmptyState title="Select a commit to see its details" />
+        <div className={styles.body}>
+          <EmptyState title="Select a commit to see its details" />
+        </div>
       ) : (
         <>
           <h2 className={styles.subject}>{commit.subject}</h2>
