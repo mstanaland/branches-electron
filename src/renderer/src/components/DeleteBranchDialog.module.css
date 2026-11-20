@@ -22,6 +22,14 @@
   border-radius: var(--radius-sm);
 }
 
+/* Deleting the upstream too: the box, then its words, which tick it as well. */
+.option {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  overflow-wrap: anywhere;
+}
+
 .error {
   margin: 0;
   color: var(--color-danger);

@@ -1,3 +1,4 @@
+import { writeFile } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import { deleteBranch, readBranchDeletion, undeletableBranches } from './deleteBranch'
@@ -5,6 +6,7 @@ import { GitError } from './errors'
 import {
   addBareRemote,
   cleanupTestRepos,
+  cloneRepo,
   createRepo,
   createRepoWithCommit,
   makeTempDir,
@@ -28,7 +30,8 @@ describe('readBranchDeletion', () => {
       name: 'feature',
       oid: (await repo.git('rev-parse', 'feature')).trim(),
       branchOnlyCommits: 0,
-      goneUpstream: null
+      goneUpstream: null,
+      deletableUpstream: null
     })
   })
 
@@ -121,6 +124,88 @@ describe('readBranchDeletion', () => {
     })
   })
 
+  it('offers an upstream with a different name, counting what deleting it too would lose', async () => {
+    const repo = await createRepoWithCommit()
+    await addBareRemote(repo)
+    await repo.git('checkout', '-q', '-b', 'foo')
+    await repo.write('a.txt')
+    await repo.commit('A')
+    await repo.git('push', '-q', '-u', 'origin', 'foo:bar')
+    await repo.git('checkout', '-q', 'main')
+
+    await expect(readBranchDeletion(repo.root, 'foo')).resolves.toEqual({
+      name: 'foo',
+      oid: (await repo.git('rev-parse', 'foo')).trim(),
+      branchOnlyCommits: 0,
+      goneUpstream: null,
+      deletableUpstream: {
+        name: 'origin/bar',
+        remote: 'origin',
+        oid: (await repo.git('rev-parse', 'origin/bar')).trim(),
+        branchOnlyCommits: 1
+      }
+    })
+  })
+
+  it('counts commits only an upstream ahead of the branch has, once it is deleted too', async () => {
+    const repo = await createRepoWithCommit()
+    const origin = await addBareRemote(repo)
+    await repo.git('checkout', '-q', '-b', 'feature')
+    await repo.git('push', '-q', '-u', 'origin', 'feature')
+    // A collaborator pushes two commits the branch is behind.
+    const collaborator = await cloneRepo(origin)
+    await collaborator.git('checkout', '-q', 'feature')
+    await collaborator.write('c.txt')
+    await collaborator.commit('C')
+    await collaborator.write('d.txt')
+    await collaborator.commit('D')
+    await collaborator.git('push', '-q', 'origin', 'feature')
+    await repo.git('fetch', '-q')
+    await repo.git('checkout', '-q', 'main')
+
+    await expect(readBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+      branchOnlyCommits: 0,
+      deletableUpstream: {
+        name: 'origin/feature',
+        oid: (await collaborator.git('rev-parse', 'feature')).trim(),
+        branchOnlyCommits: 2
+      }
+    })
+  })
+
+  it('never offers the branch the remote’s HEAD points at', async () => {
+    const repo = await createRepoWithCommit()
+    await addBareRemote(repo)
+    await repo.git('checkout', '-q', '-b', 'feature')
+    await repo.git('push', '-q', '-u', 'origin', 'feature')
+    await repo.git('checkout', '-q', 'main')
+    await repo.git('remote', 'set-head', 'origin', 'feature')
+
+    await expect(readBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+      deletableUpstream: null
+    })
+  })
+
+  it('offers no upstream that is gone, or that is a local branch', async () => {
+    const repo = await createRepoWithCommit()
+    const origin = await addBareRemote(repo)
+    await repo.git('checkout', '-q', '-b', 'feature')
+    await repo.git('push', '-q', '-u', 'origin', 'feature')
+    await repo.git('checkout', '-q', '-b', 'stacked', '--track', 'feature')
+    await repo.git('checkout', '-q', 'main')
+    await origin.git('branch', '-D', 'feature')
+    await repo.git('fetch', '-q', '--prune')
+
+    await expect(readBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+      goneUpstream: { name: 'origin/feature' },
+      deletableUpstream: null
+    })
+    await expect(readBranchDeletion(repo.root, 'stacked')).resolves.toMatchObject({
+      goneUpstream: null,
+      deletableUpstream: null
+    })
+  })
+
   it('fails for a branch that does not exist', async () => {
     const repo = await createRepoWithCommit()
 
@@ -181,6 +266,110 @@ describe('deleteBranch', () => {
 
     await expect(deleteBranch(repo.root, 'feature', oid)).rejects.toBeInstanceOf(GitError)
     expect(await branchExists(repo, 'feature')).toBe(true)
+  })
+})
+
+/** `foo` pushed to origin as `bar`, with a bare origin; the repository back on main. */
+async function branchWithUpstream(): Promise<{ repo: TestRepo; origin: TestRepo }> {
+  const repo = await createRepoWithCommit()
+  const origin = await addBareRemote(repo)
+  await repo.git('checkout', '-q', '-b', 'foo')
+  await repo.write('a.txt')
+  await repo.commit('A')
+  await repo.git('push', '-q', '-u', 'origin', 'foo:bar')
+  await repo.git('checkout', '-q', 'main')
+  return { repo, origin }
+}
+
+async function remoteHas(origin: TestRepo, name: string): Promise<boolean> {
+  return (await origin.git('branch', '--list', name)).trim() !== ''
+}
+
+describe('deleteBranch with its upstream', () => {
+  it('deletes the upstream from the remote, then the branch', async () => {
+    const { repo, origin } = await branchWithUpstream()
+    const { oid, deletableUpstream } = await readBranchDeletion(repo.root, 'foo')
+
+    await deleteBranch(repo.root, 'foo', oid, deletableUpstream?.oid ?? null)
+
+    expect(await remoteHas(origin, 'bar')).toBe(false)
+    expect(await branchExists(repo, 'foo')).toBe(false)
+    expect((await repo.git('branch', '-r', '--list', 'origin/bar')).trim()).toBe('')
+  })
+
+  it('leaves the upstream alone when not asked to delete it', async () => {
+    const { repo, origin } = await branchWithUpstream()
+    const { oid } = await readBranchDeletion(repo.root, 'foo')
+
+    await deleteBranch(repo.root, 'foo', oid, null)
+
+    expect(await remoteHas(origin, 'bar')).toBe(true)
+    expect(await branchExists(repo, 'foo')).toBe(false)
+  })
+
+  it('deletes nothing when someone pushed to the upstream since it was read', async () => {
+    const { repo, origin } = await branchWithUpstream()
+    const { oid, deletableUpstream } = await readBranchDeletion(repo.root, 'foo')
+    const collaborator = await cloneRepo(origin)
+    await collaborator.git('checkout', '-q', 'bar')
+    await collaborator.write('c.txt')
+    await collaborator.commit('C, after the dialog opened')
+    await collaborator.git('push', '-q', 'origin', 'bar')
+
+    await expect(
+      deleteBranch(repo.root, 'foo', oid, deletableUpstream?.oid ?? null)
+    ).rejects.toMatchObject({
+      code: 'BRANCH_MOVED',
+      message: 'This branch has changed since you opened this. Close and try again.'
+    })
+    expect(await remoteHas(origin, 'bar')).toBe(true)
+    expect(await branchExists(repo, 'foo')).toBe(true)
+  })
+
+  it('deletes nothing, on the remote either, when the branch has moved', async () => {
+    const { repo, origin } = await branchWithUpstream()
+    const { oid, deletableUpstream } = await readBranchDeletion(repo.root, 'foo')
+    await repo.git('checkout', '-q', 'foo')
+    await repo.write('b.txt')
+    await repo.commit('B, after the dialog opened')
+    await repo.git('checkout', '-q', 'main')
+
+    await expect(
+      deleteBranch(repo.root, 'foo', oid, deletableUpstream?.oid ?? null)
+    ).rejects.toMatchObject({ code: 'BRANCH_MOVED' })
+    expect(await remoteHas(origin, 'bar')).toBe(true)
+    expect(await branchExists(repo, 'foo')).toBe(true)
+  })
+
+  it('keeps both, with git’s words, when the remote refuses', async () => {
+    const { repo, origin } = await branchWithUpstream()
+    await writeFile(
+      join(origin.root, 'hooks', 'pre-receive'),
+      '#!/bin/sh\necho "bar is protected" >&2\nexit 1\n',
+      {
+        mode: 0o755
+      }
+    )
+    const { oid, deletableUpstream } = await readBranchDeletion(repo.root, 'foo')
+
+    const failure = deleteBranch(repo.root, 'foo', oid, deletableUpstream?.oid ?? null)
+
+    await expect(failure).rejects.toMatchObject({ code: 'COMMAND_FAILED' })
+    await expect(failure).rejects.toThrow(/bar is protected/)
+    expect(await remoteHas(origin, 'bar')).toBe(true)
+    expect(await branchExists(repo, 'foo')).toBe(true)
+  })
+
+  it('deletes nothing when the upstream is no longer there to delete', async () => {
+    const { repo, origin } = await branchWithUpstream()
+    const { oid, deletableUpstream } = await readBranchDeletion(repo.root, 'foo')
+    await origin.git('branch', '-D', 'bar')
+    await repo.git('fetch', '-q', '--prune')
+
+    await expect(
+      deleteBranch(repo.root, 'foo', oid, deletableUpstream?.oid ?? null)
+    ).rejects.toMatchObject({ code: 'BRANCH_MOVED' })
+    expect(await branchExists(repo, 'foo')).toBe(true)
   })
 })
 

@@ -122,6 +122,25 @@ export interface BranchDeletion {
   branchOnlyCommits: number
   /** The branch's **upstream**, when it is **gone**: e.g. `origin/foo` on `origin`. Else null. */
   goneUpstream: { name: string; remote: string } | null
+  /**
+   * The branch's **upstream**, when the dialog may offer to delete it too: it exists (not
+   * **gone**) on a **remote**, and isn't the branch the remote's HEAD points at. Else null.
+   */
+  deletableUpstream: DeletableUpstream | null
+}
+
+/** An **upstream** the Delete Branch dialog can offer to delete along with its branch. */
+export interface DeletableUpstream {
+  /** Its real name, which may differ from the branch's: e.g. `origin/bar` for branch `foo`. */
+  name: string
+  remote: string
+  /** Full object id the upstream pointed at when read: the lease its delete runs under. */
+  oid: string
+  /**
+   * The **branch-only commits** if the upstream is deleted too: it no longer counts as
+   * somewhere else, and commits only the upstream has count as well.
+   */
+  branchOnlyCommits: number
 }
 
 /** A repository in the user's saved list (see GLOSSARY.md). */

@@ -629,8 +629,21 @@ describe('deleting a branch', () => {
     oid: OID,
     branchOnlyCommits: 0,
     goneUpstream: null,
+    deletableUpstream: null,
     ...overrides
   })
+  const UPSTREAM_OID = 'b'.repeat(40)
+  const withUpstream = (branchOnlyCommits: number, upstreamCount: number): BranchDeletion =>
+    deletion({
+      name: 'work',
+      branchOnlyCommits,
+      deletableUpstream: {
+        name: 'origin/bar',
+        remote: 'origin',
+        oid: UPSTREAM_OID,
+        branchOnlyCommits: upstreamCount
+      }
+    })
 
   /** Right-clicks `work`, chooses Delete, and waits for the dialog to finish reading. */
   async function openDeleteDialog(read: BranchDeletion = deletion()): Promise<HTMLElement> {
@@ -706,6 +719,69 @@ describe('deleting a branch', () => {
     )
   })
 
+  it('offers no upstream to delete when the branch has none that may be', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog()
+
+    expect(within(dialog).queryByRole('checkbox')).toBeNull()
+  })
+
+  it('offers to delete the upstream by its real name, unticked', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog(withUpstream(0, 0))
+
+    const box = within(dialog).getByRole('checkbox', {
+      name: 'Also delete “origin/bar” from origin'
+    })
+    expect(box.getAttribute('aria-checked')).toBe('false')
+  })
+
+  it('warns, live, about commits only the upstream kept once it is ticked', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog(withUpstream(0, 2))
+    expect(within(dialog).queryByRole('alert')).toBeNull()
+
+    const box = within(dialog).getByRole('checkbox')
+    fireEvent.click(box)
+
+    expect(within(dialog).getByRole('alert').textContent).toBe(
+      '2 commits on this branch aren’t on any other branch or remote, and will be lost.'
+    )
+    fireEvent.click(box)
+    expect(within(dialog).queryByRole('alert')).toBeNull()
+  })
+
+  it('deletes the upstream too, at the oid it read, when ticked', async () => {
+    showBranches(twoBranches())
+    api.deleteBranch.mockResolvedValue(undefined)
+    const dialog = await openDeleteDialog(withUpstream(0, 0))
+
+    fireEvent.click(within(dialog).getByText('Also delete “origin/bar” from origin'))
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(api.deleteBranch).toHaveBeenCalledWith(ROOT, 'work', OID, UPSTREAM_OID)
+  })
+
+  it('shows a remote’s refusal inside the dialog, for a retry or unticking', async () => {
+    showBranches(twoBranches())
+    api.deleteBranch.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'git push failed: bar is protected' })
+    )
+    const dialog = await openDeleteDialog(withUpstream(0, 0))
+    const box = within(dialog).getByRole('checkbox')
+    fireEvent.click(box)
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+
+    expect((await within(dialog).findByRole('alert')).textContent).toBe(
+      'git push failed: bar is protected'
+    )
+    fireEvent.click(box)
+    expect(box.getAttribute('aria-checked')).toBe('false')
+    expect(screen.getByRole('dialog', { name: 'Delete Branch' })).toBeTruthy()
+  })
+
   it('deletes the branch at the oid it read, closes, and falls back to Working', async () => {
     const { client } = showBranches(twoBranches())
     api.deleteBranch.mockImplementation(async () => {
@@ -718,7 +794,7 @@ describe('deleting a branch', () => {
     fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
-    expect(api.deleteBranch).toHaveBeenCalledWith(ROOT, 'work', OID)
+    expect(api.deleteBranch).toHaveBeenCalledWith(ROOT, 'work', OID, null)
     await waitFor(() => expect(screen.queryByRole('treeitem', { name: 'work' })).toBeNull())
     expect(row('main').getAttribute('aria-selected')).toBe('false')
     expect(client.isMutating()).toBe(0)

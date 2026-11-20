@@ -181,7 +181,9 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('branch:deletion', (_event, root: string, name: string) =>
     settle(() => handlers.getBranchDeletion(root, name))
   )
-  ipcMain.handle('branch:delete', (_event, root: string, name: string, oid: string) =>
-    settle(() => handlers.deleteBranch(root, name, oid))
+  ipcMain.handle(
+    'branch:delete',
+    (_event, root: string, name: string, oid: string, upstreamOid: string | null) =>
+      settle(() => handlers.deleteBranch(root, name, oid, upstreamOid))
   )
 }

@@ -58,7 +58,8 @@ const api: WindowApi = {
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name),
   getBranchDeletion: (root, name) => ipcRenderer.invoke('branch:deletion', root, name),
-  deleteBranch: (root, name, oid) => ipcRenderer.invoke('branch:delete', root, name, oid)
+  deleteBranch: (root, name, oid, upstreamOid) =>
+    ipcRenderer.invoke('branch:delete', root, name, oid, upstreamOid)
 }
 
 contextBridge.exposeInMainWorld('api', api)
