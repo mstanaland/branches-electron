@@ -1,8 +1,10 @@
 import { useRender } from '@base-ui/react/use-render'
+import { clsx } from 'clsx'
 import styles from './Badge.module.css'
 
 export type BadgeVariant =
   | 'default'
+  | 'primary'
   | 'secondary'
   | 'outline'
   | 'destructive'
@@ -12,6 +14,7 @@ export type BadgeVariant =
 
 export interface BadgeProps extends useRender.ComponentProps<'span'> {
   variant?: BadgeVariant
+  isSquare?: boolean
 }
 
 /**
@@ -20,6 +23,7 @@ export interface BadgeProps extends useRender.ComponentProps<'span'> {
  */
 export function Badge({
   variant = 'default',
+  isSquare = false,
   className,
   render,
   ...props
@@ -29,7 +33,7 @@ export function Badge({
     render,
     props: {
       'data-variant': variant,
-      className: className ? `${styles.badge} ${className}` : styles.badge,
+      className: clsx(styles.badge, isSquare && styles.square, className),
       ...props
     }
   })

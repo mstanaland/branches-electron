@@ -1,6 +1,6 @@
 .tab {
   --color-background: transparent;
-  --transition-duration: 150ms;
+  --transition-duration: 200ms;
   --color-button-display: none;
 
   display: flex;
@@ -9,7 +9,7 @@
   padding-inline: 2px;
 
   &[data-focused='true'] {
-    --color-background: white;
+    --color-background: var(--color-field-bg);
     --color-button-display: flex;
   }
 
@@ -18,7 +18,7 @@
   }
 
   &:hover:not([data-focused='true']) {
-    --color-background: rgba(255, 255, 255, 0.5);
+    --color-background: var(--color-chrome-item-hover);
   }
 
   &:has(:focus-visible):not(&:has(.closeButton:focus-visible)) {
@@ -34,8 +34,8 @@
   top: 25%;
   height: 50%;
   width: 1px;
-  background-color: #c8cdd1;
-  transition: opacity var(--transition-duration) ease-out;
+  background-color: var(--color-border);
+  /* transition: opacity var(--transition-duration) ease-out; */
 }
 
 /* Hover and the active tab drop their own divider and the one on the tab before them. */
@@ -74,9 +74,10 @@
   padding-inline: 12px;
   text-align: left;
   background-color: var(--color-background);
-  transition:
+  font-weight: 500;
+  /* transition:
     background-color var(--transition-duration) ease-out,
-    box-shadow var(--transition-duration) ease-out;
+    box-shadow var(--transition-duration) ease-out; */
   border-radius: 6px;
 
   &.isActive {
@@ -92,16 +93,22 @@
 }
 
 .closeButtonWrapper {
+  --color-background-transparent: oklch(from var(--color-background) l c h / 0%);
+
   position: absolute;
   height: 32px;
   width: 44px;
   right: 0;
   padding: 8px;
-  background: linear-gradient(90deg, rgba(255, 255, 255, 0) 0%, var(--color-background) 50%);
+  background: linear-gradient(
+    90deg,
+    var(--color-background-transparent) 0%,
+    var(--color-background) 50%
+  );
   display: var(--color-button-display);
   align-items: center;
   justify-content: flex-end;
-  transition: background var(--transition-duration) ease-out;
+  /* transition: background var(--transition-duration) ease-out; */
   border-top-right-radius: 6px;
   border-bottom-right-radius: 6px;
 }

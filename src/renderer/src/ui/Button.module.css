@@ -2,13 +2,14 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  min-height: var(--control-height);
+  height: var(--control-height);
   padding: 0 10px;
   font: inherit;
   color: var(--color-text);
   background: var(--color-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
+  font-weight: 500;
 }
 
 .button:focus-visible {

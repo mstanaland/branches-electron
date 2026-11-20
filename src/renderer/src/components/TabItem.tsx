@@ -1,4 +1,4 @@
-import { FolderOpen, FolderX, X } from 'lucide-react'
+import { Folder, FolderOpen, FolderX, X } from 'lucide-react'
 import { clsx } from 'clsx'
 import { cannotBeFound } from './MissingRepository'
 
@@ -30,8 +30,10 @@ export function TabItem({ label, isFocused, isMissing, onClose, onClick }: TabIt
       >
         {isMissing ? (
           <FolderX size={16} className={styles.folder} />
-        ) : (
+        ) : isFocused ? (
           <FolderOpen size={16} className={styles.folder} />
+        ) : (
+          <Folder size={16} className={styles.folder} />
         )}
         <span className={styles.labelText}>{label}</span>
       </button>

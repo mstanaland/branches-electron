@@ -36,8 +36,36 @@
   background: var(--color-hover);
 }
 
+/* The divider sits on the row above, so hide that one along with the selected row's own. */
+.row:has(+ .row[aria-selected='true']) {
+  .details {
+    border-bottom-color: transparent;
+  }
+}
+
 .row[aria-selected='true'] {
-  background: var(--color-hover);
+  background: var(--color-accent);
+  color: var(--color-accent-text);
+  font-weight: 600;
+
+  .nodeStroke {
+    fill: oklch(from var(--color-accent) 45% c h);
+  }
+
+  .nodeFill {
+    fill: var(--color-bg);
+  }
+
+  .author,
+  .date,
+  .oid {
+    color: oklch(from var(--color-accent-text) l c h / 0.8);
+    font-weight: 500;
+  }
+
+  .details {
+    border-bottom-color: transparent;
+  }
 }
 
 .row:focus-visible {
@@ -50,6 +78,14 @@
   flex: none;
   align-self: stretch;
   overflow: visible;
+}
+
+.nodeStroke {
+  fill: var(--color-text-muted);
+}
+
+.nodeFill {
+  fill: var(--color-bg);
 }
 
 .details {

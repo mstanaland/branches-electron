@@ -49,6 +49,7 @@ function GraphCell({
   const width = Math.max(laneCount, 1) * LANE_WIDTH
   const middle = ROW_HEIGHT / 2
   const nodeX = laneX(row.lane)
+  const strokeWidth = 2
 
   return (
     <svg
@@ -66,7 +67,7 @@ function GraphCell({
           x2={laneX(lane)}
           y2={ROW_HEIGHT}
           stroke={laneColor(lane)}
-          strokeWidth={2}
+          strokeWidth={strokeWidth}
         />
       ))}
       {row.into.map((lane) => (
@@ -74,7 +75,7 @@ function GraphCell({
           key={`into-${lane}`}
           d={edgePath(laneX(lane), 0, nodeX, middle)}
           stroke={laneColor(lane)}
-          strokeWidth={2}
+          strokeWidth={strokeWidth}
           fill="none"
         />
       ))}
@@ -84,13 +85,13 @@ function GraphCell({
             key={`out-${lane}-${index}`}
             d={edgePath(nodeX, middle, laneX(lane), ROW_HEIGHT)}
             stroke={laneColor(outEdgeColorLane(row, lane))}
-            strokeWidth={2}
+            strokeWidth={strokeWidth}
             fill="none"
           />
         )
       })}
-      <circle cx={nodeX} cy={middle} r={NODE_RADIUS} fill="var(--color-text-muted)" />
-      <circle cx={nodeX} cy={middle} r={NODE_RADIUS - 1.5} fill="white" />
+      <circle cx={nodeX} cy={middle} r={NODE_RADIUS} className={styles.nodeStroke} />
+      <circle cx={nodeX} cy={middle} r={NODE_RADIUS - 1.5} className={styles.nodeFill} />
     </svg>
   )
 }

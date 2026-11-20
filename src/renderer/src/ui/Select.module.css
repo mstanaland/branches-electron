@@ -22,9 +22,9 @@
   padding: 0 6px 0 10px;
   font: inherit;
   color: var(--color-text);
-  background: var(--color-bg);
+  background: var(--color-field-bg);
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 .trigger:focus-visible {
@@ -61,7 +61,7 @@
   color: var(--color-text);
   background: var(--popup-bg);
   border: 1px solid var(--popup-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-md);
   box-shadow: var(--popup-shadow);
 }
 
@@ -71,7 +71,7 @@
   align-items: center;
   gap: 6px;
   padding: 4px 8px 4px 4px;
-  border-radius: calc(var(--radius) - 2px);
+  border-radius: var(--radius-sm);
   outline: none;
   cursor: default;
 }

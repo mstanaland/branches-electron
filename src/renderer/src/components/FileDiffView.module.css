@@ -1,7 +1,7 @@
 .scroller {
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 .diff {

@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, LoaderCircle, GitBranchIcon, FolderIcon } from 'lucide-react'
+import { ChevronDown, ChevronRight, LoaderCircle, GitBranchIcon, UnlinkIcon } from 'lucide-react'
 import { useEffect, useId, useMemo } from 'react'
 import { ApiError } from '../../../shared/apiError'
 import type { BranchTreeNode } from '../../../shared/branchTree'
@@ -95,14 +95,18 @@ function BranchRow({
             </span>
             <AheadBehind ahead={branch.ahead} behind={branch.behind} />
             {branch.upstreamGone && (
-              <Badge variant="destructive" role="img" aria-label="Upstream gone">
-                gone
+              <Badge variant="destructive" role="img" aria-label="Upstream gone" isSquare>
+                <UnlinkIcon size={12} />
               </Badge>
             )}
           </span>
         )}
         {/* Where HEAD is. `aria-current` above already says it, so this is decorative. */}
-        {branch.isCurrent && <Badge aria-hidden="true">HEAD</Badge>}
+        {branch.isCurrent && (
+          <Badge variant="primary" aria-hidden="true">
+            HEAD
+          </Badge>
+        )}
       </div>
     </li>
   )
@@ -129,13 +133,13 @@ function FolderRow({
     >
       <div className={styles.row} onClick={() => expansion.setExpanded(node.path, !expanded)}>
         <span className={styles.chevron} aria-hidden="true">
-          {expanded ? <ChevronDown /> : <ChevronRight />}
+          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
         </span>
-        <FolderIcon className={styles.folderIcon} size={16} />
+        {/* <FolderIcon className={styles.folderIcon} size={16} /> */}
         <span className={styles.name}>{node.name}</span>
         {/* Collapsed, the folder stands in for the current branch hidden inside it. */}
         {!expanded && containsCurrentBranch(node) && (
-          <Badge role="img" aria-label="Contains the current branch">
+          <Badge variant="primary" role="img" aria-label="Contains the current branch">
             HEAD
           </Badge>
         )}
@@ -187,7 +191,9 @@ function DetachedRow({
       <div className={styles.row} data-selected={selected ? 'true' : undefined}>
         <span className={styles.chevron} aria-hidden="true" />
         <span className={styles.detachedOid}>{node.name}</span>
-        <Badge aria-hidden="true">HEAD</Badge>
+        <Badge variant="primary" aria-hidden="true">
+          HEAD
+        </Badge>
       </div>
     </li>
   )
