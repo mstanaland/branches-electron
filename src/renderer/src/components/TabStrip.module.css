@@ -1,5 +1,5 @@
 /* Sits on the chrome, spanning the window. The focused tab is a card of the content's own
-   colour, so it reads as the surface continuing underneath it.
+   color, so it reads as the surface continuing underneath it.
 
    Part of the window's drag region: the empty space beside the tabs moves the window, which is
    where a tabbed Mac app lets you grab one. The tabs and `+` opt out below, since a control
@@ -8,93 +8,25 @@
   display: flex;
   align-items: center;
   gap: 2px;
-  flex: none;
-  padding: 0 10px 6px;
+  /* left padding is actually 12px: 10 here + 2 from the tab padding */
+  padding: 0 72px 4px 10px;
   -webkit-app-region: drag;
 }
 
-.strip > nav,
+.strip > .nav,
 .add {
   -webkit-app-region: no-drag;
 }
 
-.tabs {
-  display: flex;
+.tabsList {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(120px, 200px);
+  gap: 1px;
   align-items: center;
-  gap: 2px;
   margin: 0;
   padding: 0;
   list-style: none;
-}
-
-.tab {
-  display: flex;
-  align-items: center;
-  max-width: 220px;
-  padding-right: 4px;
-  border-radius: 8px;
-}
-
-.tab:not([data-focused='true']):hover {
-  background: var(--color-hover);
-}
-
-.tab[data-focused='true'] {
-  background: var(--color-bg);
-  box-shadow:
-    0 0 0 1px rgba(0, 0, 0, 0.06),
-    0 1px 2px rgba(0, 0, 0, 0.1);
-}
-
-@media (prefers-color-scheme: dark) {
-  .tab[data-focused='true'] {
-    box-shadow:
-      0 0 0 1px rgba(255, 255, 255, 0.08),
-      0 1px 2px rgba(0, 0, 0, 0.4);
-  }
-}
-
-/* The tab's own background does the work, so neither button paints one of its own. */
-.label,
-.close {
-  min-height: 0;
-  background: none;
-}
-
-.label,
-.close:hover:not([data-disabled]),
-.label:hover:not([data-disabled]) {
-  background: none;
-}
-
-.label {
-  min-width: 0;
-  padding: 7px 12px;
-  color: var(--color-text-muted);
-}
-
-.tab[data-focused='true'] .label {
-  color: var(--color-text);
-  font-weight: 600;
-}
-
-.labelText {
-  min-width: 0;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.close {
-  flex: none;
-  padding: 3px;
-  border-radius: 4px;
-  color: var(--color-text-muted);
-}
-
-.close:hover:not([data-disabled]) {
-  background: var(--color-hover);
-  color: var(--color-text);
 }
 
 .add {
@@ -103,13 +35,4 @@
   margin-left: 4px;
   padding: 5px;
   color: var(--color-text-muted);
-}
-
-/* A tab whose folder is gone: dimmed like the saved list's row, so the two agree. */
-.tab[data-missing='true'] .label {
-  opacity: 0.6;
-}
-
-.missing {
-  flex: none;
 }

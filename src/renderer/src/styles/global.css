@@ -1,33 +1,49 @@
+/* @import './geist/geist.css'; */
+@import './geist-mono/geist-mono.css';
+@import './inter/inter.css';
+@import './reset.css';
+
 :root {
   color-scheme: light dark;
-  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   font-size: 13px;
-  line-height: 1.4;
+  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
 
-  --color-bg: #ffffff;
+  --color-bg: #fbfbfb;
   /* The window chrome above the columns: the title bar and the tab strip. The focused tab
      is a card of --color-bg on it, so the two tones have to stay distinguishable. */
-  --color-chrome: #f5f5f7;
-  --color-border: #e5e5e7;
-  --color-text: #1d1d1f;
-  --color-text-muted: #6e6e73;
-  --color-accent: #0a64d6;
+  --color-chrome: #ececec;
+  --color-chrome-item-hover: #e0e0e0;
+  --color-border: #d4d4d4;
+  --color-text: #171717;
+  --color-text-muted: #666;
+  --color-accent: oklch(62.3% 0.214 259.815);
   --color-accent-text: #ffffff;
   --color-hover: rgba(0, 0, 0, 0.06);
   --color-danger: #c4271b;
+  --color-focus: #0ea5e9;
+  --color-field-bg: #ffffff;
 
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --diff-font-size: 12px;
+  --diff-line-height: 20px;
 
-  --radius: 6px;
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 18px;
+  --radius-xl: 27px;
+
   --control-height: 28px;
-  --focus-ring-color: var(--color-accent);
+  --focus-ring-color: var(--color-focus);
   --focus-ring-width: 2px;
 
   --popup-bg: #ffffff;
   --popup-border: #d2d2d7;
   --popup-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
 
+  --badge-primary-bg: oklch(62.3% 0.214 259.815);
+  --badge-primary-text: #ffffff;
   --badge-destructive-bg: #fbe3e1;
   --badge-destructive-text: #9c1c12;
   --badge-success-bg: #dff3e4;
@@ -39,14 +55,14 @@
 
   /* The history graph's lanes, cycled through in order. Distinct hues rather than shades,
      so two lines crossing stay telling apart. */
-  --graph-lane-1: #0a64d6;
-  --graph-lane-2: #d1660c;
-  --graph-lane-3: #1b7f3b;
-  --graph-lane-4: #8a3ffc;
-  --graph-lane-5: #b3261e;
-  --graph-lane-6: #0f7b8a;
-  --graph-lane-7: #a35b00;
-  --graph-lane-8: #b32d8a;
+  --graph-lane-1: #f59e0b;
+  --graph-lane-2: #ef4444;
+  --graph-lane-3: #10b981;
+  --graph-lane-4: #8b5cf6;
+  --graph-lane-5: #84cc16;
+  --graph-lane-6: #06b6d4;
+  --graph-lane-7: #a16207;
+  --graph-lane-8: #be185d;
 
   --diff-added-bg: #e6f6ea;
   --diff-added-gutter-bg: #cdeed6;

@@ -1,0 +1,151 @@
+.tab {
+  --color-background: transparent;
+  --transition-duration: 200ms;
+  --color-button-display: none;
+
+  display: flex;
+  position: relative;
+  border-radius: 6px;
+  padding-inline: 2px;
+
+  &[data-focused='true'] {
+    --color-background: var(--color-field-bg);
+    --color-button-display: flex;
+  }
+
+  &:hover {
+    --color-button-display: flex;
+  }
+
+  &:hover:not([data-focused='true']) {
+    --color-background: var(--color-chrome-item-hover);
+  }
+
+  &:has(:focus-visible):not(&:has(.closeButton:focus-visible)) {
+    outline: 2px solid var(--color-focus);
+  }
+}
+
+/* Create the separator on the RIGHT side of every tab */
+.tab::after {
+  content: '';
+  position: absolute;
+  right: -1px; /* Positions it inside the 1px gap */
+  top: 25%;
+  height: 50%;
+  width: 1px;
+  background-color: var(--color-border);
+  /* transition: opacity var(--transition-duration) ease-out; */
+}
+
+/* Hover and the active tab drop their own divider and the one on the tab before them. */
+.tab:hover::after,
+.tab.isActive::after {
+  opacity: 0;
+}
+
+.tab:has(+ .tab:hover)::after,
+.tab:has(+ .tab.isActive)::after {
+  opacity: 0;
+}
+
+.buttonReset {
+  appearance: none;
+  border: none;
+  background: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  outline: none;
+}
+
+.tabButton {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  gap: 6px;
+  flex-grow: 1;
+  height: 32px;
+  padding-inline: 12px;
+  text-align: left;
+  background-color: var(--color-background);
+  font-weight: 500;
+  /* transition:
+    background-color var(--transition-duration) ease-out,
+    box-shadow var(--transition-duration) ease-out; */
+  border-radius: 6px;
+
+  &.isActive {
+    box-shadow:
+      0 1px 3px 0 rgb(0 0 0 / 0.1),
+      0 1px 2px -1px rgb(0 0 0 / 0.1);
+  }
+
+  &.isMissing svg,
+  &.isMissing .labelText {
+    opacity: 0.6;
+  }
+}
+
+.closeButtonWrapper {
+  --color-background-transparent: oklch(from var(--color-background) l c h / 0%);
+
+  position: absolute;
+  height: 32px;
+  width: 44px;
+  right: 0;
+  padding: 8px;
+  background: linear-gradient(
+    90deg,
+    var(--color-background-transparent) 0%,
+    var(--color-background) 50%
+  );
+  display: var(--color-button-display);
+  align-items: center;
+  justify-content: flex-end;
+  /* transition: background var(--transition-duration) ease-out; */
+  border-top-right-radius: 6px;
+  border-bottom-right-radius: 6px;
+}
+
+.closeButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  width: 16px;
+  height: 16px;
+  border-radius: 999px;
+  color: var(--color-text-muted);
+
+  &:hover {
+    background: rgb(0 0 0 / 0.07);
+    color: var(--color-text);
+  }
+
+  &:active {
+    background: rgb(0 0 0 / 0.2);
+  }
+
+  &::after {
+    content: '';
+    position: absolute;
+    top: -10px;
+    width: 32px;
+    height: 32px;
+  }
+
+  &:focus-visible {
+    outline: 2px solid var(--color-focus);
+    outline-offset: 2px;
+  }
+}
+
+.folder {
+  color: var(--color-text-muted);
+}

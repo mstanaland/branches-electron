@@ -1,4 +1,10 @@
-import { ArrowDown, ArrowDownToLine, ArrowUp, CloudUpload, LoaderCircle } from 'lucide-react'
+import {
+  ArrowDownToDot,
+  ArrowDownToLine,
+  ArrowUpFromDot,
+  CloudUpload,
+  LoaderCircle
+} from 'lucide-react'
 import { useState } from 'react'
 import type { PublishableTarget, PublishTarget, RepositoryStatus } from '../../../shared/git'
 import {
@@ -157,7 +163,7 @@ function PullButton({
       aria-busy={busy || undefined}
       onClick={onClick}
     >
-      {busy ? <LoaderCircle className={shared.spinner} /> : <ArrowDown />}
+      {busy ? <LoaderCircle className={shared.spinner} /> : <ArrowDownToDot />}
       Pull
       {/* Part of the button's accessible name, not an aside: "Pull 3" is what the control
           offers to do, and a screen reader should hear the number too. */}
@@ -266,7 +272,7 @@ function PushButton({
       ) : label === 'Publish' ? (
         <CloudUpload />
       ) : (
-        <ArrowUp />
+        <ArrowUpFromDot />
       )}
       {label}
       {/* Part of the accessible name, as on Pull: "Push 2" is what the control offers. */}

@@ -2,16 +2,29 @@
   display: inline-flex;
   flex: none;
   align-items: center;
+  justify-content: center;
   gap: 3px;
   padding: 0 6px;
   font-size: 11px;
-  font-weight: 500;
-  line-height: 16px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   white-space: nowrap;
   color: var(--color-text);
   background: var(--color-hover);
-  border: 1px solid transparent;
-  border-radius: var(--radius);
+  outline: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  height: 18px;
+}
+
+.badge.square {
+  width: 18px;
+  padding: 0;
+}
+
+.badge[data-variant='primary'] {
+  color: var(--badge-primary-text);
+  background: var(--badge-primary-bg);
+  outline-color: oklch(from var(--color-bg) l c h / 0.2);
 }
 
 .badge[data-variant='secondary'] {
@@ -20,7 +33,7 @@
 
 .badge[data-variant='outline'] {
   background: transparent;
-  border-color: var(--color-border);
+  outline-color: var(--color-border);
 }
 
 .badge[data-variant='destructive'] {

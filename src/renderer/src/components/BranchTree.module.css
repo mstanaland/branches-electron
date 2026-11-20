@@ -40,17 +40,18 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: 10px;
   padding: 4px 8px;
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
   white-space: nowrap;
+  line-height: 20px;
 }
 
 .row:hover {
   background: var(--color-hover);
 }
 
-/* The row whose view the main pane is showing. Redefining the colour variables here, rather
+/* The row whose view the main pane is showing. Redefining the color variables here, rather
    than restyling each child, is what carries the contrast into the badges inside it. */
 .row[data-selected='true'] {
   --color-text: var(--color-accent-text);
@@ -58,6 +59,7 @@
   --color-hover: rgba(255, 255, 255, 0.22);
   background: var(--color-accent);
   color: var(--color-accent-text);
+  font-weight: 600;
 }
 
 .item:focus-visible > .row[data-selected='true'] {

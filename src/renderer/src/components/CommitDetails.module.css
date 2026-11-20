@@ -1,5 +1,7 @@
 /* The whole column scrolls as one, under the subject band, which stays put. */
 .pane {
+  --padding-inline: 24px;
+
   display: flex;
   flex-direction: column;
   flex: 1;
@@ -17,7 +19,7 @@
   z-index: 1;
   flex: none;
   margin: 0;
-  padding: 12px 16px;
+  padding: 12px var(--padding-inline);
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
@@ -31,7 +33,7 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
-  padding: 12px 16px 16px;
+  padding: 12px var(--padding-inline) var(--padding-inline);
 }
 
 .metadata {

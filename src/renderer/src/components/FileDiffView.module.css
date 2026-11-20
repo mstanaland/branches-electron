@@ -1,16 +1,16 @@
 .scroller {
   overflow-x: auto;
   border: 1px solid var(--color-border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-sm);
 }
 
 .diff {
   width: 100%;
   min-width: max-content;
   border-collapse: collapse;
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
-  font-size: 12px;
-  line-height: 18px;
+  font-family: var(--font-mono);
+  font-size: var(--diff-font-size);
+  line-height: var(--diff-line-height);
 }
 
 .hunk td {

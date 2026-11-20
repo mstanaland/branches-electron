@@ -41,7 +41,7 @@
 }
 
 .error {
-  composes: error from './shared.module.css';
+  color: var(--color-danger);
   margin: 0;
   overflow-wrap: anywhere;
   user-select: text;

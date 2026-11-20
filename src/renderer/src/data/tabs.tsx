@@ -150,7 +150,7 @@ function initialState(): State {
 }
 
 /**
- * Closes the one tab `doomed` picks out. Focus moves to the neighbour on the right, or the
+ * Closes the one tab `doomed` picks out. Focus moves to the neighbor on the right, or the
  * left when there is none, and stays put when the tab that closed was not the focused one.
  */
 function close(current: State, doomed: (tab: Tab) => boolean): State {
