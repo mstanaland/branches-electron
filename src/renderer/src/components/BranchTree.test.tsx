@@ -2,7 +2,7 @@
 import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
-import type { Branch, RepositoryStatus } from '../../../shared/git'
+import type { Branch, BranchDeletion, RepositoryStatus } from '../../../shared/git'
 import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
 
@@ -16,6 +16,8 @@ const api = vi.hoisted(() => ({
   listBranches: vi.fn<RendererApi['listBranches']>(),
   checkoutBranch: vi.fn<RendererApi['checkoutBranch']>(),
   showBranchMenu: vi.fn<RendererApi['showBranchMenu']>(),
+  getBranchDeletion: vi.fn<RendererApi['getBranchDeletion']>(),
+  deleteBranch: vi.fn<RendererApi['deleteBranch']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>()
 }))
 vi.mock('../api', () => ({ api }))
@@ -617,6 +619,146 @@ describe('branch context menu', () => {
     fireEvent.contextMenu(screen.getByRole('treeitem', { name: 'feature' }))
 
     expect(api.showBranchMenu).not.toHaveBeenCalled()
+  })
+})
+
+describe('deleting a branch', () => {
+  const OID = 'a'.repeat(40)
+  const deletion = (overrides: Partial<BranchDeletion> = {}): BranchDeletion => ({
+    name: 'work',
+    oid: OID,
+    branchOnlyCommits: 0,
+    goneUpstream: null,
+    ...overrides
+  })
+
+  /** Right-clicks `work`, chooses Delete, and waits for the dialog to finish reading. */
+  async function openDeleteDialog(read: BranchDeletion = deletion()): Promise<HTMLElement> {
+    api.showBranchMenu.mockResolvedValue('delete')
+    api.getBranchDeletion.mockResolvedValue(read)
+    await screen.findByRole('tree')
+    fireEvent.contextMenu(row('work'))
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Branch' })
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Delete Branch' })).toHaveProperty(
+        'disabled',
+        false
+      )
+    )
+    return dialog
+  }
+
+  it('asks first, with Cancel focused so Return never deletes', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog()
+
+    expect(api.getBranchDeletion).toHaveBeenCalledWith(ROOT, 'work')
+    expect(dialog.textContent).toContain(
+      'Deleting this branch “work” will remove it from your repository.'
+    )
+    await waitFor(() =>
+      expect(document.activeElement).toBe(within(dialog).getByRole('button', { name: 'Cancel' }))
+    )
+    expect(
+      within(dialog).getByRole('button', { name: 'Delete Branch' }).getAttribute('data-variant')
+    ).toBe('danger')
+    expect(api.deleteBranch).not.toHaveBeenCalled()
+  })
+
+  it('warns about nothing when the branch has no branch-only commits', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog()
+
+    expect(within(dialog).queryByRole('alert')).toBeNull()
+    expect(dialog.textContent).not.toContain('lost')
+  })
+
+  it('warns that branch-only commits will be lost', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog(deletion({ branchOnlyCommits: 3 }))
+
+    expect(within(dialog).getByRole('alert').textContent).toBe(
+      '3 commits on this branch aren’t on any other branch or remote, and will be lost.'
+    )
+  })
+
+  it('says one commit in the singular', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog(deletion({ branchOnlyCommits: 1 }))
+
+    expect(within(dialog).getByRole('alert').textContent).toBe(
+      '1 commit on this branch isn’t on any other branch or remote, and will be lost.'
+    )
+  })
+
+  it('notes calmly, without an alert, when the upstream is gone', async () => {
+    showBranches(twoBranches())
+    const dialog = await openDeleteDialog(
+      deletion({
+        branchOnlyCommits: 3,
+        goneUpstream: { name: 'origin/work', remote: 'origin' }
+      })
+    )
+
+    expect(within(dialog).queryByRole('alert')).toBeNull()
+    expect(dialog.textContent).toContain(
+      'origin/work was deleted from origin. This branch’s 3 commits aren’t on any other branch — if it was merged with a squash or rebase they’re already in; anything committed after that will be lost.'
+    )
+  })
+
+  it('deletes the branch at the oid it read, closes, and falls back to Working', async () => {
+    const { client } = showBranches(twoBranches())
+    api.deleteBranch.mockImplementation(async () => {
+      api.listBranches.mockResolvedValue([branch('main', { isCurrent: true })])
+    })
+    await screen.findByRole('tree')
+    fireEvent.click(row('work'))
+    const dialog = await openDeleteDialog()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(api.deleteBranch).toHaveBeenCalledWith(ROOT, 'work', OID)
+    await waitFor(() => expect(screen.queryByRole('treeitem', { name: 'work' })).toBeNull())
+    expect(row('main').getAttribute('aria-selected')).toBe('false')
+    expect(client.isMutating()).toBe(0)
+  })
+
+  it('can’t be dismissed while the delete runs', async () => {
+    showBranches(twoBranches())
+    api.deleteBranch.mockReturnValue(new Promise(() => {}))
+    const dialog = await openDeleteDialog()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+    await waitFor(() =>
+      expect(within(dialog).getByRole('button', { name: 'Cancel' })).toHaveProperty(
+        'disabled',
+        true
+      )
+    )
+    fireEvent.keyDown(dialog, { key: 'Escape' })
+
+    expect(screen.getByRole('dialog', { name: 'Delete Branch' })).toBeTruthy()
+  })
+
+  it('shows a failure inside the dialog, which stays open', async () => {
+    showBranches(twoBranches())
+    api.deleteBranch.mockRejectedValue(
+      new ApiError({
+        code: 'BRANCH_MOVED',
+        message: 'This branch has changed since you opened this. Close and try again.'
+      })
+    )
+    const dialog = await openDeleteDialog()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+
+    expect((await within(dialog).findByRole('alert')).textContent).toBe(
+      'This branch has changed since you opened this. Close and try again.'
+    )
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }))
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    expect(row('work')).toBeTruthy()
   })
 })
 

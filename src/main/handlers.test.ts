@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import type { SavedRepository } from '../shared/git'
 import { MAX_TABS } from '../shared/tabs'
 import { createHandlers, type HandlerDeps } from './handlers'
+import type { BranchMenuTarget } from './menu'
 import { createRepositoryStore } from './repositoryStore'
 import {
   addBareRemote,
@@ -299,7 +300,7 @@ describe('showBranchMenu', () => {
   it('offers the menu for a branch and returns what the user chose', async () => {
     const repo = await createRepoWithCommit()
     await repo.git('branch', 'work')
-    const shown: { name: string; isCurrent: boolean }[] = []
+    const shown: BranchMenuTarget[] = []
     const handlers = await opened(repo, {
       showBranchMenu: async (branch) => {
         shown.push(branch)
@@ -308,12 +309,12 @@ describe('showBranchMenu', () => {
     })
 
     await expect(handlers.showBranchMenu(repo.root, 'work')).resolves.toBe('checkout')
-    expect(shown).toEqual([{ name: 'work', isCurrent: false }])
+    expect(shown).toEqual([{ name: 'work', isCurrent: false, deletable: true }])
   })
 
   it('tells the menu when the branch is the current one', async () => {
     const repo = await createRepoWithCommit()
-    const shown: { name: string; isCurrent: boolean }[] = []
+    const shown: BranchMenuTarget[] = []
     const handlers = await opened(repo, {
       showBranchMenu: async (branch) => {
         shown.push(branch)
@@ -322,7 +323,24 @@ describe('showBranchMenu', () => {
     })
 
     await expect(handlers.showBranchMenu(repo.root, 'main')).resolves.toBeNull()
-    expect(shown).toEqual([{ name: 'main', isCurrent: true }])
+    expect(shown).toEqual([{ name: 'main', isCurrent: true, deletable: false }])
+  })
+
+  it('tells the menu a branch checked out in another work tree cannot be deleted', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'feature')
+    await repo.git('worktree', 'add', '-q', join(await makeTempDir(), 'tree'), 'feature')
+    const shown: BranchMenuTarget[] = []
+    const handlers = await opened(repo, {
+      showBranchMenu: async (branch) => {
+        shown.push(branch)
+        return null
+      }
+    })
+
+    await handlers.showBranchMenu(repo.root, 'feature')
+
+    expect(shown).toEqual([{ name: 'feature', isCurrent: false, deletable: false }])
   })
 
   it('rejects a repository that was never opened, without showing a menu', async () => {
@@ -344,6 +362,67 @@ describe('showBranchMenu', () => {
       code: 'REPOSITORY_NOT_OPEN'
     })
     expect(shown).toBe(false)
+  })
+})
+
+describe('getBranchDeletion and deleteBranch', () => {
+  it('reads what deleting a branch would lose, then deletes it', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('checkout', '-q', '-b', 'feature')
+    await repo.write('a.txt')
+    await repo.commit('A')
+    await repo.git('checkout', '-q', 'main')
+    const handlers = await opened(repo, {})
+
+    const deletion = await handlers.getBranchDeletion(repo.root, 'feature')
+    expect(deletion).toMatchObject({ name: 'feature', branchOnlyCommits: 1, goneUpstream: null })
+    await handlers.deleteBranch(repo.root, 'feature', deletion.oid)
+
+    expect((await repo.git('branch', '--list', 'feature')).trim()).toBe('')
+  })
+
+  it('refuses a branch that does not exist', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await opened(repo, {})
+
+    await expect(handlers.getBranchDeletion(repo.root, '--all')).rejects.toMatchObject({
+      code: 'INVALID_REF'
+    })
+  })
+
+  it('refuses to delete the current or default branch', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('checkout', '-q', '-b', 'work')
+    const oid = (await repo.git('rev-parse', 'HEAD')).trim()
+    const handlers = await opened(repo, {})
+
+    for (const name of ['work', 'main']) {
+      await expect(handlers.deleteBranch(repo.root, name, oid)).rejects.toMatchObject({
+        code: 'INVALID_REF'
+      })
+    }
+    expect((await repo.git('branch', '--list', 'main')).trim()).not.toBe('')
+  })
+
+  it('refuses an oid that is not a full object id', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'feature')
+    const handlers = await opened(repo, {})
+
+    await expect(handlers.deleteBranch(repo.root, 'feature', 'HEAD')).rejects.toMatchObject({
+      code: 'INVALID_REF'
+    })
+  })
+
+  it('rejects a repository that was never opened, and leaves it alone', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'feature')
+    const oid = (await repo.git('rev-parse', 'feature')).trim()
+
+    await expect(
+      handlersChoosing(null).deleteBranch(repo.root, 'feature', oid)
+    ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+    expect((await repo.git('branch', '--list', 'feature')).trim()).not.toBe('')
   })
 })
 

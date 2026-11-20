@@ -1,5 +1,5 @@
 import { ChevronDown, ChevronRight, LoaderCircle, GitBranchIcon, UnlinkIcon } from 'lucide-react'
-import { useEffect, useId, useMemo } from 'react'
+import { useEffect, useId, useMemo, useState } from 'react'
 import { ApiError } from '../../../shared/apiError'
 import type { BranchTreeNode } from '../../../shared/branchTree'
 import { buildBranchTree, containsCurrentBranch } from '../../../shared/branchTree'
@@ -20,6 +20,7 @@ import {
   useStatus
 } from '../data'
 import { BlockedCheckoutDialog } from './BlockedCheckoutDialog'
+import { DeleteBranchDialog } from './DeleteBranchDialog'
 import { AheadBehind, Badge, Pending, aheadBehindLabel } from '../ui'
 import shared from './shared.module.css'
 import styles from './BranchTree.module.css'
@@ -245,6 +246,8 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
   const menu = useBranchMenu(root)
   const { view, setView } = useSelection()
   const headingId = useId()
+  /** The branch the Delete Branch dialog is open for, or null while it is closed. */
+  const [deleting, setDeleting] = useState<string | null>(null)
 
   const detachedOid = status.data?.detached ? (status.data.headOid ?? null) : null
   const tree = useMemo(() => {
@@ -276,6 +279,7 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
       menu.mutate(name, {
         onSuccess: (choice) => {
           if (choice === 'checkout') actions.checkout(name)
+          if (choice === 'delete') setDeleting(name)
         }
       }),
     select: setView,
@@ -342,6 +346,16 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
         files={blocked?.files ?? []}
         onClose={checkout.reset}
       />
+      {deleting !== null && (
+        <DeleteBranchDialog
+          root={root}
+          name={deleting}
+          onClose={() => setDeleting(null)}
+          onDeleted={() => {
+            if (view.kind === 'branch' && view.name === deleting) setView(WORKING)
+          }}
+        />
+      )}
     </section>
   )
 }

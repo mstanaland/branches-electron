@@ -4,6 +4,7 @@ import { settle } from './apiResult'
 import { createFetchScheduler } from './fetchScheduler'
 import { fetchRemote, hasRemote } from './git'
 import { createHandlers } from './handlers'
+import { createBranchMenuTemplate } from './menu'
 import { createRepositoryStore } from './repositoryStore'
 import { createWindowTitle } from './windowTitle'
 
@@ -74,9 +75,7 @@ export function registerIpc(deps: IpcDeps): void {
       }),
     showBranchMenu: (branch) =>
       new Promise((resolve) => {
-        const menu = Menu.buildFromTemplate([
-          { label: 'Check out', enabled: !branch.isCurrent, click: () => resolve('checkout') }
-        ])
+        const menu = Menu.buildFromTemplate(createBranchMenuTemplate(branch, resolve))
         menu.popup({
           window: BrowserWindow.getFocusedWindow() ?? undefined,
           // Same as the repository menu: let a click land before treating the close as a dismissal.
@@ -178,5 +177,11 @@ export function registerIpc(deps: IpcDeps): void {
   )
   ipcMain.handle('branch:menu', (_event, root: string, name: string) =>
     settle(() => handlers.showBranchMenu(root, name))
+  )
+  ipcMain.handle('branch:deletion', (_event, root: string, name: string) =>
+    settle(() => handlers.getBranchDeletion(root, name))
+  )
+  ipcMain.handle('branch:delete', (_event, root: string, name: string, oid: string) =>
+    settle(() => handlers.deleteBranch(root, name, oid))
   )
 }

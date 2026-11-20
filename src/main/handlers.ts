@@ -1,6 +1,7 @@
 import { ApiError } from '../shared/apiError'
 import type {
   Branch,
+  BranchDeletion,
   BranchMenuAction,
   ChangeDiff,
   Commit,
@@ -17,6 +18,9 @@ import { assertInsideRoot } from './assertInsideRoot'
 import {
   checkoutBranch,
   commit,
+  deleteBranch,
+  readBranchDeletion,
+  undeletableBranches,
   fetchRemote,
   hasRemote,
   isRepositoryRoot,
@@ -35,6 +39,7 @@ import {
   stageFiles,
   unstageFiles
 } from './git'
+import type { BranchMenuTarget } from './menu'
 import type { RepositoryStore } from './repositoryStore'
 
 export interface HandlerDeps {
@@ -47,7 +52,7 @@ export interface HandlerDeps {
   /** Asks whether to remove a missing repository. Resolves true if the user confirmed. */
   confirmRemoval: (repository: SavedRepository) => Promise<boolean>
   /** Pops up a branch's context menu. Resolves with the user's choice, or null if dismissed. */
-  showBranchMenu: (branch: Pick<Branch, 'name' | 'isCurrent'>) => Promise<BranchMenuAction | null>
+  showBranchMenu: (branch: BranchMenuTarget) => Promise<BranchMenuAction | null>
   /**
    * Told which repository the user is looking at, so background work — the periodic fetch —
    * follows along.
@@ -90,6 +95,8 @@ export interface Handlers {
   setTabCount: (count: number) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
+  getBranchDeletion: (root: string, name: string) => Promise<BranchDeletion>
+  deleteBranch: (root: string, name: string, oid: string) => Promise<void>
 }
 
 /**
@@ -101,6 +108,15 @@ async function assertRef(root: string, ref: string): Promise<void> {
   if (isFullOid(ref)) return
   if ((await listBranches(root)).some((branch) => branch.name === ref)) return
   throw new ApiError({ code: 'INVALID_REF', message: `${ref} is not a branch or a commit id.` })
+}
+
+/** A branch name off IPC: matched against the local branches, never trusted. */
+async function assertBranch(root: string, name: string): Promise<Branch> {
+  const branch = (await listBranches(root)).find((candidate) => candidate.name === name)
+  if (branch === undefined) {
+    throw new ApiError({ code: 'INVALID_REF', message: `${name} is not a branch.` })
+  }
+  return branch
 }
 
 function isFullOid(value: string): boolean {
@@ -324,8 +340,31 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     },
     async showBranchMenu(root, name) {
       await assertOpen(root)
-      const branch = (await listBranches(root)).find((candidate) => candidate.name === name)
-      return deps.showBranchMenu({ name, isCurrent: branch?.isCurrent ?? false })
+      const [branches, undeletable] = await Promise.all([
+        listBranches(root),
+        undeletableBranches(root)
+      ])
+      const branch = branches.find((candidate) => candidate.name === name)
+      return deps.showBranchMenu({
+        name,
+        isCurrent: branch?.isCurrent ?? false,
+        deletable: branch !== undefined && !undeletable.has(name)
+      })
+    },
+    async getBranchDeletion(root, name) {
+      await assertOpen(root)
+      await assertBranch(root, name)
+      return readBranchDeletion(root, name)
+    },
+    async deleteBranch(root, name, oid) {
+      await assertOpen(root)
+      assertFullOid(oid)
+      await assertBranch(root, name)
+      // The menu never offers these, but the call is still checked: a string off IPC.
+      if ((await undeletableBranches(root)).has(name)) {
+        throw new ApiError({ code: 'INVALID_REF', message: `${name} can’t be deleted.` })
+      }
+      await deleteBranch(root, name, oid)
     }
   }
 }

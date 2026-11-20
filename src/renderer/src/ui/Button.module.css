@@ -27,6 +27,12 @@
   border-color: transparent;
 }
 
+.button[data-variant='danger'] {
+  color: var(--color-danger-button-text);
+  background: var(--color-danger-button-bg);
+  border-color: transparent;
+}
+
 .button[data-variant='quiet'] {
   background: transparent;
   border-color: transparent;

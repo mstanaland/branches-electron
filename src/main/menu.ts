@@ -1,5 +1,34 @@
 import type { MenuItemConstructorOptions } from 'electron'
+import type { BranchMenuAction } from '../shared/git'
 import { MAX_TABS, type TabCommand } from '../shared/tabs'
+
+/** What the branch context menu needs to know about the branch it is for. */
+export interface BranchMenuTarget {
+  name: string
+  isCurrent: boolean
+  /** False for the current branch, the default branch and one checked out in a work tree. */
+  deletable: boolean
+}
+
+/**
+ * A branch's context menu. Each item only reports the choice through `choose`; the renderer
+ * acts on it, so it can show progress, errors and the Delete Branch dialog.
+ */
+export function createBranchMenuTemplate(
+  branch: BranchMenuTarget,
+  choose: (action: BranchMenuAction) => void
+): MenuItemConstructorOptions[] {
+  return [
+    { label: 'Check out', enabled: !branch.isCurrent, click: () => choose('checkout') },
+    { type: 'separator' },
+    {
+      // Disabled without explanation for a branch that can't go (see GLOSSARY: Delete branch).
+      label: `Delete “${branch.name}”…`,
+      enabled: branch.deletable,
+      click: () => choose('delete')
+    }
+  ]
+}
 
 export interface MenuOptions {
   appName: string

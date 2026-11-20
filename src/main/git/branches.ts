@@ -11,12 +11,20 @@ const FIELDS = [
 
 /** Local branches, with the default branch first and the rest in natural order. */
 export async function listBranches(root: string): Promise<Branch[]> {
+  const { branches, defaultName } = await readBranches(root)
+  return sortBranches(branches, defaultName)
+}
+
+/** Local branches, unsorted, and the **default branch**'s name (null when there is none). */
+export async function readBranches(
+  root: string
+): Promise<{ branches: Branch[]; defaultName: string | null }> {
   const [refs, originHead] = await Promise.all([
     runGit(root, ['for-each-ref', `--format=${FIELDS.join('%00')}`, 'refs/heads']),
     originHeadBranch(root)
   ])
   const branches = parseBranches(refs.stdout)
-  return sortBranches(branches, defaultBranchName(originHead, branches))
+  return { branches, defaultName: defaultBranchName(originHead, branches) }
 }
 
 /** Parses `for-each-ref` output: one branch per line, fields separated by NUL. */

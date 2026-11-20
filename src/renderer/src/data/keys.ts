@@ -15,6 +15,12 @@ export const keys = {
   repository: (root: string) => ['repository', root] as const,
   status: (root: string) => ['repository', root, 'status'] as const,
   branches: (root: string) => ['repository', root, 'branches'] as const,
+  /**
+   * What deleting one branch would lose, read when the Delete Branch dialog opens. Outside
+   * `repository(root)` on purpose: nothing re-reads it behind the dialog's back, and it stays
+   * what the user was warned about — the delete only goes ahead at the oid it holds.
+   */
+  branchDeletion: (root: string, name: string) => ['branch-deletion', root, name] as const,
   /** Where the current branch can be pushed or published: its remotes, and a gone upstream's. */
   publishTarget: (root: string) => ['repository', root, 'publish-target'] as const,
   /**

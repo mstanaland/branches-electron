@@ -1,5 +1,6 @@
 import type {
   Branch,
+  BranchDeletion,
   BranchMenuAction,
   ChangeDiff,
   Commit,
@@ -184,6 +185,21 @@ export interface BranchesApi {
    * can show progress and errors.
    */
   showBranchMenu: (root: string, name: string) => Promise<ApiResult<BranchMenuAction | null>>
+  /**
+   * What deleting local branch `name` would lose, for the Delete Branch dialog to warn about:
+   * its tip, its **branch-only commits** and its **upstream** if that is **gone** (ADR 0009).
+   * A name that isn't a local branch is `INVALID_REF`. `root` must be a saved repository or
+   * one opened this session.
+   */
+  getBranchDeletion: (root: string, name: string) => Promise<ApiResult<BranchDeletion>>
+  /**
+   * **Delete branch**: deletes local branch `name` whatever git's own merge rule says, but only
+   * while it is still at `oid`, the full object id `getBranchDeletion` read. If it has moved,
+   * nothing is deleted and this fails with `BRANCH_MOVED`. The current branch, the default
+   * branch and a branch checked out in a work tree are `INVALID_REF`. `root` must be a saved
+   * repository or one opened this session.
+   */
+  deleteBranch: (root: string, name: string, oid: string) => Promise<ApiResult<void>>
 }
 
 /**

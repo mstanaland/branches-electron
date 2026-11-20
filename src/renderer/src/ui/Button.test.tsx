@@ -21,11 +21,14 @@ describe('Button', () => {
     expect(screen.getByRole('button').getAttribute('data-variant')).toBe('secondary')
   })
 
-  it.each(['primary', 'secondary', 'quiet'] as const)('supports the %s variant', (variant) => {
-    render(<Button variant={variant}>Go</Button>)
+  it.each(['primary', 'secondary', 'quiet', 'danger'] as const)(
+    'supports the %s variant',
+    (variant) => {
+      render(<Button variant={variant}>Go</Button>)
 
-    expect(screen.getByRole('button').getAttribute('data-variant')).toBe(variant)
-  })
+      expect(screen.getByRole('button').getAttribute('data-variant')).toBe(variant)
+    }
+  )
 
   it('ignores clicks while disabled', () => {
     const onClick = vi.fn<() => void>()
