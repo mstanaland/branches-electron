@@ -219,6 +219,26 @@ Giving a repository with no **remote** one, by creating it on a hosting service 
 Not built yet; until then, Push on such a repository says there is no remote.
 _Avoid_: Add remote, upload repository
 
+**Delete branch**:
+Removing a local branch, chosen from its context menu and always confirmed first — optionally
+deleting its **upstream** from the **remote** too. Never offered for the **current branch**,
+the **default branch**, or a branch checked out in another work tree.
+When the branch has **branch-only commits** the confirmation says so, and confirming deletes it
+anyway.
+_Avoid_: Remove branch, force delete (in UI text), prune
+
+**Default branch**:
+The branch the repository's trunk is on: the one `origin` points its HEAD at, when it exists
+locally, otherwise the first of main, master, develop, dev and trunk that does. Listed first
+among the branches, and never deleted.
+_Avoid_: Trunk, primary branch, base branch, main (as the general word)
+
+**Branch-only commits**:
+The commits reachable from a branch and from no other branch, remote-tracking branch or tag —
+what deleting the branch would lose. When its **upstream** is being deleted too, that upstream
+no longer counts as somewhere else.
+_Avoid_: Unmerged changes, unmerged commits, unique commits, orphaned commits
+
 **Current branch**:
 The branch HEAD points at. Absent when HEAD is detached.
 _Avoid_: Active branch ("active" belongs to repositories)
