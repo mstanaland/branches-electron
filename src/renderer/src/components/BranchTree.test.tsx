@@ -15,6 +15,7 @@ const api = vi.hoisted(() => ({
   getStatus: vi.fn<RendererApi['getStatus']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
   checkoutBranch: vi.fn<RendererApi['checkoutBranch']>(),
+  createBranch: vi.fn<RendererApi['createBranch']>(),
   showBranchMenu: vi.fn<RendererApi['showBranchMenu']>(),
   getBranchDeletion: vi.fn<RendererApi['getBranchDeletion']>(),
   deleteBranch: vi.fn<RendererApi['deleteBranch']>(),
@@ -73,6 +74,67 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.restoreAllMocks()
+})
+
+async function openCreateDialog(): Promise<HTMLElement> {
+  api.showBranchMenu.mockResolvedValue('create')
+  showBranches([branch('main', { isCurrent: true }), branch('source')])
+  fireEvent.contextMenu(await screen.findByRole('treeitem', { name: 'source' }))
+  return screen.findByRole('dialog', { name: 'Create New Branch' })
+}
+
+describe('creating a branch', () => {
+  it('shows the source, creates and checks out the named branch, and selects its history', async () => {
+    const dialog = await openCreateDialog()
+    expect(within(dialog).getByText('From “source”')).toBeTruthy()
+    const input = within(dialog).getByRole('textbox', { name: 'New branch name' })
+    const submit = within(dialog).getByRole<HTMLButtonElement>('button', {
+      name: 'Create and Check Out'
+    })
+    expect(submit.disabled).toBe(true)
+    api.createBranch.mockImplementation(async () => {
+      api.getStatus.mockResolvedValue(status({ branch: 'feature/new' }))
+      api.listBranches.mockResolvedValue([
+        branch('main'),
+        branch('source'),
+        branch('feature/new', { isCurrent: true })
+      ])
+    })
+
+    fireEvent.change(input, { target: { value: 'feature/new' } })
+    fireEvent.click(submit)
+
+    await waitFor(() =>
+      expect(api.createBranch).toHaveBeenCalledWith(ROOT, 'source', 'feature/new')
+    )
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+    const created = screen.getByRole('treeitem', { name: 'feature/new' })
+    expect(created.getAttribute('aria-current')).toBe('true')
+    expect(created.getAttribute('aria-selected')).toBe('true')
+  })
+
+  it('shows the files blocking checkout and preserves the name for a retry', async () => {
+    const dialog = await openCreateDialog()
+    api.createBranch.mockRejectedValueOnce(
+      new ApiError({
+        code: 'CHECKOUT_BLOCKED_BY_CHANGES',
+        message: 'Checkout blocked',
+        files: ['notes.txt']
+      })
+    )
+    const input = within(dialog).getByRole<HTMLInputElement>('textbox', { name: 'New branch name' })
+    fireEvent.change(input, { target: { value: 'new' } })
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Create and Check Out' }))
+
+    const blocked = await screen.findByRole('dialog', { name: 'Can’t switch to new' })
+    expect(within(blocked).getByText('notes.txt')).toBeTruthy()
+    fireEvent.click(within(blocked).getByRole('button', { name: 'OK' }))
+
+    await waitFor(() =>
+      expect(screen.queryByRole('dialog', { name: 'Can’t switch to new' })).toBeNull()
+    )
+    expect(input.value).toBe('new')
+  })
 })
 
 describe('nesting', () => {

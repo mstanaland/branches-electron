@@ -107,7 +107,7 @@ export interface CommitFile {
 }
 
 /** What a user can choose from a branch's context menu. */
-export type BranchMenuAction = 'checkout' | 'delete'
+export type BranchMenuAction = 'checkout' | 'create' | 'delete'
 
 /**
  * What the Delete Branch dialog warns about, read when it opens (see ADR 0009). The delete it

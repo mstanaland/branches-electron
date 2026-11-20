@@ -219,6 +219,10 @@ Giving a repository with no **remote** one, by creating it on a hosting service 
 Not built yet; until then, Push on such a repository says there is no remote.
 _Avoid_: Add remote, upload repository
 
+**Create branch**:
+Creating a local branch from the tip of a branch chosen in its context menu and checking it out.
+The new branch starts without an **upstream**. **Publish branch** sets one when the user is ready.
+
 **Delete branch**:
 Removing a local branch, chosen from its context menu and always confirmed first — optionally
 deleting its **upstream** from the **remote** too. Never offered for the **current branch**,

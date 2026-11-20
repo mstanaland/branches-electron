@@ -20,6 +20,7 @@ import {
   useStatus
 } from '../data'
 import { BlockedCheckoutDialog } from './BlockedCheckoutDialog'
+import { CreateBranchDialog } from './CreateBranchDialog'
 import { DeleteBranchDialog } from './DeleteBranchDialog'
 import { AheadBehind, Badge, Pending, aheadBehindLabel } from '../ui'
 import shared from './shared.module.css'
@@ -248,6 +249,8 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
   const headingId = useId()
   /** The branch the Delete Branch dialog is open for, or null while it is closed. */
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [creating, setCreating] = useState<{ root: string; source: string } | null>(null)
+  if (creating !== null && creating.root !== root) setCreating(null)
 
   const detachedOid = status.data?.detached ? (status.data.headOid ?? null) : null
   const tree = useMemo(() => {
@@ -279,6 +282,7 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
       menu.mutate(name, {
         onSuccess: (choice) => {
           if (choice === 'checkout') actions.checkout(name)
+          if (choice === 'create') setCreating({ root, source: name })
           if (choice === 'delete') setDeleting(name)
         }
       }),
@@ -346,6 +350,14 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
         files={blocked?.files ?? []}
         onClose={checkout.reset}
       />
+      {creating?.root === root && (
+        <CreateBranchDialog
+          root={root}
+          source={creating.source}
+          onClose={() => setCreating(null)}
+          onCreated={(name) => setView({ kind: 'branch', name })}
+        />
+      )}
       {deleting !== null && (
         <DeleteBranchDialog
           root={root}

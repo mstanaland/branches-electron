@@ -1,6 +1,6 @@
 export { useDelayed, useRepositoryBusy } from './activity'
 export { useBackgroundFetch } from './backgroundFetch'
-export { useBranchMenu, useCheckoutBranch } from './checkout'
+export { useBranchMenu, useCheckoutBranch, useCreateBranch } from './checkout'
 export { buildCommitMessage, useCommit } from './commit'
 export { useBranchDeletion, useDeleteBranch } from './deleteBranch'
 export type { DeleteBranch, DeleteBranchRequest } from './deleteBranch'

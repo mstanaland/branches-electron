@@ -56,6 +56,7 @@ const api: WindowApi = {
   publishBranch: (root, remote) => ipcRenderer.invoke('repository:publish-branch', root, remote),
   getPublishTarget: (root) => ipcRenderer.invoke('repository:publish-target', root),
   checkoutBranch: (root, name) => ipcRenderer.invoke('branch:checkout', root, name),
+  createBranch: (root, source, name) => ipcRenderer.invoke('branch:create', root, source, name),
   showBranchMenu: (root, name) => ipcRenderer.invoke('branch:menu', root, name),
   getBranchDeletion: (root, name) => ipcRenderer.invoke('branch:deletion', root, name),
   deleteBranch: (root, name, oid, upstreamOid) =>

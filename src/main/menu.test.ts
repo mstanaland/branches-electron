@@ -185,15 +185,18 @@ describe('createBranchMenuTemplate', () => {
     expect(remove?.enabled).toBe(false)
   })
 
-  it('reports the choice', () => {
+  it.each([
+    ['Create New Branch from “feature”…', 'create'],
+    ['Delete “feature”…', 'delete']
+  ])('reports the choice for %s', (label, action) => {
     const choose = vi.fn<(action: BranchMenuAction) => void>()
     const template = createBranchMenuTemplate(
       { name: 'feature', isCurrent: false, deletable: true },
       choose
     )
-    const onDelete = template.find((item) => item.label?.startsWith('Delete'))?.click
+    const onClick = template.find((item) => item.label === label)?.click
     // Electron passes menu item, window and event; none matter here.
-    ;(onDelete as () => void)()
-    expect(choose).toHaveBeenCalledWith('delete')
+    ;(onClick as () => void)()
+    expect(choose).toHaveBeenCalledWith(action)
   })
 })

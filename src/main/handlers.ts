@@ -18,6 +18,7 @@ import { assertInsideRoot } from './assertInsideRoot'
 import {
   checkoutBranch,
   commit,
+  createBranch,
   deleteBranch,
   readBranchDeletion,
   undeletableBranches,
@@ -94,6 +95,7 @@ export interface Handlers {
   getPublishTarget: (root: string) => Promise<PublishTarget>
   setTabCount: (count: number) => Promise<void>
   checkoutBranch: (root: string, name: string) => Promise<void>
+  createBranch: (root: string, source: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
   getBranchDeletion: (root: string, name: string) => Promise<BranchDeletion>
   deleteBranch: (
@@ -342,6 +344,10 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async checkoutBranch(root, name) {
       await assertOpen(root)
       await checkoutBranch(root, name)
+    },
+    async createBranch(root, source, name) {
+      await assertOpen(root)
+      await createBranch(root, source, name)
     },
     async showBranchMenu(root, name) {
       await assertOpen(root)
