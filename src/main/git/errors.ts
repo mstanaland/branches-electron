@@ -7,6 +7,7 @@ export type GitErrorCode =
   | 'NO_UPSTREAM'
   | 'PULL_NOT_FAST_FORWARD'
   | 'PUSH_REJECTED'
+  | 'BRANCH_MOVED'
 
 /** Every failure from the git layer is a GitError, so callers can rely on its shape. */
 export class GitError extends Error {

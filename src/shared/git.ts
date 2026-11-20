@@ -107,7 +107,22 @@ export interface CommitFile {
 }
 
 /** What a user can choose from a branch's context menu. */
-export type BranchMenuAction = 'checkout'
+export type BranchMenuAction = 'checkout' | 'delete'
+
+/**
+ * What the Delete Branch dialog warns about, read when it opens (see ADR 0009). The delete it
+ * confirms only goes ahead while the branch is still at `oid`, so the warning matches what is
+ * actually deleted.
+ */
+export interface BranchDeletion {
+  name: string
+  /** Full object id the branch pointed at when its **branch-only commits** were counted. */
+  oid: string
+  /** How many commits deleting the branch would lose. */
+  branchOnlyCommits: number
+  /** The branch's **upstream**, when it is **gone**: e.g. `origin/foo` on `origin`. Else null. */
+  goneUpstream: { name: string; remote: string } | null
+}
 
 /** A repository in the user's saved list (see GLOSSARY.md). */
 export interface SavedRepository {

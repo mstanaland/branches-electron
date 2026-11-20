@@ -21,6 +21,10 @@
   --color-accent-text: #ffffff;
   --color-hover: rgba(0, 0, 0, 0.06);
   --color-danger: #c4271b;
+  /* A button that destroys something, and the panel a warning about data loss sits on. */
+  --color-danger-button-bg: #d92d20;
+  --color-danger-button-text: #ffffff;
+  --color-danger-surface: #fbe3e1;
   --color-focus: #0ea5e9;
   --color-field-bg: #ffffff;
 
@@ -83,6 +87,9 @@
     --color-accent-text: #ffffff;
     --color-hover: rgba(255, 255, 255, 0.08);
     --color-danger: #ff6961;
+    --color-danger-button-bg: #e5483d;
+    --color-danger-button-text: #ffffff;
+    --color-danger-surface: #3d1c1a;
 
     --popup-bg: #2c2c2e;
     --popup-border: #48484a;

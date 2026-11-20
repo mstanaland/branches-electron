@@ -30,7 +30,9 @@ function bridgeReturning(result: unknown): BranchesApi {
     getPublishTarget: respond,
     setTabCount: respond,
     checkoutBranch: respond,
-    showBranchMenu: respond
+    showBranchMenu: respond,
+    getBranchDeletion: respond,
+    deleteBranch: respond
   }
 }
 

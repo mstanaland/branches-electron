@@ -1,0 +1,30 @@
+.message {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.branch {
+  font-weight: 600;
+}
+
+/* The gone-upstream note: calm, because a squash or rebase merge leaves exactly this. */
+.note {
+  margin: 0;
+  color: var(--color-text-muted);
+}
+
+/* Commits that will be lost: a panel, so it can't be read past. */
+.danger {
+  margin: 0;
+  padding: 8px 10px;
+  color: var(--color-danger);
+  background: var(--color-danger-surface);
+  border-radius: var(--radius-sm);
+}
+
+.error {
+  margin: 0;
+  color: var(--color-danger);
+  overflow-wrap: anywhere;
+  user-select: text;
+}

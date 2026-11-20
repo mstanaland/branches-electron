@@ -8,6 +8,7 @@ export type ApiErrorCode =
   | 'NO_UPSTREAM'
   | 'PULL_NOT_FAST_FORWARD'
   | 'PUSH_REJECTED'
+  | 'BRANCH_MOVED'
   | 'REPOSITORY_NOT_OPEN'
   | 'NO_REMOTE'
   | 'INVALID_PATH'

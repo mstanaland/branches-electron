@@ -1,7 +1,8 @@
 import type { MenuItemConstructorOptions } from 'electron'
 import { describe, expect, it, vi } from 'vitest'
 import type { TabCommand } from '../shared/tabs'
-import { createMenuTemplate } from './menu'
+import type { BranchMenuAction } from '../shared/git'
+import { createBranchMenuTemplate, createMenuTemplate } from './menu'
 
 interface Spies {
   openRepository: ReturnType<typeof vi.fn<() => void>>
@@ -166,5 +167,33 @@ describe('the Window menu', () => {
     const roles = submenuOf(createTemplate(), 'Window').map((item) => item.role)
 
     expect(roles).toEqual(expect.arrayContaining(['minimize', 'zoom', 'front']))
+  })
+})
+
+function branchMenu(deletable: boolean, isCurrent = false): MenuItemConstructorOptions[] {
+  return createBranchMenuTemplate({ name: 'feature/login', isCurrent, deletable }, () => {})
+}
+
+describe('createBranchMenuTemplate', () => {
+  it('offers to delete the branch by name', () => {
+    const remove = branchMenu(true).find((item) => item.label === 'Delete “feature/login”…')
+    expect(remove?.enabled).toBe(true)
+  })
+
+  it('disables Delete for a branch that cannot be deleted', () => {
+    const remove = branchMenu(false, true).find((item) => item.label?.startsWith('Delete'))
+    expect(remove?.enabled).toBe(false)
+  })
+
+  it('reports the choice', () => {
+    const choose = vi.fn<(action: BranchMenuAction) => void>()
+    const template = createBranchMenuTemplate(
+      { name: 'feature', isCurrent: false, deletable: true },
+      choose
+    )
+    const onDelete = template.find((item) => item.label?.startsWith('Delete'))?.click
+    // Electron passes menu item, window and event; none matter here.
+    ;(onDelete as () => void)()
+    expect(choose).toHaveBeenCalledWith('delete')
   })
 })
