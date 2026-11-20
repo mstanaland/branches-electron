@@ -19,8 +19,10 @@
   background: var(--diff-hunk-bg);
 }
 
+/* A 1px width shrinks a column to its content. Not a percentage: when the table sizes itself
+   to max-content, a 44px column at 1% would make it 4400px wide. */
 .gutter {
-  width: 1%;
+  width: 1px;
   min-width: 44px;
   padding: 0 8px;
   color: var(--color-text-muted);
@@ -31,7 +33,7 @@
 }
 
 .sign {
-  width: 1%;
+  width: 1px;
   padding: 0 4px;
   color: var(--color-text-muted);
   text-align: center;
