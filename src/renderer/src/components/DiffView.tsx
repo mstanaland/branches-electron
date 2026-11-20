@@ -61,7 +61,9 @@ export function DiffView({ root }: { root: string }): React.JSX.Element {
   if (change === undefined) {
     return (
       <div className={styles.pane}>
-        <EmptyState title="Select a file to see its changes" />
+        <div className={styles.body}>
+          <EmptyState title="Select a file to see its changes" />
+        </div>
       </div>
     )
   }
@@ -69,18 +71,20 @@ export function DiffView({ root }: { root: string }): React.JSX.Element {
   return (
     <div className={styles.pane}>
       <ChangeTitle change={change} />
-      {conflict && <EmptyState title="Resolve this conflict in your editor" />}
-      {error && (
-        <p role="alert" className={shared.error}>
-          {error.message}
-        </p>
-      )}
-      {diff.data &&
-        (diff.data.staged === null && diff.data.unstaged === null ? (
-          <EmptyState title="No changes in this file" />
-        ) : (
-          <Sections diff={diff.data} />
-        ))}
+      <div className={styles.body}>
+        {conflict && <EmptyState title="Resolve this conflict in your editor" />}
+        {error && (
+          <p role="alert" className={shared.error}>
+            {error.message}
+          </p>
+        )}
+        {diff.data &&
+          (diff.data.staged === null && diff.data.unstaged === null ? (
+            <EmptyState title="No changes in this file" />
+          ) : (
+            <Sections diff={diff.data} />
+          ))}
+      </div>
     </div>
   )
 }

@@ -1,25 +1,39 @@
+/* The whole column scrolls as one, under the title, which stays put — like the changes beside it. */
 .pane {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 12px;
   min-width: 0;
   min-height: 0;
-  padding: 0 12px 12px;
   overflow-y: auto;
   border-left: 1px solid var(--color-border);
 }
 
+/* The same band as the changes column's header, so the two line up across the window: sticky,
+   opaque so the diff scrolling under it doesn't show through, and with the same padding. */
 .title {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
+  flex: none;
   align-items: center;
   gap: 6px;
   margin: 0;
-  padding: 0 4px 8px;
+  padding: 12px 16px;
   font-size: 13px;
   font-weight: 600;
-  border-bottom: 1px solid var(--color-border);
   overflow-wrap: anywhere;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Everything under the title. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
 }
 
 .arrow {
