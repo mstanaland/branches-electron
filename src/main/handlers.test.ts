@@ -376,7 +376,7 @@ describe('getBranchDeletion and deleteBranch', () => {
 
     const deletion = await handlers.getBranchDeletion(repo.root, 'feature')
     expect(deletion).toMatchObject({ name: 'feature', branchOnlyCommits: 1, goneUpstream: null })
-    await handlers.deleteBranch(repo.root, 'feature', deletion.oid)
+    await handlers.deleteBranch(repo.root, 'feature', deletion.oid, null)
 
     expect((await repo.git('branch', '--list', 'feature')).trim()).toBe('')
   })
@@ -397,7 +397,7 @@ describe('getBranchDeletion and deleteBranch', () => {
     const handlers = await opened(repo, {})
 
     for (const name of ['work', 'main']) {
-      await expect(handlers.deleteBranch(repo.root, name, oid)).rejects.toMatchObject({
+      await expect(handlers.deleteBranch(repo.root, name, oid, null)).rejects.toMatchObject({
         code: 'INVALID_REF'
       })
     }
@@ -407,11 +407,43 @@ describe('getBranchDeletion and deleteBranch', () => {
   it('refuses an oid that is not a full object id', async () => {
     const repo = await createRepoWithCommit()
     await repo.git('branch', 'feature')
+    const oid = (await repo.git('rev-parse', 'feature')).trim()
     const handlers = await opened(repo, {})
 
-    await expect(handlers.deleteBranch(repo.root, 'feature', 'HEAD')).rejects.toMatchObject({
+    await expect(handlers.deleteBranch(repo.root, 'feature', 'HEAD', null)).rejects.toMatchObject({
       code: 'INVALID_REF'
     })
+    await expect(
+      handlers.deleteBranch(repo.root, 'feature', oid, '--mirror')
+    ).rejects.toMatchObject({ code: 'INVALID_REF' })
+  })
+
+  it('deletes the upstream too when asked, and refuses one it may not offer', async () => {
+    const repo = await createRepoWithCommit()
+    const origin = await addBareRemote(repo)
+    await repo.git('checkout', '-q', '-b', 'foo')
+    await repo.git('push', '-q', '-u', 'origin', 'foo:bar')
+    await repo.git('branch', 'local-only')
+    await repo.git('checkout', '-q', 'main')
+    const handlers = await opened(repo, {})
+
+    const local = await handlers.getBranchDeletion(repo.root, 'local-only')
+    await expect(
+      handlers.deleteBranch(repo.root, 'local-only', local.oid, local.oid)
+    ).rejects.toMatchObject({ code: 'BRANCH_MOVED' })
+    expect((await repo.git('branch', '--list', 'local-only')).trim()).not.toBe('')
+
+    const deletion = await handlers.getBranchDeletion(repo.root, 'foo')
+    expect(deletion.deletableUpstream).toMatchObject({ name: 'origin/bar', remote: 'origin' })
+    await handlers.deleteBranch(
+      repo.root,
+      'foo',
+      deletion.oid,
+      deletion.deletableUpstream?.oid ?? null
+    )
+
+    expect((await origin.git('branch', '--list', 'bar')).trim()).toBe('')
+    expect((await repo.git('branch', '--list', 'foo')).trim()).toBe('')
   })
 
   it('rejects a repository that was never opened, and leaves it alone', async () => {
@@ -420,7 +452,7 @@ describe('getBranchDeletion and deleteBranch', () => {
     const oid = (await repo.git('rev-parse', 'feature')).trim()
 
     await expect(
-      handlersChoosing(null).deleteBranch(repo.root, 'feature', oid)
+      handlersChoosing(null).deleteBranch(repo.root, 'feature', oid, null)
     ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
     expect((await repo.git('branch', '--list', 'feature')).trim()).not.toBe('')
   })

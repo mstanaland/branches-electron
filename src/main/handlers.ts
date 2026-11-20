@@ -96,7 +96,12 @@ export interface Handlers {
   checkoutBranch: (root: string, name: string) => Promise<void>
   showBranchMenu: (root: string, name: string) => Promise<BranchMenuAction | null>
   getBranchDeletion: (root: string, name: string) => Promise<BranchDeletion>
-  deleteBranch: (root: string, name: string, oid: string) => Promise<void>
+  deleteBranch: (
+    root: string,
+    name: string,
+    oid: string,
+    upstreamOid: string | null
+  ) => Promise<void>
 }
 
 /**
@@ -356,15 +361,17 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       await assertBranch(root, name)
       return readBranchDeletion(root, name)
     },
-    async deleteBranch(root, name, oid) {
+    async deleteBranch(root, name, oid, upstreamOid) {
       await assertOpen(root)
       assertFullOid(oid)
+      if (upstreamOid !== null) assertFullOid(upstreamOid)
       await assertBranch(root, name)
       // The menu never offers these, but the call is still checked: a string off IPC.
       if ((await undeletableBranches(root)).has(name)) {
         throw new ApiError({ code: 'INVALID_REF', message: `${name} can’t be deleted.` })
       }
-      await deleteBranch(root, name, oid)
+      // The remote and its branch are read from the repository's config, never taken off IPC.
+      await deleteBranch(root, name, oid, upstreamOid)
     }
   }
 }

@@ -187,7 +187,8 @@ export interface BranchesApi {
   showBranchMenu: (root: string, name: string) => Promise<ApiResult<BranchMenuAction | null>>
   /**
    * What deleting local branch `name` would lose, for the Delete Branch dialog to warn about:
-   * its tip, its **branch-only commits** and its **upstream** if that is **gone** (ADR 0009).
+   * its tip, its **branch-only commits**, its **upstream** if that is **gone**, and an upstream it
+   * may offer to delete too, with the count were it deleted (ADR 0009).
    * A name that isn't a local branch is `INVALID_REF`. `root` must be a saved repository or
    * one opened this session.
    */
@@ -198,8 +199,19 @@ export interface BranchesApi {
    * nothing is deleted and this fails with `BRANCH_MOVED`. The current branch, the default
    * branch and a branch checked out in a work tree are `INVALID_REF`. `root` must be a saved
    * repository or one opened this session.
+   *
+   * With `upstreamOid` — the `deletableUpstream.oid` `getBranchDeletion` read — the branch's
+   * **upstream** is deleted from its **remote** first, leased on that oid. If the upstream has
+   * moved, is no longer there or may not be deleted, nothing is deleted and this fails with
+   * `BRANCH_MOVED`; if the remote refuses or can't be reached, nothing is deleted and git's
+   * words come back. Null leaves the upstream alone.
    */
-  deleteBranch: (root: string, name: string, oid: string) => Promise<ApiResult<void>>
+  deleteBranch: (
+    root: string,
+    name: string,
+    oid: string,
+    upstreamOid: string | null
+  ) => Promise<ApiResult<void>>
 }
 
 /**

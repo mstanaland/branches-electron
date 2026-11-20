@@ -1,8 +1,8 @@
 import { LoaderCircle } from 'lucide-react'
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import type { BranchDeletion } from '../../../shared/git'
 import { describeError, useBranchDeletion, useDeleteBranch } from '../data'
-import { Button, Dialog, Pending } from '../ui'
+import { Button, Checkbox, Dialog, Pending } from '../ui'
 import styles from './DeleteBranchDialog.module.css'
 import shared from './shared.module.css'
 
@@ -14,10 +14,19 @@ function commitsAreNot(count: number, between = ''): string {
 /**
  * What the dialog says about the **branch-only commits**, by tier (ADR 0009): nothing when
  * there are none; a calm note when the upstream is **gone**, since a squash or rebase merge
- * leaves exactly that behind; a danger alert otherwise.
+ * leaves exactly that behind; a danger alert otherwise. With `alsoUpstream`, the count is the
+ * one without the upstream as somewhere else.
  */
-function Warning({ deletion }: { deletion: BranchDeletion }): React.JSX.Element | null {
-  const count = deletion.branchOnlyCommits
+function Warning({
+  deletion,
+  alsoUpstream
+}: {
+  deletion: BranchDeletion
+  alsoUpstream: boolean
+}): React.JSX.Element | null {
+  const upstream = deletion.deletableUpstream
+  const count =
+    alsoUpstream && upstream !== null ? upstream.branchOnlyCommits : deletion.branchOnlyCommits
   if (count === 0) return null
   const gone = deletion.goneUpstream
   if (gone !== null) {
@@ -41,7 +50,9 @@ function Warning({ deletion }: { deletion: BranchDeletion }): React.JSX.Element 
 /**
  * **Delete branch**: confirms deleting a local branch, chosen from its context menu. Counts
  * the branch's **branch-only commits** on opening and warns by them; confirming always
- * deletes, but only while the branch is still where it was counted.
+ * deletes, but only while the branch is still where it was counted. When the branch has an
+ * **upstream** that may be deleted, a checkbox (unticked by default) deletes that from the
+ * **remote** first; the warning follows it, both counts having been read on opening.
  *
  * Mounted only while open, so each opening counts afresh with no old failure. Cancel has
  * initial focus, so Return never deletes. While the delete runs the dialog can't be
@@ -62,11 +73,13 @@ export function DeleteBranchDialog({
   const deletion = useBranchDeletion(root, name)
   const { deleteBranch, busy, error } = useDeleteBranch(root)
   const cancelRef = useRef<HTMLButtonElement>(null)
+  const [alsoUpstream, setAlsoUpstream] = useState(false)
   const failure = describeError(error ?? deletion.error)
+  const upstream = deletion.data?.deletableUpstream ?? null
 
   const submit = (): void => {
     if (deletion.data === undefined || busy) return
-    deleteBranch(deletion.data).then(
+    deleteBranch({ deletion: deletion.data, alsoUpstream: alsoUpstream && upstream !== null }).then(
       () => {
         onDeleted()
         onClose()
@@ -107,7 +120,17 @@ export function DeleteBranchDialog({
         your repository.
       </p>
       {deletion.isPending && <Pending label="Checking for commits only this branch has" />}
-      {deletion.data && <Warning deletion={deletion.data} />}
+      {upstream !== null && (
+        <label className={styles.option}>
+          <Checkbox
+            checked={alsoUpstream}
+            disabled={busy}
+            onCheckedChange={(checked) => setAlsoUpstream(checked)}
+          />
+          Also delete “{upstream.name}” from {upstream.remote}
+        </label>
+      )}
+      {deletion.data && <Warning deletion={deletion.data} alsoUpstream={alsoUpstream} />}
       {failure && (
         <p role="alert" className={styles.error}>
           {failure.message}
