@@ -117,6 +117,12 @@ export interface BranchesApi {
    */
   checkoutBranch: (root: string, name: string) => Promise<ApiResult<void>>
   /**
+   * Creates and checks out local branch `name` from the tip of local branch `source`, with
+   * no upstream. If local changes would be overwritten, checkout fails and no branch is
+   * created. `root` must be a saved repository or one opened this session.
+   */
+  createBranch: (root: string, source: string, name: string) => Promise<ApiResult<void>>
+  /**
    * Updates `root`'s remote-tracking refs now, with the same `git fetch --prune` the
    * background fetch runs. Unlike that one it reports what went wrong: being offline or
    * having credentials refused comes back as `COMMAND_FAILED`, and a repository with no

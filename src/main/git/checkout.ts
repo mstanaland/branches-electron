@@ -36,22 +36,53 @@ export function checkoutBranch(root: string, name: string): Promise<void> {
     )
   }
 
+  // --no-guess: only ever switch to a branch that exists, never create one from a remote.
+  return enqueueWrite(root, () => switchBranch(root, name, ['switch', '--no-guess', name]))
+}
+
+/** Creates a branch at the source's current tip and switches to it in one queued operation. */
+export async function createBranch(root: string, source: string, name: string): Promise<void> {
+  // Git accepts @{-n} as a previous-checkout shortcut even as a new branch name.
+  if (typeof name !== 'string' || name.includes('\0') || name.startsWith('@{-')) {
+    throw new GitError('COMMAND_FAILED', 'Enter a valid branch name.')
+  }
+  if (typeof source !== 'string' || source.includes('\0') || source === '') {
+    throw new GitError('COMMAND_FAILED', 'Choose an existing source branch.')
+  }
+
   return enqueueWrite(root, async () => {
-    try {
-      // --no-guess: only ever switch to a branch that exists, never create one from a remote.
-      await runGit(root, ['switch', '--no-guess', name])
-    } catch (error) {
-      if (error instanceof GitError && error.code === 'COMMAND_FAILED') {
-        const files = parseBlockingFiles(error.stderr)
-        if (files !== null) {
-          throw new GitError(
-            'CHECKOUT_BLOCKED_BY_CHANGES',
-            `Can’t switch to ${name}: local changes would be overwritten.`,
-            { args: error.args, exitCode: error.exitCode, stderr: error.stderr, files }
-          )
-        }
-      }
-      throw error
-    }
+    const { stdout } = await runGit(root, [
+      'show-ref',
+      '--verify',
+      '--hash',
+      '--',
+      `refs/heads/${source}`
+    ])
+    // A single switch -c lets Git leave the branch uncreated when checkout is blocked.
+    await switchBranch(root, name, [
+      'switch',
+      '--no-track',
+      '--no-overwrite-ignore',
+      `--create=${name}`,
+      stdout.trim()
+    ])
   })
+}
+
+async function switchBranch(root: string, name: string, args: string[]): Promise<void> {
+  try {
+    await runGit(root, args)
+  } catch (error) {
+    if (error instanceof GitError && error.code === 'COMMAND_FAILED') {
+      const files = parseBlockingFiles(error.stderr)
+      if (files !== null) {
+        throw new GitError(
+          'CHECKOUT_BLOCKED_BY_CHANGES',
+          `Can’t switch to ${name}: local changes would be overwritten.`,
+          { args: error.args, exitCode: error.exitCode, stderr: error.stderr, files }
+        )
+      }
+    }
+    throw error
+  }
 }

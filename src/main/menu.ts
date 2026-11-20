@@ -12,7 +12,7 @@ export interface BranchMenuTarget {
 
 /**
  * A branch's context menu. Each item only reports the choice through `choose`; the renderer
- * acts on it, so it can show progress, errors and the Delete Branch dialog.
+ * acts on it, so it can show progress, errors and dialogs.
  */
 export function createBranchMenuTemplate(
   branch: BranchMenuTarget,
@@ -20,6 +20,7 @@ export function createBranchMenuTemplate(
 ): MenuItemConstructorOptions[] {
   return [
     { label: 'Check out', enabled: !branch.isCurrent, click: () => choose('checkout') },
+    { label: `Create New Branch from “${branch.name}”…`, click: () => choose('create') },
     { type: 'separator' },
     {
       // Disabled without explanation for a branch that can't go (see GLOSSARY: Delete branch).

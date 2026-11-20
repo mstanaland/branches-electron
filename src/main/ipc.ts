@@ -175,6 +175,9 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('branch:checkout', (_event, root: string, name: string) =>
     settle(() => handlers.checkoutBranch(root, name))
   )
+  ipcMain.handle('branch:create', (_event, root: string, source: string, name: string) =>
+    settle(() => handlers.createBranch(root, source, name))
+  )
   ipcMain.handle('branch:menu', (_event, root: string, name: string) =>
     settle(() => handlers.showBranchMenu(root, name))
   )
