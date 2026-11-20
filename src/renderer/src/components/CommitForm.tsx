@@ -20,7 +20,7 @@ export interface CommitFormProps {
 }
 
 /**
- * Where the user writes and sends a commit. Pinned above the changes list and shown for every
+ * Where the user writes and sends a commit. Sits above the changes list and is shown for every
  * active repository, a clean one and one with no commits included.
  *
  * Collapsed it shows the commit subject and the button row; focus on the subject reveals the

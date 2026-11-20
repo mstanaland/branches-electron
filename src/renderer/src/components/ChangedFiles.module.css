@@ -1,17 +1,36 @@
+/* The whole column scrolls as one, under the header, which stays put — like commit details. */
 .pane {
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 8px;
   min-height: 0;
-  padding: 12px;
+  overflow-y: auto;
+  /* Roughly the header's height, so a row focused by keyboard never scrolls in behind it. */
+  scroll-padding-top: 48px;
 }
 
+/* Sticky, and opaque so the column scrolling under it doesn't show through. Its vertical padding
+   matches commit details' subject band, so the two line up across the window; its inline padding
+   lines the branch icon up with the form and rows below (12px of body plus their 4px). */
 .header {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   display: flex;
+  flex: none;
   align-items: center;
   gap: 6px;
-  padding: 0 4px 8px;
+  padding: 12px 16px;
+  background: var(--color-bg);
+  border-bottom: 1px solid var(--color-border);
+}
+
+/* Everything under the header: the commit form, then the changes. */
+.body {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px;
 }
 
 .branch {
@@ -23,11 +42,8 @@
 }
 
 .list {
-  flex: 1;
-  min-height: 0;
   margin: 0;
   padding: 0;
-  overflow-y: auto;
   border-radius: var(--radius-sm);
   list-style: none;
 }

@@ -146,11 +146,13 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
   if (error?.notARepository) {
     return (
       <div className={styles.pane}>
-        <EmptyState
-          title="Repository not found"
-          detail="Its folder is gone or is no longer a repository."
-          action={<Button onClick={() => confirmRemoval.mutate(root)}>Remove</Button>}
-        />
+        <div className={styles.body}>
+          <EmptyState
+            title="Repository not found"
+            detail="Its folder is gone or is no longer a repository."
+            action={<Button onClick={() => confirmRemoval.mutate(root)}>Remove</Button>}
+          />
+        </div>
       </div>
     )
   }
@@ -158,45 +160,46 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
   return (
     <div className={styles.pane}>
       {data && (
-        <>
-          <header className={styles.header}>
-            <GitBranch />
-            <span className={styles.branch}>
-              {data.branch ?? `Detached at ${data.headOid ? shortOid(data.headOid) : 'no commits'}`}
-            </span>
-            {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
-            <AheadBehind ahead={data.ahead} behind={data.behind} />
-          </header>
-          {/* Pinned above the list, so a long list never scrolls Commit out of view. */}
+        <header className={styles.header}>
+          <GitBranch />
+          <span className={styles.branch}>
+            {data.branch ?? `Detached at ${data.headOid ? shortOid(data.headOid) : 'no commits'}`}
+          </span>
+          {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
+          <AheadBehind ahead={data.ahead} behind={data.behind} />
+        </header>
+      )}
+      <div className={styles.body}>
+        {data && (
           <CommitForm
             root={root}
             hasStaged={hasStagedChanges(changes)}
             stageAll={staging.stageAll}
             onCommitted={focusChanges}
           />
-        </>
-      )}
-      {error && (
-        <p role="alert" className={shared.error}>
-          {error.message}
-        </p>
-      )}
-      {/* Only the first read: a refetch keeps the previous data on screen instead. */}
-      {status.isPending && !error && <Pending label="Loading changes" />}
-      {data && changes.length === 0 && <EmptyState title="No changes" />}
-      {changes.length > 0 && (
-        <ul ref={listRef} className={styles.list} aria-label="Changes" tabIndex={-1}>
-          {changes.map((change) => (
-            <ChangeRow
-              key={change.path}
-              change={change}
-              selected={change.path === selectedPath}
-              onSelect={setSelectedPath}
-              onToggleStaged={staging.toggle}
-            />
-          ))}
-        </ul>
-      )}
+        )}
+        {error && (
+          <p role="alert" className={shared.error}>
+            {error.message}
+          </p>
+        )}
+        {/* Only the first read: a refetch keeps the previous data on screen instead. */}
+        {status.isPending && !error && <Pending label="Loading changes" />}
+        {data && changes.length === 0 && <EmptyState title="No changes" />}
+        {changes.length > 0 && (
+          <ul ref={listRef} className={styles.list} aria-label="Changes" tabIndex={-1}>
+            {changes.map((change) => (
+              <ChangeRow
+                key={change.path}
+                change={change}
+                selected={change.path === selectedPath}
+                onSelect={setSelectedPath}
+                onToggleStaged={staging.toggle}
+              />
+            ))}
+          </ul>
+        )}
+      </div>
     </div>
   )
 }
