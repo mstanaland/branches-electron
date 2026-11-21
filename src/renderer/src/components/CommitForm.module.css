@@ -13,6 +13,20 @@
   gap: 6px;
 }
 
+/* Generate has a row of its own, between the description and the button row. */
+.generate {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.generating {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--color-text-muted);
+}
+
 /* Commit sits at the right-hand end, away from Stage All. */
 .commit {
   margin-left: auto;

@@ -1,8 +1,10 @@
 import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
 import { join } from 'node:path'
+import type { CommitMessage } from '../shared/git'
 import { settle } from './apiResult'
 import { createFetchScheduler } from './fetchScheduler'
-import { fetchRemote, hasRemote } from './git'
+import { createCommitMessageGenerator, getClaudeExecutable } from './claude'
+import { fetchRemote, hasRemote, readCommitContext } from './git'
 import { createHandlers } from './handlers'
 import { createBranchMenuTemplate } from './menu'
 import { createRepositoryStore } from './repositoryStore'
@@ -87,6 +89,20 @@ export function registerIpc(deps: IpcDeps): void {
       void windowTitle.follow(root)
     },
     setTabCount: (count) => deps.setTabCount(count),
+    generator: createCommitMessageGenerator({
+      locate: getClaudeExecutable,
+      readContext: (root) => readCommitContext(root)
+    }),
+    showGenerateError: async (message) => {
+      const options = {
+        type: 'warning' as const,
+        message: 'Generate couldn’t write a commit message.',
+        detail: message,
+        buttons: ['OK']
+      }
+      const window = BrowserWindow.getFocusedWindow()
+      await (window ? dialog.showMessageBox(window, options) : dialog.showMessageBox(options))
+    },
     confirmRemoval: async (repository) => {
       const options = {
         type: 'question' as const,
@@ -150,6 +166,14 @@ export function registerIpc(deps: IpcDeps): void {
   )
   ipcMain.handle('repository:commit', (_event, root: string, message: string) =>
     settle(() => handlers.commit(root, message))
+  )
+  ipcMain.handle(
+    'repository:generate-commit-message',
+    (_event, root: string, draft: CommitMessage) =>
+      settle(() => handlers.generateCommitMessage(root, draft))
+  )
+  ipcMain.handle('repository:cancel-generate', (_event, root: string) =>
+    settle(() => handlers.cancelGenerate(root))
   )
   ipcMain.handle('repository:set-active', (_event, root: string | null) =>
     settle(() => handlers.setActiveRepository(root))

@@ -6,7 +6,11 @@ import type { RendererApi } from '../api'
 import { clearAllDrafts } from '../data/drafts'
 import { renderWithProviders } from '../data/testUtils'
 
-const api = vi.hoisted(() => ({ commit: vi.fn<RendererApi['commit']>() }))
+const api = vi.hoisted(() => ({
+  commit: vi.fn<RendererApi['commit']>(),
+  generateCommitMessage: vi.fn<RendererApi['generateCommitMessage']>(),
+  cancelGenerate: vi.fn<RendererApi['cancelGenerate']>()
+}))
 vi.mock('../api', () => ({ api }))
 
 import { CommitForm } from './CommitForm'
@@ -29,6 +33,23 @@ function renderForm(props: Partial<React.ComponentProps<typeof CommitForm>> = {}
 const subject = (): HTMLElement => screen.getByRole('textbox', { name: 'Commit subject' })
 const description = (): HTMLElement => screen.getByRole('textbox', { name: 'Commit description' })
 const commitButton = (): HTMLElement => screen.getByRole('button', { name: /^Commit/ })
+const generateButton = (): HTMLElement => screen.getByRole('button', { name: 'Generate' })
+const stopButton = (): HTMLElement => screen.getByRole('button', { name: 'Stop' })
+
+/** A promise that settles only when the test says so, for a run still in flight. */
+function deferred<T>(): {
+  promise: Promise<T>
+  resolve: (value: T) => void
+  reject: (error: unknown) => void
+} {
+  let resolve!: (value: T) => void
+  let reject!: (error: unknown) => void
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res
+    reject = rej
+  })
+  return { promise, resolve, reject }
+}
 
 /** Focuses Commit and waits for its tooltip; Base UI reads keyboard focus from a preceding Tab. */
 async function commitTooltip(text: string): Promise<HTMLElement> {
@@ -41,6 +62,7 @@ async function commitTooltip(text: string): Promise<HTMLElement> {
 
 beforeEach(() => {
   vi.resetAllMocks()
+  api.cancelGenerate.mockResolvedValue(undefined)
   clearAllDrafts()
 })
 
@@ -281,5 +303,170 @@ describe('committing', () => {
     expect((subject() as HTMLInputElement).value).toBe('Fix the thing')
     expect((description() as HTMLTextAreaElement).value).toBe('It was broken.')
     expect(onCommitted).not.toHaveBeenCalled()
+  })
+})
+
+describe('Generate', () => {
+  it('appears only once the form is expanded', () => {
+    renderForm()
+
+    expect(screen.queryByRole('button', { name: 'Generate' })).toBeNull()
+    fireEvent.focus(subject())
+    expect(generateButton()).toBeTruthy()
+  })
+
+  it('is disabled, and says why, when nothing is staged', async () => {
+    renderForm({ hasStaged: false })
+    fireEvent.focus(subject())
+
+    expect(generateButton().getAttribute('aria-disabled')).toBe('true')
+    await act(async () => {
+      fireEvent.keyDown(document.body, { key: 'Tab' })
+      generateButton().focus()
+    })
+    expect(await screen.findByText('Nothing is staged')).toBeTruthy()
+  })
+
+  it('sends what is typed as guidance and replaces both fields with the answer', async () => {
+    api.generateCommitMessage.mockResolvedValue({
+      subject: 'Say hello in the README',
+      description: 'Greets whoever opens it first.'
+    })
+    renderForm()
+    fireEvent.focus(subject())
+    fireEvent.change(subject(), { target: { value: 'readme thing' } })
+
+    fireEvent.click(generateButton())
+
+    await waitFor(() =>
+      expect((subject() as HTMLInputElement).value).toBe('Say hello in the README')
+    )
+    expect((description() as HTMLTextAreaElement).value).toBe('Greets whoever opens it first.')
+    expect(api.generateCommitMessage).toHaveBeenCalledWith(ROOT, {
+      subject: 'readme thing',
+      description: ''
+    })
+  })
+
+  it('hands focus to the subject, all selected, once the answer is in', async () => {
+    api.generateCommitMessage.mockResolvedValue({ subject: 'Tidy up', description: '' })
+    renderForm()
+    fireEvent.focus(subject())
+
+    fireEvent.click(generateButton())
+
+    await waitFor(() => expect(document.activeElement).toBe(subject()))
+    const input = subject() as HTMLInputElement
+    expect([input.selectionStart, input.selectionEnd]).toEqual([0, 'Tidy up'.length])
+    expect(api.commit).not.toHaveBeenCalled()
+  })
+
+  it('locks both fields and Commit while it runs, and offers Stop', async () => {
+    const run = deferred<{ subject: string; description: string }>()
+    api.generateCommitMessage.mockReturnValue(run.promise)
+    renderForm()
+    fireEvent.focus(subject())
+    fireEvent.change(subject(), { target: { value: 'Fix the thing' } })
+
+    fireEvent.click(generateButton())
+
+    await waitFor(() => expect(stopButton()).toBeTruthy())
+    expect(screen.getByText('Generating…')).toBeTruthy()
+    expect(subject().hasAttribute('readonly')).toBe(true)
+    expect(description().hasAttribute('readonly')).toBe(true)
+    expect(commitButton().getAttribute('aria-disabled')).toBe('true')
+
+    await act(async () => run.resolve({ subject: 'Done', description: '' }))
+    expect(subject().hasAttribute('readonly')).toBe(false)
+  })
+
+  it('does not commit on Cmd+Enter while it runs', async () => {
+    api.generateCommitMessage.mockReturnValue(new Promise(() => {}))
+    renderForm()
+    fireEvent.focus(subject())
+    fireEvent.change(subject(), { target: { value: 'Fix the thing' } })
+    fireEvent.click(generateButton())
+    await waitFor(() => expect(stopButton()).toBeTruthy())
+
+    fireEvent.keyDown(subject(), { key: 'Enter', metaKey: true })
+
+    expect(api.commit).not.toHaveBeenCalled()
+  })
+
+  it('stops the run on Stop, keeping what was typed', async () => {
+    const run = deferred<{ subject: string; description: string }>()
+    api.generateCommitMessage.mockReturnValue(run.promise)
+    api.cancelGenerate.mockImplementation(async () => {
+      run.reject(new ApiError({ code: 'GENERATE_CANCELLED', message: 'Generate was stopped.' }))
+    })
+    renderForm()
+    fireEvent.focus(subject())
+    fireEvent.change(subject(), { target: { value: 'Fix the thing' } })
+    fireEvent.click(generateButton())
+    await waitFor(() => expect(stopButton()).toBeTruthy())
+
+    fireEvent.click(stopButton())
+
+    await waitFor(() => expect(generateButton()).toBeTruthy())
+    expect(api.cancelGenerate).toHaveBeenCalledWith(ROOT)
+    expect((subject() as HTMLInputElement).value).toBe('Fix the thing')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('leaves the form as it was when it fails: main has already shown why', async () => {
+    api.generateCommitMessage.mockRejectedValue(
+      new ApiError({ code: 'CLAUDE_NOT_FOUND', message: 'Claude Code isn’t installed.' })
+    )
+    renderForm()
+    fireEvent.focus(subject())
+    fireEvent.change(subject(), { target: { value: 'Fix the thing' } })
+
+    fireEvent.click(generateButton())
+
+    await waitFor(() => expect(generateButton().getAttribute('aria-disabled')).not.toBe('true'))
+    expect((subject() as HTMLInputElement).value).toBe('Fix the thing')
+    expect(screen.queryByRole('alert')).toBeNull()
+  })
+
+  it('keeps running when the form goes away, as on switching to History, and fills the draft', async () => {
+    const run = deferred<{ subject: string; description: string }>()
+    api.generateCommitMessage.mockReturnValue(run.promise)
+    const form = <CommitForm root={ROOT} hasStaged stageAll={null} onCommitted={() => {}} />
+    const { rerender } = renderWithProviders(form)
+    fireEvent.focus(subject())
+    fireEvent.click(generateButton())
+    await waitFor(() => expect(stopButton()).toBeTruthy())
+
+    rerender(<></>)
+    await act(async () => run.resolve({ subject: 'Done while away', description: 'Why.' }))
+    rerender(form)
+
+    expect(api.cancelGenerate).not.toHaveBeenCalled()
+    expect((subject() as HTMLInputElement).value).toBe('Done while away')
+  })
+
+  it('shows a run still going when the form comes back', async () => {
+    api.generateCommitMessage.mockReturnValue(new Promise(() => {}))
+    const form = <CommitForm root={ROOT} hasStaged stageAll={null} onCommitted={() => {}} />
+    const { rerender } = renderWithProviders(form)
+    fireEvent.focus(subject())
+    fireEvent.click(generateButton())
+    await waitFor(() => expect(stopButton()).toBeTruthy())
+
+    rerender(<></>)
+    rerender(form)
+
+    expect(stopButton()).toBeTruthy()
+  })
+
+  it('says why Commit is disabled while it runs', async () => {
+    api.generateCommitMessage.mockReturnValue(new Promise(() => {}))
+    renderForm()
+    fireEvent.focus(subject())
+    fireEvent.change(subject(), { target: { value: 'Fix the thing' } })
+    fireEvent.click(generateButton())
+    await waitFor(() => expect(stopButton()).toBeTruthy())
+
+    expect(await commitTooltip('Generating a commit message')).toBeTruthy()
   })
 })

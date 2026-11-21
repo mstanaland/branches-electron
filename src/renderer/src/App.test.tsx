@@ -26,6 +26,7 @@ const api = vi.hoisted(() => ({
   listCommitFiles: vi.fn<RendererApi['listCommitFiles']>(),
   getCommitFileDiff: vi.fn<RendererApi['getCommitFileDiff']>(),
   setActiveRepository: vi.fn<RendererApi['setActiveRepository']>(),
+  cancelGenerate: vi.fn<RendererApi['cancelGenerate']>(),
   fetchRepository: vi.fn<RendererApi['fetchRepository']>(),
   pullRepository: vi.fn<RendererApi['pullRepository']>(),
   pushRepository: vi.fn<RendererApi['pushRepository']>(),
@@ -134,6 +135,7 @@ beforeEach(() => {
   api.setTabCount.mockResolvedValue(undefined)
   api.onRemoteRefsChanged.mockReturnValue(() => {})
   api.setActiveRepository.mockResolvedValue(undefined)
+  api.cancelGenerate.mockResolvedValue(undefined)
   api.fetchRepository.mockResolvedValue(undefined)
   api.pullRepository.mockResolvedValue(undefined)
   api.pushRepository.mockResolvedValue(undefined)

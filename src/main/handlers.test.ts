@@ -1,8 +1,9 @@
 import { mkdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
-import type { SavedRepository } from '../shared/git'
+import type { CommitMessage, SavedRepository } from '../shared/git'
 import { MAX_TABS } from '../shared/tabs'
+import { ClaudeError } from './claude'
 import { createHandlers, type HandlerDeps } from './handlers'
 import type { BranchMenuTarget } from './menu'
 import { createRepositoryStore } from './repositoryStore'
@@ -22,7 +23,14 @@ const dismissed = {
   confirmRemoval: async () => false,
   showBranchMenu: async () => null,
   setActiveRepository: () => {},
-  setTabCount: () => {}
+  setTabCount: () => {},
+  generator: {
+    generate: async () => {
+      throw new Error('generate was not expected in this test')
+    },
+    cancel: () => {}
+  },
+  showGenerateError: async () => {}
 }
 
 let storeDir = ''
@@ -32,12 +40,16 @@ beforeAll(async () => {
 })
 
 /** Handlers whose folder picker "chooses" the given folder, or cancels when given null. */
-function handlersChoosing(folder: string | null): ReturnType<typeof createHandlers> {
+function handlersChoosing(
+  folder: string | null,
+  overrides: Partial<HandlerDeps> = {}
+): ReturnType<typeof createHandlers> {
   const filePath = join(storeDir, `repositories-${storeCount++}.json`)
   return createHandlers({
     pickFolder: async () => folder,
     store: createRepositoryStore({ filePath }),
-    ...dismissed
+    ...dismissed,
+    ...overrides
   })
 }
 
@@ -1047,5 +1059,125 @@ describe('getCommitFileDiff', () => {
     await expect(
       handlersChoosing(null).getCommitFileDiff(repo.root, oid, 'README.md', null)
     ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+  })
+})
+
+/** A generator that answers with `answer`, or fails with it, and records what it was asked. */
+function fakeGenerator(answer: CommitMessage | ClaudeError) {
+  const calls: { root: string; draft: CommitMessage }[] = []
+  const cancelled: string[] = []
+  return {
+    calls,
+    cancelled,
+    generate: async (root: string, draft: CommitMessage) => {
+      calls.push({ root, draft })
+      if (answer instanceof ClaudeError) throw answer
+      return answer
+    },
+    cancel: (root: string) => {
+      cancelled.push(root)
+    }
+  }
+}
+
+async function openWith(overrides: Partial<HandlerDeps>) {
+  const repo = await createRepoWithCommit()
+  const handlers = handlersChoosing(repo.root, overrides)
+  await handlers.openRepository()
+  return { repo, handlers }
+}
+
+describe('generateCommitMessage and cancelGenerate', () => {
+  const DRAFT = { subject: 'typed so far', description: '' }
+
+  it('writes a message for an open repository, with the draft as guidance', async () => {
+    const generator = fakeGenerator({ subject: 'Add a thing', description: 'Because.' })
+    const { repo, handlers } = await openWith({ generator })
+
+    await expect(handlers.generateCommitMessage(repo.root, DRAFT)).resolves.toEqual({
+      subject: 'Add a thing',
+      description: 'Because.'
+    })
+    expect(generator.calls).toEqual([{ root: repo.root, draft: DRAFT }])
+  })
+
+  it('refuses a repository that was not opened, before running anything', async () => {
+    const repo = await createRepoWithCommit()
+    const generator = fakeGenerator({ subject: 'S', description: '' })
+
+    await expect(
+      handlersChoosing(null, { generator }).generateCommitMessage(repo.root, DRAFT)
+    ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+    expect(generator.calls).toEqual([])
+  })
+
+  it('refuses a draft that is not a subject and a description', async () => {
+    const generator = fakeGenerator({ subject: 'S', description: '' })
+    const { repo, handlers } = await openWith({ generator })
+    const notADraft = { subject: 42 } as unknown as CommitMessage
+
+    await expect(handlers.generateCommitMessage(repo.root, notADraft)).rejects.toMatchObject({
+      code: 'INVALID_DRAFT'
+    })
+    expect(generator.calls).toEqual([])
+  })
+
+  it('shows a failure in the error sheet, then still fails with its code', async () => {
+    const shown: string[] = []
+    const { repo, handlers } = await openWith({
+      generator: fakeGenerator(new ClaudeError('CLAUDE_NOT_FOUND', 'Claude Code isn’t installed.')),
+      showGenerateError: async (message) => {
+        shown.push(message)
+      }
+    })
+
+    await expect(handlers.generateCommitMessage(repo.root, DRAFT)).rejects.toMatchObject({
+      code: 'CLAUDE_NOT_FOUND'
+    })
+    expect(shown).toEqual(['Claude Code isn’t installed.'])
+  })
+
+  it('shows no sheet when the user stopped it', async () => {
+    const shown: string[] = []
+    const { repo, handlers } = await openWith({
+      generator: fakeGenerator(new ClaudeError('GENERATE_CANCELLED', 'Generate was stopped.')),
+      showGenerateError: async (message) => {
+        shown.push(message)
+      }
+    })
+
+    await expect(handlers.generateCommitMessage(repo.root, DRAFT)).rejects.toMatchObject({
+      code: 'GENERATE_CANCELLED'
+    })
+    expect(shown).toEqual([])
+  })
+
+  it('stops a repository’s run when it is removed from the list', async () => {
+    const generator = fakeGenerator({ subject: 'S', description: '' })
+    const { repo, handlers } = await openWith({ generator })
+
+    await handlers.removeRepository(repo.root)
+
+    expect(generator.cancelled).toEqual([repo.root])
+  })
+
+  it('fails without waiting for the error sheet to be dismissed', async () => {
+    const { repo, handlers } = await openWith({
+      generator: fakeGenerator(new ClaudeError('CLAUDE_FAILED', 'Claude Code couldn’t…')),
+      showGenerateError: () => new Promise(() => {})
+    })
+
+    await expect(handlers.generateCommitMessage(repo.root, DRAFT)).rejects.toMatchObject({
+      code: 'CLAUDE_FAILED'
+    })
+  })
+
+  it('stops an open repository’s run', async () => {
+    const generator = fakeGenerator({ subject: 'S', description: '' })
+    const { repo, handlers } = await openWith({ generator })
+
+    await handlers.cancelGenerate(repo.root)
+
+    expect(generator.cancelled).toEqual([repo.root])
   })
 })

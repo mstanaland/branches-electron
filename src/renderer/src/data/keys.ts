@@ -11,6 +11,12 @@ export const keys = {
   publish: (root: string) => ['repository', root, 'publish'] as const,
   /** A refresh of one repository, as a mutation key, so its control can see one in flight. */
   refresh: (root: string) => ['repository', root, 'refresh'] as const,
+  /**
+   * A **Generate** run for one repository, as a mutation key, so the commit form finds a run
+   * that started before it last mounted. Not under `repository(root)`: it is not a git
+   * operation, and the in-progress bar has no business showing it.
+   */
+  generate: (root: string) => ['generate', root] as const,
   /** Everything cached for one repository (status, branches, diffs), for invalidating it all. */
   repository: (root: string) => ['repository', root] as const,
   status: (root: string) => ['repository', root, 'status'] as const,

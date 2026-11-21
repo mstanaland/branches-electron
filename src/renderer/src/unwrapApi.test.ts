@@ -22,6 +22,8 @@ function bridgeReturning(result: unknown): BranchesApi {
     stageFiles: respond,
     unstageFiles: respond,
     commit: respond,
+    generateCommitMessage: respond,
+    cancelGenerate: respond,
     setActiveRepository: respond,
     fetchRepository: respond,
     pullRepository: respond,

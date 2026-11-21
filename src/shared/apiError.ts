@@ -14,6 +14,11 @@ export type ApiErrorCode =
   | 'INVALID_PATH'
   | 'INVALID_REF'
   | 'INVALID_TAB_COUNT'
+  | 'INVALID_DRAFT'
+  | 'CLAUDE_NOT_FOUND'
+  | 'CLAUDE_FAILED'
+  | 'GENERATE_TIMED_OUT'
+  | 'GENERATE_CANCELLED'
   | 'UNKNOWN'
 
 /** A failure from the main process, in a form that survives crossing IPC. */

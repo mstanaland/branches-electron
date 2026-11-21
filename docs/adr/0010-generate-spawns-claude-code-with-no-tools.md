@@ -1,0 +1,17 @@
+# Generate spawns the user's Claude Code, with no tools, on a diff Branches reads
+
+**Generate** writes the **draft** by running the user's installed `claude` CLI in print mode (`claude -p --output-format json --json-schema … --model haiku --tools "" --no-session-persistence`), so it runs on the user's own Claude Code login and Branches holds no API key. Branches reads the context itself through `src/main/git/`: the staged diff, capped at about 100 KB with a note when cut, and recent commit subjects as style examples. It sends them on stdin, along with whatever the draft already holds as guidance. Claude Code gets no tools at all. It also runs with its own system prompt, from the temp folder rather than the repository, with only the user's settings (`--setting-sources user`) and no MCP servers (`--strict-mcp-config`), so no project's CLAUDE.md, hooks or servers join in. This is the second kind of process the main process spawns, so it lives in `src/main/claude/` under the same rules as the git layer: `execFile` with an argument array, async only, and a typed error. Nothing from the user or the renderer is ever run by a shell; the one shell involved is described under Consequences. Don't "simplify" it by letting Claude run `git diff` itself.
+
+## Considered Options
+
+- **The Claude Agent SDK** (`@anthropic-ai/claude-agent-sdk`): typed, but a new dependency that still drives the same CLI underneath. Rejected because spawning the CLI does the job with nothing added.
+- **Calling the Anthropic API directly**: needs an API key the user would have to create and Branches would have to store. Rejected because the point is to use the login the user already has.
+- **Letting Claude Code read the changes itself**, with Bash allowed for `git diff`, `git log` and `git show`: simpler prompt, and Claude pages through large diffs on its own. Rejected because it takes several model turns instead of one. Claude's git calls also skip `--no-optional-locks`, so they can take `index.lock` from under Stage and Commit. A hostile staged file could try to steer a model that holds a shell. And Claude might read unstaged changes too. With no tools, the worst a hostile diff can do is a bad message.
+- **`--bare`**: skips hooks, plugins and CLAUDE.md, but also skips keychain reads, which is where the user's login lives. Rejected.
+
+## Consequences
+
+- `AGENTS.md`'s "nothing else spawns processes" now names `src/main/claude/` as the one other place that does.
+- An app launched from Finder doesn't inherit the shell's `PATH`, so main looks for `claude` in the usual install locations, then asks the user's login shell. That is the single place a shell runs: `$SHELL -i -l -c 'command -v claude'`, a fixed string with nothing interpolated, and only an absolute, executable path in its answer is believed. `BRANCHES_CLAUDE_PATH` overrides the lookup, like `BRANCHES_GIT_PATH` does for git. A missing binary, a missing login, a failed run or the 60-second timeout all reach the user as a native warning sheet (ADR-0003), shown by main without waiting for it to be dismissed, never as a change to the form's layout.
+- The staged diff leaves the machine for Anthropic through Claude Code. Pressing Generate is the consent; there is no separate prompt.
+- A run belongs to its **repository tab**, not to the commit form. It survives switching to History and back, and its answer lands in the **draft** even when the form isn't mounted. It stops when its tab leaves the front, when the tab closes, or when the repository is removed from the list.
