@@ -6,8 +6,9 @@ import { keys } from './keys'
 
 /**
  * Re-reads what a fetch — background or manual — can have changed: the branches, the
- * current branch's ahead/behind counts in status, and the publish target, since a prune can
- * leave an upstream **gone** and a fetch can bring a remote branch Publish should mention.
+ * current branch's ahead/behind counts in status, the publish target, since a prune can
+ * leave an upstream **gone** and a fetch can bring a remote branch Publish should mention, and
+ * which commits are **unpushed**.
  * Diffs come from the work tree and the index, which a fetch never touches. One rule, in one
  * place, for every caller — a push and a publish move exactly the same refs.
  */
@@ -15,7 +16,9 @@ export async function invalidateAfterFetch(client: QueryClient, root: string): P
   await Promise.all([
     client.invalidateQueries({ queryKey: keys.branches(root) }),
     client.invalidateQueries({ queryKey: keys.status(root) }),
-    client.invalidateQueries({ queryKey: keys.publishTarget(root) })
+    client.invalidateQueries({ queryKey: keys.publishTarget(root) }),
+    // Remote-tracking refs are what a commit is judged unpushed against.
+    client.invalidateQueries({ queryKey: keys.unpushedOfAny(root) })
   ])
 }
 

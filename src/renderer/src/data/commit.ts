@@ -37,7 +37,9 @@ export function useCommit(root: string) {
         // Every ref under this root is invalidated rather than working out which one that
         // was: the ones not on screen refetch lazily, and the branch's history is a prefix
         // key away.
-        queryClient.invalidateQueries({ queryKey: keys.commitsOfAny(root) })
+        queryClient.invalidateQueries({ queryKey: keys.commitsOfAny(root) }),
+        // And it is unpushed until the next push.
+        queryClient.invalidateQueries({ queryKey: keys.unpushedOfAny(root) })
       ])
     }
   })

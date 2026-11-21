@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef } from 'react'
 import type { KeyboardEvent } from 'react'
+import { CloudUploadIcon } from 'lucide-react'
 import { MAX_LANES, buildCommitGraph, outEdgeColorLane } from '../../../shared/commitGraph'
 import type { CommitGraphRow } from '../../../shared/commitGraph'
 import type { Commit } from '../../../shared/git'
-import { describeError, useCommits, useSelection } from '../data'
-import { EmptyState, Pending } from '../ui'
+import { describeError, useCommits, useSelection, useUnpushedCommits } from '../data'
+import { EmptyState, Pending, Tooltip } from '../ui'
 import shared from './shared.module.css'
 import styles from './CommitHistory.module.css'
 
@@ -101,6 +102,7 @@ function CommitRow({
   row,
   laneCount,
   selected,
+  unpushed,
   tabStop,
   onSelect,
   onKeyDown
@@ -109,6 +111,7 @@ function CommitRow({
   row: CommitGraphRow
   laneCount: number
   selected: boolean
+  unpushed: boolean
   tabStop: boolean
   onSelect: () => void
   onKeyDown: (event: KeyboardEvent<HTMLLIElement>) => void
@@ -127,8 +130,19 @@ function CommitRow({
       <div className={styles.rowContent}>
         <GraphCell row={row} laneCount={laneCount} />
         <div className={styles.details}>
-          <div className={styles.line}>
+          <div className={`${styles.line} ${styles.subjectLine}`}>
             <span className={styles.subject}>{commit.subject}</span>
+            {/* The slot is there on every row, so subjects truncate at one width whether or
+                not the icon is in it. */}
+            <span className={styles.unpushedSlot}>
+              {unpushed && (
+                <Tooltip content="Not pushed">
+                  <span role="img" aria-label="Not pushed" className={styles.unpushed}>
+                    <CloudUploadIcon size={16} aria-hidden="true" />
+                  </span>
+                </Tooltip>
+              )}
+            </span>
           </div>
           <div className={styles.line}>
             <span className={styles.authorAndId}>
@@ -164,6 +178,9 @@ export function CommitHistory({
   commitRef: string
 }): React.JSX.Element | null {
   const commits = useCommits(root, commitRef)
+  // Read beside the history, not inside it: a push changes this and nothing on the pages.
+  // Until it lands, or if it fails, rows simply show no icon.
+  const unpushed = useUnpushedCommits(root, commitRef).data
   const { fetchNextPage, hasNextPage, isFetchingNextPage } = commits
 
   const listed = useMemo(() => commits.data?.pages.flat() ?? [], [commits.data])
@@ -261,6 +278,7 @@ export function CommitHistory({
               row={graph.rows[index]}
               laneCount={graph.laneCount}
               selected={commit.oid === selectedOid}
+              unpushed={unpushed?.has(commit.oid) ?? false}
               tabStop={index === tabStopIndex}
               onSelect={() => setSelectedOid(commit.oid)}
               onKeyDown={onKeyDown(index)}

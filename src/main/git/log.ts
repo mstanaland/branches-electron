@@ -42,7 +42,7 @@ export async function listCommits(
 }
 
 /** Whether `ref` names a commit. False in a repository with no commits. */
-async function resolves(root: string, ref: string): Promise<boolean> {
+export async function resolves(root: string, ref: string): Promise<boolean> {
   try {
     // `^{commit}` so a tag or a tree can't come back as something the log can't walk.
     await runGit(root, ['rev-parse', '--verify', '--quiet', `${ref}^{commit}`])

@@ -56,6 +56,10 @@
     fill: var(--color-bg);
   }
 
+  .unpushed {
+    color: var(--color-accent-text);
+  }
+
   .author,
   .date,
   .oid {
@@ -144,9 +148,26 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: 13px;
-  padding-right: 32px;
   line-height: 20px;
   font-weight: 500;
+}
+
+/* The subject's line: 16px between the subject and the icon slot, which is held open on every
+   row and ends flush with the date below. */
+.subjectLine {
+  align-items: center;
+  gap: 16px;
+}
+
+.unpushedSlot {
+  flex: none;
+  width: 16px;
+  height: 16px;
+}
+
+.unpushed {
+  display: flex;
+  color: var(--color-accent);
 }
 
 /* Watched to load the next page; nothing is drawn. */

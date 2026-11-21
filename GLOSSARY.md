@@ -1,4 +1,4 @@
-# Branches
+# Branches App
 
 A Mac git client: a GUI for viewing and changing the state of git repositories on the user's machine.
 
@@ -262,6 +262,13 @@ _Avoid_: No branch, headless
 **Commit**:
 One commit reachable from a branch. It has a **commit subject**, an author, a date and a **short oid**, and one parent — or several, which makes it a **merge**. It also has a committer, who made the commit from the author's work: usually the author, but not always — a squash merge on a hosting service is committed by the service.
 _Avoid_: Revision, changeset, SHA (for the commit itself)
+
+**Unpushed commit**:
+A commit no remote-tracking branch reaches: pushing would be the first time any **remote** has
+it. Judged against every remote, not just the branch's **upstream**, so a new branch only counts
+the commits made since it left a pushed one. Until the repository has a **remote** with at
+least one branch fetched from it, no commit is called unpushed.
+_Avoid_: Local-only commit, unpublished commit, outgoing commit
 
 **Short oid**:
 The first eight characters of a commit's object id, always eight. Git's own abbreviation varies in length by repository; this one doesn't, so the same commit reads the same everywhere in the app.

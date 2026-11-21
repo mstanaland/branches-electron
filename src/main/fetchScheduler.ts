@@ -21,8 +21,8 @@ export interface FetchScheduler {
   setActiveRepository: (root: string | null) => void
   /** Whether the window has focus. A background app makes no network calls. */
   setFocused: (focused: boolean) => void
-  /** Cancels everything pending. A fetch already in flight is left to finish, and ignored. */
-  stop: () => void
+  /** Cancels pending ticks immediately and resolves when any in-flight tick finishes. */
+  stop: () => Promise<void>
 }
 
 /**
@@ -42,7 +42,7 @@ export function createFetchScheduler(deps: FetchSchedulerDeps): FetchScheduler {
 
   let activeRoot: string | null = null
   let focused = false
-  let fetching = false
+  let inFlight: Promise<void> | null = null
   let timer: ReturnType<typeof setTimeout> | null = null
   let consecutiveFailures = 0
   let lastAttemptAt: number | null = null
@@ -62,21 +62,24 @@ export function createFetchScheduler(deps: FetchSchedulerDeps): FetchScheduler {
 
   function scheduleNext(): void {
     cancelTimer()
-    if (activeRoot === null || !focused || fetching || remoteless.has(activeRoot)) return
+    if (activeRoot === null || !focused || inFlight || remoteless.has(activeRoot)) return
     // Measured from the last attempt, so switching apps repeatedly doesn't fetch repeatedly.
     const wait =
       lastAttemptAt === null ? 0 : Math.max(0, lastAttemptAt + currentDelayMs() - Date.now())
     timer = setTimeout(() => {
       timer = null
-      void tick()
+      inFlight = tick().finally(() => {
+        inFlight = null
+        // Re-read the target in case a different repository became active during this tick.
+        scheduleNext()
+      })
     }, wait)
   }
 
   async function tick(): Promise<void> {
     const root = activeRoot
-    if (root === null || !focused || fetching) return
+    if (root === null || !focused) return
     const mine = generation
-    fetching = true
     lastAttemptAt = Date.now()
     try {
       if (!(await hasRemoteNow(root))) return
@@ -86,11 +89,6 @@ export function createFetchScheduler(deps: FetchSchedulerDeps): FetchScheduler {
     } catch {
       // Offline, no credentials, a remote that is gone: all quiet, all backed off.
       consecutiveFailures += 1
-    } finally {
-      fetching = false
-      // Unconditionally: `scheduleNext` re-reads the active repository and focus itself, and
-      // skipping it here would strand a repository that became active during this fetch.
-      scheduleNext()
     }
   }
 
@@ -123,6 +121,7 @@ export function createFetchScheduler(deps: FetchSchedulerDeps): FetchScheduler {
       generation += 1
       activeRoot = null
       cancelTimer()
+      return inFlight ?? Promise.resolve()
     }
   }
 }

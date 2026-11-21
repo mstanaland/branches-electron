@@ -22,6 +22,7 @@ const api = vi.hoisted(() => ({
   getStatus: vi.fn<RendererApi['getStatus']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listCommits: vi.fn<RendererApi['listCommits']>(),
+  listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>(),
   getCommitDetails: vi.fn<RendererApi['getCommitDetails']>(),
   listCommitFiles: vi.fn<RendererApi['listCommitFiles']>(),
   getCommitFileDiff: vi.fn<RendererApi['getCommitFileDiff']>(),
@@ -145,6 +146,7 @@ beforeEach(() => {
   )
   api.listBranches.mockResolvedValue([])
   api.listCommits.mockResolvedValue([])
+  api.listUnpushedCommits.mockResolvedValue([])
   api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta'), repo('gamma')])
   api.getStatus.mockImplementation(async (root) => status(`${root.split('/').pop()}-main`))
 })

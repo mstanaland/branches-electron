@@ -35,6 +35,7 @@ import {
   getStatus,
   listCommitFiles,
   listCommits,
+  listUnpushedCommits,
   publishBranch,
   pullFastForward,
   pushBranch,
@@ -81,6 +82,7 @@ export interface Handlers {
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
+  listUnpushedCommits: (root: string, ref: string) => Promise<string[]>
   getCommitDetails: (root: string, oid: string) => Promise<CommitDetails>
   listCommitFiles: (root: string, oid: string) => Promise<CommitFile[]>
   getCommitFileDiff: (
@@ -263,6 +265,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       await assertOpen(root)
       await assertRef(root, ref)
       return listCommits(root, ref, assertCount(limit, 'limit'), assertCount(skip, 'skip'))
+    },
+    async listUnpushedCommits(root, ref) {
+      await assertOpen(root)
+      await assertRef(root, ref)
+      return listUnpushedCommits(root, ref)
     },
     async getCommitDetails(root, oid) {
       await assertOpen(root)

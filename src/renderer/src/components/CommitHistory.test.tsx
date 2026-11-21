@@ -7,7 +7,8 @@ import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
 
 const api = vi.hoisted(() => ({
-  listCommits: vi.fn<RendererApi['listCommits']>()
+  listCommits: vi.fn<RendererApi['listCommits']>(),
+  listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>()
 }))
 vi.mock('../api', () => ({ api }))
 
@@ -34,8 +35,9 @@ function commit(seed: string, overrides: Partial<Commit> = {}): Commit {
   }
 }
 
-function show(commits: Commit[], ref = 'main'): void {
+function show(commits: Commit[], ref = 'main', unpushed: string[] = []): void {
   api.listCommits.mockResolvedValue(commits)
+  api.listUnpushedCommits.mockResolvedValue(unpushed)
   renderWithProviders(<CommitHistory root={ROOT} commitRef={ref} />, { tabs: [ROOT] })
 }
 
@@ -87,6 +89,30 @@ describe('the list', () => {
     const row = await screen.findByRole('option')
     // The row is still there and still readable; only the date is missing.
     expect(within(row).getByText('Subject aaa')).toBeTruthy()
+  })
+})
+
+describe('unpushed commits', () => {
+  it('marks only the unpushed commits, in their subject line', async () => {
+    show([commit('aaa'), commit('bbb')], 'main', [oidOf('aaa')])
+
+    const [unpushed, pushed] = await screen.findAllByRole('option')
+    expect(await within(unpushed).findByRole('img', { name: 'Not pushed' })).toBeTruthy()
+    expect(within(pushed).queryByRole('img', { name: 'Not pushed' })).toBeNull()
+    expect(api.listUnpushedCommits).toHaveBeenCalledWith(ROOT, 'main')
+  })
+
+  it('marks nothing when reading them fails, and still lists the history', async () => {
+    api.listCommits.mockResolvedValue([commit('aaa')])
+    api.listUnpushedCommits.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'git said no' })
+    )
+    renderWithProviders(<CommitHistory root={ROOT} commitRef="main" />, { tabs: [ROOT] })
+
+    const row = await screen.findByRole('option')
+    await waitFor(() => expect(api.listUnpushedCommits).toHaveBeenCalled())
+    expect(within(row).queryByRole('img', { name: 'Not pushed' })).toBeNull()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 })
 

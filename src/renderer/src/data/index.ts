@@ -34,7 +34,8 @@ export {
   useDiff,
   usePublishTarget,
   useRepositories,
-  useStatus
+  useStatus,
+  useUnpushedCommits
 } from './queries'
 export { useConfirmRemoveMissing, useRepositoryMenu } from './removal'
 export { useTabMenu } from './tabMenu'
