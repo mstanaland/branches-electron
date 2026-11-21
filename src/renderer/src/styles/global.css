@@ -1,4 +1,4 @@
-/* @import './geist/geist.css'; */
+@import './geist/geist.css';
 @import './geist-mono/geist-mono.css';
 @import './inter/inter.css';
 @import './reset.css';
@@ -6,8 +6,20 @@
 :root {
   color-scheme: light dark;
   font-size: 13px;
-  font-family: 'Geist', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
   -webkit-font-smoothing: antialiased;
+
+  --color-burgundy-50: oklch(0.863 0.039 9.644);
+  --color-burgundy-100: oklch(0.783 0.067 9.644);
+  --color-burgundy-200: oklch(0.703 0.1 9.644);
+  --color-burgundy-300: oklch(0.623 0.128 9.644);
+  --color-burgundy-400: oklch(0.543 0.112 9.644);
+  --color-burgundy-500: oklch(0.463 0.095 9.644);
+  --color-burgundy-600: oklch(0.383 0.079 9.644);
+  --color-burgundy-700: oklch(0.303 0.062 9.644);
+  --color-burgundy-800: oklch(0.223 0.046 9.644);
+  --color-burgundy-900: oklch(0.143 0.029 9.644);
+  --color-burgundy-950: oklch(0.063 0.013 9.644);
 
   --color-bg: #fbfbfb;
   /* The window chrome above the columns: the title bar and the tab strip. The focused tab
@@ -17,7 +29,8 @@
   --color-border: #d4d4d4;
   --color-text: #171717;
   --color-text-muted: #666;
-  --color-accent: oklch(62.3% 0.214 259.815);
+  --color-text-faint: #999;
+  --color-accent: var(--color-burgundy-500);
   --color-accent-text: #ffffff;
   --color-hover: rgba(0, 0, 0, 0.06);
   --color-danger: #c4271b;
