@@ -1,0 +1,39 @@
+name: PR checks
+
+on: pull_request
+
+permissions:
+  contents: read
+
+concurrency:
+  group: pr-checks-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    name: ${{ matrix.check }}
+    runs-on: macos-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        check: [Unit tests, Lint & format, Type check]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/setup@v3.2.0
+        id: setup
+        with:
+          runtime: node@24
+          require-lockfile: true
+          cache: true
+      - name: Run unit tests
+        if: matrix.check == 'Unit tests'
+        run: pnpm test:run
+      - name: Lint
+        if: matrix.check == 'Lint & format'
+        run: pnpm lint
+      - name: Check formatting
+        if: ${{ !cancelled() && matrix.check == 'Lint & format' && steps.setup.outcome == 'success' }}
+        run: pnpm format:check
+      - name: Type check
+        if: matrix.check == 'Type check'
+        run: pnpm typecheck
