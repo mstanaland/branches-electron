@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef } from 'react'
-import { describeError, useCommit, useDraft } from '../data'
+import { LoaderCircle, Sparkles } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { describeError, useCommit, useDraft, useGenerateCommitMessage } from '../data'
 import type { StageAll } from '../data'
 import { Button, Kbd, TextField, Tooltip } from '../ui'
 import shared from './shared.module.css'
@@ -37,12 +38,22 @@ export function CommitForm({
 }: CommitFormProps): React.JSX.Element {
   const { draft, setSubject, setDescription, setExpanded, clear } = useDraft(root)
   const commit = useCommit(root)
+  const generation = useGenerateCommitMessage(root)
   const formRef = useRef<HTMLFormElement>(null)
+  const subjectRef = useRef<HTMLElement>(null)
   const descriptionRef = useRef<HTMLElement>(null)
 
+  const generating = generation.isPending
   const hasSubject = draft.subject.trim() !== ''
   // Each reason the Commit button is dead, in the order the user can act on them.
-  const reason = !hasStaged ? 'Nothing is staged' : !hasSubject ? 'Add a subject' : null
+  // While Generate runs the fields are locked, so that comes first: nothing else is actionable.
+  const reason = generating
+    ? 'Generating a commit message'
+    : !hasStaged
+      ? 'Nothing is staged'
+      : !hasSubject
+        ? 'Add a subject'
+        : null
   const canCommit = reason === null && !commit.isPending
   const error = describeError(commit.error)
 
@@ -89,6 +100,25 @@ export function CommitForm({
     [collapseIfEmpty]
   )
 
+  // Bumped when Generate fills the draft. The subject is focused and selected once that text
+  // has rendered, so the selection covers the new subject rather than the old one.
+  const [generatedCount, setGeneratedCount] = useState(0)
+  useEffect(() => {
+    if (generatedCount === 0) return
+    const field = subjectRef.current
+    if (!(field instanceof HTMLInputElement)) return
+    field.focus()
+    field.select()
+  }, [generatedCount])
+
+  const runGenerate = useCallback(() => {
+    if (!hasStaged || generating) return
+    // The answer goes into the draft store either way; this re-renders to show it and select it.
+    generation.generate({ subject: draft.subject, description: draft.description }, () =>
+      setGeneratedCount((count) => count + 1)
+    )
+  }, [hasStaged, generating, generation, draft.subject, draft.description])
+
   const runCommit = useCallback(() => {
     if (!canCommit) return
     commit.mutate(
@@ -121,8 +151,11 @@ export function CommitForm({
       }}
     >
       <TextField
+        ref={subjectRef}
         label="Commit subject"
         placeholder="Subject"
+        // Locked while Generate runs, so its answer never lands on top of fresh typing.
+        readOnly={generating}
         value={draft.subject}
         onValueChange={setSubject}
         onFocus={() => setExpanded(true)}
@@ -140,9 +173,35 @@ export function CommitForm({
           rows={3}
           label="Commit description"
           placeholder="Description"
+          readOnly={generating}
           value={draft.description}
           onValueChange={setDescription}
         />
+      )}
+      {draft.expanded && (
+        <div className={styles.generate}>
+          {generating ? (
+            <>
+              <Button onClick={generation.stop}>Stop</Button>
+              <span role="status" className={styles.generating}>
+                <LoaderCircle className={shared.spinner} />
+                Generating…
+              </span>
+            </>
+          ) : (
+            <Tooltip content={hasStaged ? null : 'Nothing is staged'}>
+              <Button
+                onClick={runGenerate}
+                disabled={!hasStaged}
+                // Disabled, it is the only thing that can explain why, so it stays reachable.
+                focusableWhenDisabled
+              >
+                <Sparkles />
+                Generate
+              </Button>
+            </Tooltip>
+          )}
+        </div>
       )}
       <div className={styles.actions}>
         {stageAll && <Button onClick={stageAll.run}>{stageAll.label}</Button>}

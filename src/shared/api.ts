@@ -6,6 +6,7 @@ import type {
   Commit,
   CommitDetails,
   CommitFile,
+  CommitMessage,
   FileDiff,
   PublishTarget,
   RepositoryStatus,
@@ -110,6 +111,19 @@ export interface BranchesApi {
    * repository or one the user opened this session.
    */
   commit: (root: string, message: string) => Promise<ApiResult<void>>
+  /**
+   * **Generate**: asks the user's own Claude Code to write a commit subject and description for
+   * what is staged in `root`, with `draft` — whatever the form already holds — as guidance.
+   * Starting one stops any run already going for `root`.
+   *
+   * A failure is shown to the user in a native warning sheet before this resolves, so the
+   * renderer only needs the code: `CLAUDE_NOT_FOUND`, `CLAUDE_FAILED` (with what Claude Code
+   * said), `GENERATE_TIMED_OUT` after 60 seconds, or `GENERATE_CANCELLED` — no sheet — when
+   * `cancelGenerate` stopped it. `root` must be a saved repository or one opened this session.
+   */
+  generateCommitMessage: (root: string, draft: CommitMessage) => Promise<ApiResult<CommitMessage>>
+  /** Stops `root`'s **Generate** run, if one is going. Same `root` rule. */
+  cancelGenerate: (root: string) => Promise<ApiResult<void>>
   /**
    * Switches to an existing local branch. Fails with `CHECKOUT_BLOCKED_BY_CHANGES`, whose
    * `files` lists what stands in the way, when local changes would be overwritten.

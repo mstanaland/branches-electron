@@ -11,6 +11,7 @@ import { TitleBar } from './components/TitleBar'
 import {
   MIN_COLUMN_WIDTHS,
   useBackgroundFetch,
+  useStopGenerateBehindTabs,
   useColumnWidths,
   useOpenRepository,
   useRepositories,
@@ -73,6 +74,7 @@ function App(): React.JSX.Element {
   // not whatever tab is in front.
   useTabMenu()
   useBackgroundFetch()
+  useStopGenerateBehindTabs()
   const columns = useColumnWidths()
   const [bodyRef, bodyWidth] = useElementWidth<HTMLDivElement>()
   const [splitRef, splitWidth] = useElementWidth<HTMLDivElement>()

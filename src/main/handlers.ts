@@ -7,6 +7,7 @@ import type {
   Commit,
   CommitDetails,
   CommitFile,
+  CommitMessage,
   FileDiff,
   PublishTarget,
   RepositoryStatus,
@@ -15,6 +16,7 @@ import type {
 import { assertRelativePath } from '../shared/path'
 import { isTabCount } from '../shared/tabs'
 import { assertInsideRoot } from './assertInsideRoot'
+import { ClaudeError, type CommitMessageGenerator } from './claude'
 import {
   checkoutBranch,
   commit,
@@ -64,6 +66,10 @@ export interface HandlerDeps {
    * around it.
    */
   setTabCount: (count: number) => void
+  /** Runs **Generate**, one run per repository. */
+  generator: CommitMessageGenerator
+  /** Tells the user why **Generate** failed, in a native warning sheet. */
+  showGenerateError: (message: string) => Promise<void>
 }
 
 export interface Handlers {
@@ -87,6 +93,8 @@ export interface Handlers {
   stageFiles: (root: string, paths: readonly string[]) => Promise<void>
   unstageFiles: (root: string, paths: readonly string[]) => Promise<void>
   commit: (root: string, message: string) => Promise<void>
+  generateCommitMessage: (root: string, draft: CommitMessage) => Promise<CommitMessage>
+  cancelGenerate: (root: string) => Promise<void>
   setActiveRepository: (root: string | null) => Promise<void>
   fetchRepository: (root: string) => Promise<void>
   pullRepository: (root: string) => Promise<void>
@@ -137,6 +145,32 @@ function assertFullOid(oid: string): void {
   }
 }
 
+const MAX_DRAFT_LENGTH = 64 * 1024
+
+function isDraftText(value: unknown): value is string {
+  return typeof value === 'string' && value.length <= MAX_DRAFT_LENGTH
+}
+
+/**
+ * A draft off IPC. It only becomes part of Claude Code's prompt, never a git argument, but it is
+ * still checked to be what it claims, and kept to a size a commit message could be.
+ */
+function assertDraft(draft: unknown): asserts draft is CommitMessage {
+  if (
+    typeof draft !== 'object' ||
+    draft === null ||
+    !('subject' in draft) ||
+    !('description' in draft) ||
+    !isDraftText(draft.subject) ||
+    !isDraftText(draft.description)
+  ) {
+    throw new ApiError({
+      code: 'INVALID_DRAFT',
+      message: 'That isn’t a commit subject and description.'
+    })
+  }
+}
+
 /** Paging numbers off IPC: they go into git arguments, so they must really be numbers. */
 function assertCount(value: number, name: string): number {
   if (!Number.isSafeInteger(value) || value < 0) {
@@ -179,6 +213,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       })
     }
     if (!(await ask(repository))) return false
+    deps.generator.cancel(root)
     openRoots.delete(root)
     await deps.store.remove(root)
     return true
@@ -210,6 +245,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     },
     listRepositories: () => deps.store.list(),
     removeRepository: async (root) => {
+      deps.generator.cancel(root)
       openRoots.delete(root)
       await deps.store.remove(root)
     },
@@ -266,6 +302,28 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async commit(root, message) {
       await assertOpen(root)
       await commit(root, message)
+    },
+    async generateCommitMessage(root, draft) {
+      await assertOpen(root)
+      assertDraft(draft)
+      try {
+        return await deps.generator.generate(root, {
+          subject: draft.subject,
+          description: draft.description
+        })
+      } catch (error) {
+        // The sheet, not the form, says what went wrong, so the form's layout never shifts.
+        // Stop is the user's own doing and needs no explaining.
+        if (!(error instanceof ClaudeError && error.code === 'GENERATE_CANCELLED')) {
+          // Not awaited: the form unlocks now, rather than once the sheet is dismissed.
+          void deps.showGenerateError(error instanceof Error ? error.message : String(error))
+        }
+        throw error
+      }
+    },
+    async cancelGenerate(root) {
+      await assertOpen(root)
+      deps.generator.cancel(root)
     },
     async setActiveRepository(root) {
       // null is always allowed: it only stops background work.

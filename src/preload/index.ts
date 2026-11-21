@@ -49,6 +49,9 @@ const api: WindowApi = {
   stageFiles: (root, paths) => ipcRenderer.invoke('repository:stage', root, paths),
   unstageFiles: (root, paths) => ipcRenderer.invoke('repository:unstage', root, paths),
   commit: (root, message) => ipcRenderer.invoke('repository:commit', root, message),
+  generateCommitMessage: (root, draft) =>
+    ipcRenderer.invoke('repository:generate-commit-message', root, draft),
+  cancelGenerate: (root) => ipcRenderer.invoke('repository:cancel-generate', root),
   setActiveRepository: (root) => ipcRenderer.invoke('repository:set-active', root),
   fetchRepository: (root) => ipcRenderer.invoke('repository:fetch', root),
   pullRepository: (root) => ipcRenderer.invoke('repository:pull', root),

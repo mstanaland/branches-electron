@@ -18,6 +18,17 @@ const EMPTY: Draft = { subject: '', description: '', expanded: false }
  */
 const drafts = new Map<string, Draft>()
 
+/**
+ * Puts a whole message into `root`'s draft from outside the form — **Generate**'s answer, which
+ * can arrive while the form is not mounted. A mounted form shows it on its next render.
+ */
+export function setDraftMessage(
+  root: string,
+  message: { subject: string; description: string }
+): void {
+  drafts.set(root, { ...(drafts.get(root) ?? EMPTY), ...message })
+}
+
 /** Test helper: forgets every draft. */
 export function clearAllDrafts(): void {
   drafts.clear()

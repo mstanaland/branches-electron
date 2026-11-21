@@ -211,3 +211,9 @@ export interface PublishTarget {
 
 /** A `PublishTarget` with a current branch to publish — what the Publish Branch dialog needs. */
 export type PublishableTarget = PublishTarget & { branch: string }
+
+/** A **commit subject** and **commit description**, as the commit form holds them. */
+export interface CommitMessage {
+  subject: string
+  description: string
+}

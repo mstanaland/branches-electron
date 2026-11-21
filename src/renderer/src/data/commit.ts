@@ -1,13 +1,10 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query'
 import type { ApiError } from '../../../shared/apiError'
+import type { CommitMessage } from '../../../shared/git'
 import { api } from '../api'
 import { keys } from './keys'
 
-/** The subject and description of one commit, as the form holds them. */
-export interface CommitMessage {
-  subject: string
-  description: string
-}
+export type { CommitMessage }
 
 /**
  * The message git is given: the subject, then a blank line, then the description.

@@ -154,6 +154,12 @@ A commit subject and description the user has typed but not committed. One per r
 so one per **repository tab** — lost when the app quits.
 _Avoid_: Pending message, unsent commit
 
+**Generate**:
+Asking Claude Code to write the **draft**'s commit subject and description from the staged changes,
+using the user's own Claude Code login. Whatever the draft already holds is taken as guidance, then
+replaced.
+_Avoid_: AI commit, autocomplete, suggest
+
 ### Branches
 
 **Branch**:
