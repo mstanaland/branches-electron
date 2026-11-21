@@ -34,6 +34,14 @@ export const keys = {
    * detached HEAD — so switching between two branches keeps both their pages cached.
    */
   commits: (root: string, ref: string) => ['repository', root, 'commits', ref] as const,
+  /**
+   * The **unpushed commits** of one branch's history, keyed by the same ref as `commits`. Kept
+   * apart from the paged history so a push or fetch re-reads this one cheap set rather than
+   * every page.
+   */
+  unpushed: (root: string, ref: string) => ['repository', root, 'unpushed', ref] as const,
+  /** The unpushed commits of every cached history in one repository. */
+  unpushedOfAny: (root: string) => ['repository', root, 'unpushed'] as const,
   /** What **commit details** shows about one commit beyond its row. */
   commitDetails: (root: string, oid: string) =>
     ['repository', root, 'commit-details', oid] as const,

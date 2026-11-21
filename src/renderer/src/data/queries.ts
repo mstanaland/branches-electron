@@ -92,6 +92,18 @@ export function useCommitFileDiff(
   })
 }
 
+/**
+ * The **unpushed commits** of one branch's history, as a set of full oids for the rows to look
+ * themselves up in. Idle while there is no repository or no ref.
+ */
+export function useUnpushedCommits(root: string | null, ref: string | null) {
+  return useQuery({
+    queryKey: keys.unpushed(root ?? '', ref ?? ''),
+    queryFn: async () => new Set(await api.listUnpushedCommits(root as string, ref as string)),
+    enabled: root !== null && ref !== null
+  })
+}
+
 /** Commits fetched per page. Big enough that scrolling rarely asks for another. */
 export const COMMIT_PAGE_SIZE = 200
 

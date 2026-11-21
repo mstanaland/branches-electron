@@ -950,6 +950,37 @@ describe('listCommits', () => {
   })
 })
 
+describe('listUnpushedCommits', () => {
+  it('lists the unpushed commits of a branch the user picked', async () => {
+    const clone = await cloneRepo(await createRepoWithCommit())
+    await clone.write('a.txt')
+    await clone.commit('A')
+    const handlers = await handlersFor(clone.root)
+    const head = (await clone.git('rev-parse', 'HEAD')).trim()
+
+    await expect(handlers.listUnpushedCommits(clone.root, 'main')).resolves.toEqual([head])
+  })
+
+  it('refuses a ref that is neither a branch nor an oid', async () => {
+    const repo = await createRepoWithCommit()
+    const handlers = await handlersFor(repo.root)
+
+    for (const ref of ['HEAD', '--output=/tmp/x', 'origin/main', 'nope']) {
+      await expect(handlers.listUnpushedCommits(repo.root, ref)).rejects.toMatchObject({
+        code: 'INVALID_REF'
+      })
+    }
+  })
+
+  it('refuses a repository that was never opened', async () => {
+    const repo = await createRepoWithCommit()
+
+    await expect(
+      handlersChoosing(null).listUnpushedCommits(repo.root, 'main')
+    ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+  })
+})
+
 describe('getCommitDetails', () => {
   it('describes a commit by its full oid', async () => {
     const repo = await createRepoWithCommit()

@@ -61,6 +61,15 @@ export interface BranchesApi {
     skip: number
   ) => Promise<ApiResult<Commit[]>>
   /**
+   * Full oids of the **unpushed commits** reachable from `ref`: the commits no remote-tracking
+   * branch reaches, in no particular order. Empty when the repository has no remote-tracking
+   * branches at all, and when `ref` resolves to nothing.
+   *
+   * `ref` is a local branch name or a full object id, as for `listCommits`. `root` must be a
+   * saved repository or one the user opened this session.
+   */
+  listUnpushedCommits: (root: string, ref: string) => Promise<ApiResult<string[]>>
+  /**
    * What **commit details** shows about one commit beyond its row: author and committer with
    * their emails and dates, and the commit description. `oid` must be a full object id, as
    * the history list gives it; anything else is `INVALID_REF`. `root` must be a saved
