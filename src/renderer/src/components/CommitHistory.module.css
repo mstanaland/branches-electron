@@ -1,6 +1,6 @@
 /* Must match ROW_HEIGHT in CommitHistory.tsx, which sizes each row's SVG. */
 .history {
-  --row-height: 52px;
+  --row-height: 56px;
 
   display: flex;
   flex: 1;
@@ -49,7 +49,7 @@
   font-weight: 600;
 
   .nodeStroke {
-    fill: oklch(from var(--color-accent) 45% c h);
+    fill: rgba(255, 255, 255, 0.2);
   }
 
   .nodeFill {
@@ -146,6 +146,7 @@
   font-size: 13px;
   padding-right: 32px;
   line-height: 20px;
+  font-weight: 500;
 }
 
 /* Watched to load the next page; nothing is drawn. */

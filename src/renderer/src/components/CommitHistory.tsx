@@ -9,7 +9,7 @@ import shared from './shared.module.css'
 import styles from './CommitHistory.module.css'
 
 /** Must match `--row-height` in the stylesheet: the SVG is sized in script, not by CSS. */
-const ROW_HEIGHT = 52
+const ROW_HEIGHT = 56
 const LANE_WIDTH = 10
 const NODE_RADIUS = 5
 

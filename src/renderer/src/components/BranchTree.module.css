@@ -40,11 +40,13 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 6px;
   padding: 4px 8px;
   border-radius: var(--radius-sm);
   white-space: nowrap;
-  line-height: 20px;
+  font-size: 13px;
+  line-height: 24px;
+  font-weight: 500;
 }
 
 .row:hover {
@@ -135,7 +137,22 @@
   }
 }
 
-.branchIcon,
 .folderIcon {
   color: var(--color-text-muted);
 }
+
+.branchIcon {
+  opacity: 0.5;
+}
+
+/* .branchIconContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: var(--radius-xs);
+  background: #afc9e9;
+  flex-shrink: 0;
+  flex-grow: 0;
+} */

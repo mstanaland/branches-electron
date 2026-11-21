@@ -83,7 +83,9 @@ function BranchRow({
       {...navigation.itemProps(node, parentPath)}
     >
       <div className={styles.row} data-selected={selected ? 'true' : undefined}>
-        <GitBranchIcon className={styles.branchIcon} size={16} />
+        <span className={styles.branchIconContainer}>
+          <GitBranchIcon className={styles.branchIcon} size={14} />
+        </span>
         {/* <span className={styles.chevron} aria-hidden="true" /> */}
         <span className={branch.isCurrent ? styles.currentName : styles.name}>{node.name}</span>
         {actions.checkingOut === branch.name && (
@@ -105,7 +107,7 @@ function BranchRow({
         )}
         {/* Where HEAD is. `aria-current` above already says it, so this is decorative. */}
         {branch.isCurrent && (
-          <Badge variant="primary" aria-hidden="true">
+          <Badge variant="default" aria-hidden="true">
             HEAD
           </Badge>
         )}
@@ -135,13 +137,13 @@ function FolderRow({
     >
       <div className={styles.row} onClick={() => expansion.setExpanded(node.path, !expanded)}>
         <span className={styles.chevron} aria-hidden="true">
-          {expanded ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
+          {expanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
         </span>
         {/* <FolderIcon className={styles.folderIcon} size={16} /> */}
         <span className={styles.name}>{node.name}</span>
         {/* Collapsed, the folder stands in for the current branch hidden inside it. */}
         {!expanded && containsCurrentBranch(node) && (
-          <Badge variant="primary" role="img" aria-label="Contains the current branch">
+          <Badge variant="default" role="img" aria-label="Contains the current branch">
             HEAD
           </Badge>
         )}
@@ -193,7 +195,7 @@ function DetachedRow({
       <div className={styles.row} data-selected={selected ? 'true' : undefined}>
         <span className={styles.chevron} aria-hidden="true" />
         <span className={styles.detachedOid}>{node.name}</span>
-        <Badge variant="primary" aria-hidden="true">
+        <Badge variant="default" aria-hidden="true">
           HEAD
         </Badge>
       </div>
