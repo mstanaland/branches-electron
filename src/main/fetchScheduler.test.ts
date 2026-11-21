@@ -1,4 +1,4 @@
-import { afterAll, afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { afterAll, afterEach, beforeEach, describe, expect, it, onTestFinished, vi } from 'vitest'
 import { fetchRemote, hasRemote, type FetchResult } from './git'
 import { listBranches } from './git/branches'
 import { cleanupTestRepos, cloneRepo, createRepoWithCommit } from './git/test-repo'
@@ -212,6 +212,28 @@ describe('createFetchScheduler', () => {
     expect(deps.fetch).toHaveBeenCalledTimes(1)
   })
 
+  it('waits for an in-flight fetch to finish when stopped', async () => {
+    const pending = Promise.withResolvers<FetchResult>()
+    const { deps, scheduler } = setup({
+      fetch: vi.fn<FetchSchedulerDeps['fetch']>().mockReturnValue(pending.promise)
+    })
+    scheduler.setFocused(true)
+    scheduler.setActiveRepository('/repo')
+    await settle()
+    expect(deps.fetch).toHaveBeenCalledOnce()
+
+    const drained = vi.fn<() => void>()
+    const stopped = scheduler.stop().then(drained)
+    await settle()
+    expect(drained).not.toHaveBeenCalled()
+
+    pending.resolve({ changed: true })
+    await stopped
+    await vi.advanceTimersByTimeAsync(INTERVAL)
+    expect(deps.onRefsChanged).not.toHaveBeenCalled()
+    expect(deps.fetch).toHaveBeenCalledOnce()
+  })
+
   it('fetches nothing after it is stopped', async () => {
     const { deps, scheduler } = setup()
     scheduler.setFocused(true)
@@ -239,6 +261,7 @@ describe('createFetchScheduler against real repositories', () => {
       onRefsChanged: (root) => changed.push(root),
       intervalMs: 20
     })
+    onTestFinished(() => scheduler.stop())
     scheduler.setFocused(true)
     scheduler.setActiveRepository(clone.root)
     // The first tick, right after the repository becomes active, finds nothing new.
@@ -255,7 +278,6 @@ describe('createFetchScheduler against real repositories', () => {
       const main = (await listBranches(clone.root)).find((branch) => branch.name === 'main')
       expect(main?.behind).toBe(1)
     })
-    scheduler.stop()
   })
 })
 
