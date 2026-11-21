@@ -2,8 +2,12 @@
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  /* gap: 8px; */
   min-height: 0;
+}
+
+.topGroup {
+  padding-right: 12px;
 }
 
 /* The Working view, above the branch tree. */

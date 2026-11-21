@@ -84,11 +84,13 @@ export function Sidebar({ root }: { root: string }): React.JSX.Element {
 
   return (
     <div className={styles.sidebar}>
-      <WorkingItem
-        root={root}
-        selected={view.kind === 'working'}
-        onSelect={() => setView(WORKING)}
-      />
+      <div className={styles.topGroup}>
+        <WorkingItem
+          root={root}
+          selected={view.kind === 'working'}
+          onSelect={() => setView(WORKING)}
+        />
+      </div>
       <BranchTree root={root} />
       <RefreshButton root={root} />
     </div>

@@ -108,7 +108,7 @@ function App(): React.JSX.Element {
       >
         {sidebarRoot !== null && (
           <>
-            <aside className={styles.sidebar}>
+            <aside className={styles.sidebarAside}>
               <Sidebar root={sidebarRoot} />
             </aside>
             <ResizeHandle
