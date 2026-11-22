@@ -32,6 +32,7 @@ export {
   useCommitFiles,
   useCommits,
   useDiff,
+  useMergedBranches,
   usePublishTarget,
   useRepositories,
   useStatus,

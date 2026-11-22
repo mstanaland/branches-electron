@@ -13,6 +13,7 @@ import type {
   RepositoryStatus,
   SavedRepository
 } from '../shared/git'
+import type { MergedBranch } from '../shared/github'
 import { assertRelativePath } from '../shared/path'
 import { isTabCount } from '../shared/tabs'
 import { assertInsideRoot } from './assertInsideRoot'
@@ -69,6 +70,11 @@ export interface HandlerDeps {
   setTabCount: (count: number) => void
   /** Runs **Generate**, one run per repository. */
   generator: CommitMessageGenerator
+  /**
+   * The repository's **merged branches**, asking GitHub through `gh`. Never rejects for
+   * GitHub's sake: without a usable `gh` it resolves empty.
+   */
+  findMergedBranches: (root: string) => Promise<MergedBranch[]>
   /** Tells the user why **Generate** failed, in a native warning sheet. */
   showGenerateError: (message: string) => Promise<void>
 }
@@ -81,6 +87,7 @@ export interface Handlers {
   confirmRemoveMissingRepository: (root: string) => Promise<boolean>
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
+  listMergedBranches: (root: string) => Promise<MergedBranch[]>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
   listUnpushedCommits: (root: string, ref: string) => Promise<string[]>
   getCommitDetails: (root: string, oid: string) => Promise<CommitDetails>
@@ -260,6 +267,10 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listBranches(root) {
       await assertOpen(root)
       return listBranches(root)
+    },
+    async listMergedBranches(root) {
+      await assertOpen(root)
+      return deps.findMergedBranches(root)
     },
     async listCommits(root, ref, limit, skip) {
       await assertOpen(root)

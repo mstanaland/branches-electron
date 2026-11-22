@@ -7,7 +7,8 @@ import { renderWithProviders } from '../data/testUtils'
 
 const api = vi.hoisted(() => ({
   getStatus: vi.fn<RendererApi['getStatus']>(),
-  listBranches: vi.fn<RendererApi['listBranches']>()
+  listBranches: vi.fn<RendererApi['listBranches']>(),
+  listMergedBranches: vi.fn<RendererApi['listMergedBranches']>()
 }))
 vi.mock('../api', () => ({ api }))
 
@@ -36,6 +37,7 @@ beforeEach(() => {
   localStorage.clear()
   api.getStatus.mockResolvedValue(status())
   api.listBranches.mockResolvedValue([])
+  api.listMergedBranches.mockResolvedValue([])
 })
 
 afterEach(cleanup)

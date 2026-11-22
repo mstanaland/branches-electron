@@ -243,6 +243,17 @@ locally, otherwise the first of main, master, develop, dev and trunk that does. 
 among the branches, and never deleted.
 _Avoid_: Trunk, primary branch, base branch, main (as the general word)
 
+**Merged branch**:
+A branch that a merged **pull request** carried into the **default branch** — matched not just by
+name but by its tip, so a branch with commits made after the merge is not merged. Only a pull
+request that can be named counts: a branch merged locally, or by hand, is never called merged,
+however reachable its commits are. What makes a merged branch safe to delete.
+_Avoid_: Fully merged, stale, done, landed
+
+**Pull request**:
+A request on GitHub to merge one branch into another. The only hosting service Branches asks.
+_Avoid_: PR (in UI text), merge request
+
 **Branch-only commits**:
 The commits reachable from a branch and from no other branch, remote-tracking branch or tag —
 what deleting the branch would lose. When its **upstream** is being deleted too, that upstream

@@ -4,6 +4,7 @@ import { ApiError } from '../../../shared/apiError'
 import type { BranchTreeNode } from '../../../shared/branchTree'
 import { buildBranchTree, containsCurrentBranch } from '../../../shared/branchTree'
 import type { Branch } from '../../../shared/git'
+import type { PullRequest } from '../../../shared/github'
 import { shortOid } from '../../../shared/oid'
 import type { FolderExpansion, View } from '../data'
 import { useTreeNavigation } from './useTreeNavigation'
@@ -16,6 +17,7 @@ import {
   useBranchMenu,
   useCheckoutBranch,
   useFolderExpansion,
+  useMergedBranches,
   useSelection,
   useStatus
 } from '../data'
@@ -46,6 +48,8 @@ interface BranchActions {
   select: (view: View) => void
   /** Whether this view is the one on screen. */
   isSelected: (view: View) => boolean
+  /** The pull request that merged a branch, when it is a **merged branch**. */
+  mergedBy: (name: string) => PullRequest | undefined
 }
 
 function BranchRow({
@@ -60,7 +64,11 @@ function BranchRow({
   const selected = actions.isSelected(view)
   const markersId = useId()
   const aheadBehind = aheadBehindLabel(branch.ahead, branch.behind)
-  const description = [aheadBehind, branch.upstreamGone ? 'Upstream gone' : null]
+  const mergedBy = actions.mergedBy(branch.name)
+  // MERGED is the stronger, more specific fact, so it takes Upstream gone's place (ADR-0011).
+  const mergedLabel = mergedBy ? `Merged by pull request #${mergedBy.number}` : null
+  const upstreamGone = branch.upstreamGone && mergedLabel === null
+  const description = [aheadBehind, mergedLabel, upstreamGone ? 'Upstream gone' : null]
     .filter((part) => part !== null)
     .join(', ')
 
@@ -98,7 +106,12 @@ function BranchRow({
               {description}
             </span>
             <AheadBehind ahead={branch.ahead} behind={branch.behind} />
-            {branch.upstreamGone && (
+            {mergedLabel !== null && (
+              <Badge variant="success" role="img" aria-label={mergedLabel}>
+                MERGED
+              </Badge>
+            )}
+            {upstreamGone && (
               <Badge variant="destructive" role="img" aria-label="Upstream gone" isSquare>
                 <CloudOffIcon size={12} />
               </Badge>
@@ -244,6 +257,7 @@ const DETACHED_PATH = ':detached'
 export function BranchTree({ root }: { root: string }): React.JSX.Element | null {
   const branches = useBranches(root)
   const status = useStatus(root)
+  const merged = useMergedBranches(root)
   const expansion = useFolderExpansion(root)
   const checkout = useCheckoutBranch(root)
   const menu = useBranchMenu(root)
@@ -289,7 +303,8 @@ export function BranchTree({ root }: { root: string }): React.JSX.Element | null
         }
       }),
     select: setView,
-    isSelected: (candidate) => isSameView(view, candidate)
+    isSelected: (candidate) => isSameView(view, candidate),
+    mergedBy: (name) => merged.data?.get(name)
   }
   const navigation = useTreeNavigation(tree, expansion, (node) => {
     if (node.path === DETACHED_PATH && detachedOid !== null) {

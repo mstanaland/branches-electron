@@ -1,3 +1,4 @@
+import { GitError } from './errors'
 import type { Commit } from '../../shared/git'
 import { shortOid } from '../../shared/oid'
 import { runGit } from './run'
@@ -71,4 +72,24 @@ export function parseCommits(output: string): Commit[] {
     })
   }
   return commits
+}
+
+/**
+ * Whether `descendant` contains `ancestor` — true when they are the same commit. False when
+ * either isn't a commit in this repository, as for a commit never fetched.
+ */
+export async function isAncestor(
+  root: string,
+  ancestor: string,
+  descendant: string
+): Promise<boolean> {
+  if (!(await resolves(root, ancestor)) || !(await resolves(root, descendant))) return false
+  try {
+    await runGit(root, ['merge-base', '--is-ancestor', ancestor, descendant])
+    return true
+  } catch (error) {
+    // Exit 1 is git's "no"; anything else is a real failure.
+    if (error instanceof GitError && error.exitCode === 1) return false
+    throw error
+  }
 }

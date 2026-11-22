@@ -38,6 +38,24 @@ export function useBranches(root: string | null) {
 }
 
 /**
+ * The **merged branches** of the active repository, by local branch name. Idle while `root` is
+ * null. Read once when the repository is first shown in a tab and then kept: it asks GitHub,
+ * so nothing re-reads it on its own. A failure is never shown — merged marks are a nicety.
+ */
+export function useMergedBranches(root: string | null) {
+  return useQuery({
+    queryKey: keys.mergedBranches(root ?? ''),
+    queryFn: async () => {
+      const merged = await api.listMergedBranches(root as string)
+      return new Map(merged.map((branch) => [branch.name, branch.pullRequest]))
+    },
+    enabled: root !== null,
+    staleTime: Infinity,
+    retry: false
+  })
+}
+
+/**
  * The staged and unstaged diffs of one change in the active repository. Idle while there is no
  * repository or no path. `originalPath` is the path a renamed file came from, else null.
  */

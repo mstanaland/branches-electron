@@ -21,6 +21,7 @@ const api = vi.hoisted(() => ({
   confirmRemoveMissingRepository: vi.fn<RendererApi['confirmRemoveMissingRepository']>(),
   getStatus: vi.fn<RendererApi['getStatus']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
+  listMergedBranches: vi.fn<RendererApi['listMergedBranches']>(),
   listCommits: vi.fn<RendererApi['listCommits']>(),
   listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>(),
   getCommitDetails: vi.fn<RendererApi['getCommitDetails']>(),
@@ -145,6 +146,7 @@ beforeEach(() => {
     publishTarget(`${root.split('/').pop()}-main`)
   )
   api.listBranches.mockResolvedValue([])
+  api.listMergedBranches.mockResolvedValue([])
   api.listCommits.mockResolvedValue([])
   api.listUnpushedCommits.mockResolvedValue([])
   api.listRepositories.mockResolvedValue([repo('alpha'), repo('beta'), repo('gamma')])

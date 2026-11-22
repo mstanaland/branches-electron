@@ -6,7 +6,7 @@ Git's own safe delete, `git branch -d`, refuses a branch that isn't merged into 
 
 - **Git's rule**: try `-d` and fall back to `-D` behind a warning. Rejected because of the mismatches above, and because the warning would depend on which branch HEAD is on.
 - **Merged into the default branch**: rejected because it warns about branches whose commits are safe on another branch or tag, and misses nothing a reachability check would catch.
-- **Detecting squash merges** (patch-id comparison against the default branch), so a squash-merged branch wouldn't warn at all: rejected as slow and unreliable. Instead, an upstream that is **gone** gets a calm note in place of the danger alert. Background fetch prunes the upstream's remote-tracking ref, so whether anything was committed after the upstream went can't be known. The note says that rather than guessing.
+- **Detecting squash merges** (patch-id comparison against the default branch), so a squash-merged branch wouldn't warn at all: rejected as slow and unreliable. Instead, an upstream that is **gone** gets a calm note in place of the danger alert. Background fetch prunes the upstream's remote-tracking ref, so whether anything was committed after the upstream went can't be known. The note says that rather than guessing. (ADR-0011 later added squash-merge detection by a different route: a merged GitHub pull request, not patch-ids.)
 
 ## Consequences
 
