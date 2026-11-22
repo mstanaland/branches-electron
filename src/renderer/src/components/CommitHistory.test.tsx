@@ -3,6 +3,7 @@ import { cleanup, fireEvent, screen, waitFor, within } from '@testing-library/re
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
 import type { Commit } from '../../../shared/git'
+import type { MergedBranch } from '../../../shared/github'
 import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
 
@@ -38,10 +39,10 @@ function commit(seed: string, overrides: Partial<Commit> = {}): Commit {
   }
 }
 
-function show(commits: Commit[], ref = 'main', unpushed: string[] = []): void {
+function show(commits: Commit[], ref = 'main', unpushed: string[] = []) {
   api.listCommits.mockResolvedValue(commits)
   api.listUnpushedCommits.mockResolvedValue(unpushed)
-  renderWithProviders(<CommitHistory root={ROOT} commitRef={ref} />, { tabs: [ROOT] })
+  return renderWithProviders(<CommitHistory root={ROOT} commitRef={ref} />, { tabs: [ROOT] })
 }
 
 const rows = (): HTMLElement[] => screen.getAllByRole('option')
@@ -118,6 +119,55 @@ describe('unpushed commits', () => {
     await waitFor(() => expect(api.listUnpushedCommits).toHaveBeenCalled())
     expect(within(row).queryByRole('img', { name: 'Not pushed' })).toBeNull()
     expect(screen.queryByRole('alert')).toBeNull()
+  })
+})
+
+const merged = (headOid: string): MergedBranch => ({
+  name: 'feature',
+  pullRequest: {
+    number: 7,
+    title: 'Add a feature',
+    url: 'https://github.com/octo/hello/pull/7',
+    baseBranch: 'main',
+    mergedAt: '2026-11-01T10:00:00Z',
+    headOid
+  }
+})
+
+describe('unpushed commits of a merged branch', () => {
+  it('waits for the merged branches, so a merged commit is never marked for a moment', async () => {
+    const lookup = Promise.withResolvers<MergedBranch[]>()
+    api.listMergedBranches.mockReturnValue(lookup.promise)
+    show([commit('aaa')], 'feature', [])
+
+    await screen.findByRole('option')
+    expect(api.listUnpushedCommits).not.toHaveBeenCalled()
+
+    lookup.resolve([merged(oidOf('aaa'))])
+    await waitFor(() => expect(api.listUnpushedCommits).toHaveBeenCalledWith(ROOT, 'feature'))
+  })
+
+  it('still reads them when the merged branches can’t be read', async () => {
+    api.listMergedBranches.mockRejectedValue(
+      new ApiError({ code: 'COMMAND_FAILED', message: 'gh said no' })
+    )
+    show([commit('aaa')], 'feature', [oidOf('aaa')])
+
+    const row = await screen.findByRole('option')
+    expect(await within(row).findByRole('img', { name: 'Not pushed' })).toBeTruthy()
+  })
+
+  it('reads them again when the pull request that merged the branch changes', async () => {
+    const { client } = show([commit('aaa')], 'feature', [oidOf('aaa')])
+    const row = await screen.findByRole('option')
+    expect(await within(row).findByRole('img', { name: 'Not pushed' })).toBeTruthy()
+
+    // Main looked the merged branches up again and found the branch merged.
+    api.listMergedBranches.mockResolvedValue([merged(oidOf('aaa'))])
+    api.listUnpushedCommits.mockResolvedValue([])
+    await client.invalidateQueries({ queryKey: ['merged-branches', ROOT] })
+
+    await waitFor(() => expect(within(row).queryByRole('img', { name: 'Not pushed' })).toBeNull())
   })
 })
 

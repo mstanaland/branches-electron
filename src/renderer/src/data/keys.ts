@@ -42,9 +42,11 @@ export const keys = {
   /**
    * The **unpushed commits** of one branch's history, keyed by the same ref as `commits`. Kept
    * apart from the paged history so a push or fetch re-reads this one cheap set rather than
-   * every page.
+   * every page. Also keyed by the head of the pull request that merged the branch, if one did,
+   * since main leaves out what it carried: a change there reads them again.
    */
-  unpushed: (root: string, ref: string) => ['repository', root, 'unpushed', ref] as const,
+  unpushed: (root: string, ref: string, mergedHead: string | null) =>
+    ['repository', root, 'unpushed', ref, mergedHead] as const,
   /** The unpushed commits of every cached history in one repository. */
   unpushedOfAny: (root: string) => ['repository', root, 'unpushed'] as const,
   /** What **commit details** shows about one commit beyond its row. */

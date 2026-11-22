@@ -78,7 +78,9 @@ export interface BranchesApi {
   /**
    * Full oids of the **unpushed commits** reachable from `ref`: the commits no remote-tracking
    * branch reaches, in no particular order. Empty when the repository has no remote-tracking
-   * branches at all, and when `ref` resolves to nothing.
+   * branches at all, and when `ref` resolves to nothing. When `ref` is a **merged branch**, the
+   * commits its pull request carried are left out, judged by the merged branches main already
+   * has: they were pushed, though the remote branch may since be deleted.
    *
    * `ref` is a local branch name or a full object id, as for `listCommits`. `root` must be a
    * saved repository or one the user opened this session.

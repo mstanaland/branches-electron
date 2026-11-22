@@ -303,7 +303,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listUnpushedCommits(root, ref) {
       await assertOpen(root)
       await assertRef(root, ref)
-      return listUnpushedCommits(root, ref)
+      // The commits a merged pull request carried were pushed, even once its remote branch is
+      // gone. Judged by what main already has, never by asking GitHub: the renderer reads this
+      // again when the merged branches change.
+      const merged = deps.mergedBranches.cached(root)?.find((branch) => branch.name === ref)
+      return listUnpushedCommits(root, ref, merged ? [merged.pullRequest.headOid] : [])
     },
     async getCommitDetails(root, oid) {
       await assertOpen(root)

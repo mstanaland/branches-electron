@@ -102,7 +102,7 @@ async function mergedInRepository(
         .toSorted((a, b) => Date.parse(b.mergedAt) - Date.parse(a.mergedAt))
       for (const pr of candidates) {
         if (await carriesTip(root, branch.tip, pr)) {
-          return { name: branch.name, pullRequest: withoutHead(pr) }
+          return { name: branch.name, pullRequest: pr }
         }
       }
       return null
@@ -118,11 +118,4 @@ async function mergedInRepository(
 async function carriesTip(root: string, tip: string, pr: MergedPullRequest): Promise<boolean> {
   if (pr.headOid === tip) return true
   return isAncestor(root, tip, pr.headOid)
-}
-
-function withoutHead({
-  headOid: _headOid,
-  ...pullRequest
-}: MergedPullRequest): MergedBranch['pullRequest'] {
-  return pullRequest
 }

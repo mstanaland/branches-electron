@@ -63,7 +63,8 @@ const mergedFeature: MergedBranch = {
     title: 'Add a feature',
     url: 'https://github.com/octo/hello/pull/7',
     baseBranch: 'main',
-    mergedAt: '2026-11-01T10:00:00Z'
+    mergedAt: '2026-11-01T10:00:00Z',
+    headOid: 'a'.repeat(40)
   }
 }
 
@@ -1184,6 +1185,25 @@ describe('listCommits', () => {
   })
 })
 
+/** A pushed `feature`, squash-merged on the remote and its remote branch deleted. */
+async function squashMergedFeature() {
+  const source = await createRepoWithCommit()
+  const clone = await cloneRepo(source)
+  await clone.git('checkout', '-q', '-b', 'feature')
+  await clone.write('feature.txt')
+  await clone.commit('Feature')
+  await clone.git('push', '-q', '-u', 'origin', 'feature')
+  await source.git('merge', '-q', '--squash', 'feature')
+  await source.commit('Feature (#7)')
+  await source.git('branch', '-q', '-D', 'feature')
+  await clone.git('fetch', '-q', '--prune')
+  const head = (await clone.git('rev-parse', 'feature')).trim()
+  return {
+    clone,
+    merged: { name: 'feature', pullRequest: { ...mergedFeature.pullRequest, headOid: head } }
+  }
+}
+
 describe('listUnpushedCommits', () => {
   it('lists the unpushed commits of a branch the user picked', async () => {
     const clone = await cloneRepo(await createRepoWithCommit())
@@ -1193,6 +1213,26 @@ describe('listUnpushedCommits', () => {
     const head = (await clone.git('rev-parse', 'HEAD')).trim()
 
     await expect(handlers.listUnpushedCommits(clone.root, 'main')).resolves.toEqual([head])
+  })
+
+  it('leaves out the commits the pull request that merged the branch carried', async () => {
+    const { clone, merged } = await squashMergedFeature()
+    const { mergedBranches } = mergedBranchesFrom(async () => [merged])
+    const handlers = handlersChoosing(clone.root, { mergedBranches })
+    await handlers.openRepository()
+    await handlers.listMergedBranches(clone.root)
+
+    await expect(handlers.listUnpushedCommits(clone.root, 'feature')).resolves.toEqual([])
+  })
+
+  it('never asks GitHub, judging by the merged branches main already has', async () => {
+    const { clone, merged } = await squashMergedFeature()
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [merged])
+    const handlers = handlersChoosing(clone.root, { mergedBranches })
+    await handlers.openRepository()
+
+    await expect(handlers.listUnpushedCommits(clone.root, 'feature')).resolves.toHaveLength(1)
+    expect(asked).toEqual([])
   })
 
   it('refuses a ref that is neither a branch nor an oid', async () => {
