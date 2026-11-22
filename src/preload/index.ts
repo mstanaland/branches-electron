@@ -47,6 +47,7 @@ const api: WindowApi = {
   getStatus: (root) => ipcRenderer.invoke('repository:status', root),
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
   listMergedBranches: (root) => ipcRenderer.invoke('repository:merged-branches', root),
+  openExternal: (root, url) => ipcRenderer.invoke('repository:open-external', root, url),
   listCommits: (root, ref, limit, skip) =>
     ipcRenderer.invoke('repository:commits', root, ref, limit, skip),
   listUnpushedCommits: (root, ref) => ipcRenderer.invoke('repository:unpushed-commits', root, ref),

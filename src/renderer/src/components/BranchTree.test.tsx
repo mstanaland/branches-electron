@@ -35,6 +35,7 @@ const branch = (name: string, overrides: Partial<Branch> = {}): Branch => ({
   shortOid: 'abc1234',
   upstream: null,
   upstreamGone: false,
+  checkedOutElsewhere: false,
   ahead: 0,
   behind: 0,
   ...overrides

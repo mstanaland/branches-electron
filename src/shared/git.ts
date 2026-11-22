@@ -50,6 +50,8 @@ export interface Branch {
   upstream: string | null
   /** True when the upstream is configured but no longer exists on the remote. */
   upstreamGone: boolean
+  /** True when another work tree has it checked out, so it can't be deleted from here. */
+  checkedOutElsewhere: boolean
   ahead: number
   behind: number
 }

@@ -1,7 +1,8 @@
+import { join } from 'node:path'
 import { afterAll, describe, expect, it } from 'vitest'
 import type { Branch } from '../../shared/git'
 import { defaultBranchName, listBranches, parseTracking } from './branches'
-import { cleanupTestRepos, cloneRepo, createRepoWithCommit } from './test-repo'
+import { cleanupTestRepos, cloneRepo, createRepoWithCommit, makeTempDir } from './test-repo'
 
 afterAll(cleanupTestRepos)
 
@@ -12,6 +13,7 @@ function makeBranch(name: string): Branch {
     shortOid: 'abc1234',
     upstream: null,
     upstreamGone: false,
+    checkedOutElsewhere: false,
     ahead: 0,
     behind: 0
   }
@@ -36,6 +38,29 @@ describe('listBranches', () => {
     expect(branches.filter((branch) => branch.isCurrent).map((branch) => branch.name)).toEqual([
       'work'
     ])
+  })
+
+  it('marks a branch checked out in another work tree, and not the current branch', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'elsewhere')
+    await repo.git('branch', 'free')
+    const other = join(await makeTempDir(), 'other tree')
+    await repo.git('worktree', 'add', '-q', other, 'elsewhere')
+
+    const branches = await listBranches(repo.root)
+    const flags = Object.fromEntries(branches.map((b) => [b.name, b.checkedOutElsewhere]))
+    expect(flags).toEqual({ main: false, elsewhere: true, free: false })
+  })
+
+  it('marks the main work tree’s branch when read from a linked work tree', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'linked')
+    const other = join(await makeTempDir(), 'linked')
+    await repo.git('worktree', 'add', '-q', other, 'linked')
+
+    const branches = await listBranches(other)
+    const flags = Object.fromEntries(branches.map((b) => [b.name, b.checkedOutElsewhere]))
+    expect(flags).toEqual({ main: true, linked: false })
   })
 
   it('uses origin/HEAD for the default branch, even when main exists', async () => {

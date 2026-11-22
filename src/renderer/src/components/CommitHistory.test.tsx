@@ -8,7 +8,10 @@ import { renderWithProviders } from '../data/testUtils'
 
 const api = vi.hoisted(() => ({
   listCommits: vi.fn<RendererApi['listCommits']>(),
-  listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>()
+  listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>(),
+  // For the merged branch alert above the list, which has its own tests.
+  listBranches: vi.fn<RendererApi['listBranches']>(),
+  listMergedBranches: vi.fn<RendererApi['listMergedBranches']>()
 }))
 vi.mock('../api', () => ({ api }))
 
@@ -46,6 +49,8 @@ const rows = (): HTMLElement[] => screen.getAllByRole('option')
 beforeEach(() => {
   vi.resetAllMocks()
   localStorage.clear()
+  api.listBranches.mockResolvedValue([])
+  api.listMergedBranches.mockResolvedValue([])
 })
 
 afterEach(cleanup)

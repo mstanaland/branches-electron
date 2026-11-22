@@ -33,6 +33,9 @@ const dismissed = {
     cancel: () => {}
   },
   showGenerateError: async () => {},
+  openExternal: async () => {
+    throw new Error('openExternal was not expected in this test')
+  },
   mergedBranches: createMergedBranchCache({ find: async () => [], onChanged: () => {} })
 }
 
@@ -157,6 +160,104 @@ describe('listMergedBranches', () => {
     await handlers.listMergedBranches(repo.root)
 
     expect(asked).toEqual([repo.root, repo.root])
+  })
+})
+
+/** An opened repository whose merged branches have been read, and the URLs it opened. */
+async function openedWithMerged(merged: MergedBranch[] = [mergedFeature]) {
+  const repo = await createRepoWithCommit()
+  const browsed: string[] = []
+  const { mergedBranches, asked } = mergedBranchesFrom(async () => merged)
+  const handlers = handlersChoosing(repo.root, {
+    mergedBranches,
+    openExternal: async (url) => {
+      browsed.push(url)
+    }
+  })
+  await handlers.openRepository()
+  return { repo, handlers, browsed, asked }
+}
+
+describe('openExternal', () => {
+  it('opens a merged branch’s pull request in the browser', async () => {
+    const { repo, handlers, browsed } = await openedWithMerged()
+    await handlers.listMergedBranches(repo.root)
+
+    await handlers.openExternal(repo.root, mergedFeature.pullRequest.url)
+
+    expect(browsed).toEqual([mergedFeature.pullRequest.url])
+  })
+
+  it('rejects a URL that is not https, even one GitHub gave', async () => {
+    const insecure = 'http://github.com/octo/hello/pull/7'
+    const merged = {
+      ...mergedFeature,
+      pullRequest: { ...mergedFeature.pullRequest, url: insecure }
+    }
+    const { repo, handlers, browsed } = await openedWithMerged([merged])
+    await handlers.listMergedBranches(repo.root)
+
+    await expect(handlers.openExternal(repo.root, insecure)).rejects.toMatchObject({
+      code: 'INVALID_URL'
+    })
+    expect(browsed).toEqual([])
+  })
+
+  it('rejects an https URL that no pull request has', async () => {
+    const { repo, handlers, browsed } = await openedWithMerged()
+    await handlers.listMergedBranches(repo.root)
+
+    await expect(
+      handlers.openExternal(repo.root, 'https://example.com/pull/7')
+    ).rejects.toMatchObject({ code: 'INVALID_URL' })
+    expect(browsed).toEqual([])
+  })
+
+  it('rejects a URL before anything is cached, without asking GitHub', async () => {
+    const { repo, handlers, browsed, asked } = await openedWithMerged()
+
+    await expect(
+      handlers.openExternal(repo.root, mergedFeature.pullRequest.url)
+    ).rejects.toMatchObject({ code: 'INVALID_URL' })
+    expect(browsed).toEqual([])
+    expect(asked).toEqual([])
+  })
+
+  it('rejects a repository that was never opened', async () => {
+    const { repo, handlers, browsed } = await openedWithMerged()
+    await handlers.listMergedBranches(repo.root)
+    const other = await createRepoWithCommit()
+
+    await expect(
+      handlers.openExternal(other.root, mergedFeature.pullRequest.url)
+    ).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+    expect(browsed).toEqual([])
+  })
+
+  it('rejects a pull request cached for another repository', async () => {
+    const merged = await createRepoWithCommit()
+    const plain = await createRepoWithCommit()
+    const folders = [merged.root, plain.root]
+    const browsed: string[] = []
+    const { mergedBranches } = mergedBranchesFrom(async (root) =>
+      root === merged.root ? [mergedFeature] : []
+    )
+    const handlers = handlersChoosing(null, {
+      pickFolder: async () => folders.shift() ?? null,
+      mergedBranches,
+      openExternal: async (url) => {
+        browsed.push(url)
+      }
+    })
+    await handlers.openRepository()
+    await handlers.openRepository()
+    await handlers.listMergedBranches(merged.root)
+    await handlers.listMergedBranches(plain.root)
+
+    await expect(
+      handlers.openExternal(plain.root, mergedFeature.pullRequest.url)
+    ).rejects.toMatchObject({ code: 'INVALID_URL' })
+    expect(browsed).toEqual([])
   })
 })
 

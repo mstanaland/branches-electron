@@ -54,6 +54,12 @@ export interface BranchesApi {
    */
   listMergedBranches: (root: string) => Promise<ApiResult<MergedBranch[]>>
   /**
+   * Opens a **merged branch**'s **pull request** in the default browser. `url` must be an
+   * `https://` URL that a pull request in `root`'s last `listMergedBranches` result has, exactly;
+   * anything else is `INVALID_URL`. `root` must be a saved repository or one opened this session.
+   */
+  openExternal: (root: string, url: string) => Promise<ApiResult<void>>
+  /**
    * One page of the commits reachable from `ref`, newest first and in topological order.
    *
    * `ref` is a local branch name or a full object id — the renderer anchors every page after

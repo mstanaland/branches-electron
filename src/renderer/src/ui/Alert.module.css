@@ -1,0 +1,45 @@
+.alert {
+  --alert-accent: var(--badge-info-text);
+  --alert-surface: var(--badge-info-bg);
+
+  display: flex;
+  gap: 8px;
+  padding: 10px 12px;
+  color: var(--color-text);
+  background: var(--alert-surface);
+  border: 1px solid color-mix(in oklch, var(--alert-accent) 30%, transparent);
+  border-radius: var(--radius-sm);
+}
+
+.alert[data-variant='success'] {
+  --alert-accent: var(--badge-success-text);
+  --alert-surface: var(--badge-success-bg);
+}
+
+.icon {
+  display: flex;
+  flex: none;
+  /* Level with the first line of the message. */
+  height: 1lh;
+  align-items: center;
+  color: var(--alert-accent);
+}
+
+.body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.message {
+  overflow-wrap: anywhere;
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}

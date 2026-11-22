@@ -6,7 +6,9 @@ const FIELDS = [
   '%(objectname:short)',
   '%(HEAD)',
   '%(upstream:short)',
-  '%(upstream:track)'
+  '%(upstream:track)',
+  // Set for a branch checked out in any work tree, this one included.
+  '%(worktreepath)'
 ]
 
 /** Local branches, with the default branch first and the rest in natural order. */
@@ -33,12 +35,14 @@ export function parseBranches(output: string): Branch[] {
   for (const line of output.split('\n')) {
     const fields = line.split('\0')
     if (fields.length !== FIELDS.length) continue
-    const [name, shortOid, head, upstream, track] = fields
+    const [name, shortOid, head, upstream, track, worktreePath] = fields
+    const isCurrent = head === '*'
     branches.push({
       name,
       shortOid,
-      isCurrent: head === '*',
+      isCurrent,
       upstream: upstream || null,
+      checkedOutElsewhere: worktreePath !== '' && !isCurrent,
       ...parseTracking(track)
     })
   }
