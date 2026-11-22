@@ -128,6 +128,21 @@ describe('createMergedBranchCache', () => {
     await expect(cache.get('/repo')).resolves.toEqual([merged('newer')])
   })
 
+  it('drops what a lookup found when the repository was removed while it ran', async () => {
+    let release: ((merged: MergedBranch[]) => void) | undefined
+    const { cache, find, onChanged } = setup([])
+    find.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+
+    const running = cache.recompute('/repo')
+    await vi.waitFor(() => expect(find).toHaveBeenCalledTimes(1))
+    cache.forget('/repo')
+    release?.([merged('feature')])
+    await running
+
+    expect(onChanged).not.toHaveBeenCalled()
+    await expect(cache.get('/repo')).resolves.toEqual([])
+  })
+
   it('forgets a repository the user removed', async () => {
     const { cache, find } = setup([merged('feature')])
     await cache.get('/repo')

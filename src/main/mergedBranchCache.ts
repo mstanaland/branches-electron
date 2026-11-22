@@ -13,7 +13,7 @@ export interface MergedBranchCacheDeps {
 export interface MergedBranchCache {
   /** The last result for `root`, looked up first if there is none yet. Never rejects. */
   get: (root: string) => Promise<MergedBranch[]>
-  /** Looks `root` up again, after a fetch or a delete. Never rejects. */
+  /** Looks `root` up again after a fetch, reporting a change. Never rejects. */
   recompute: (root: string) => Promise<void>
   /**
    * Drops a branch the user just deleted, at once and without asking GitHub, so the renderer's
@@ -41,10 +41,11 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
   /** The tail of each repository's chain of lookups. */
   const queues = new Map<string, Promise<void>>()
   /**
-   * Branches deleted while a lookup was in flight, per repository. That lookup may have read the
-   * branch before it went, so its answer is filtered rather than trusted.
+   * What happened to each repository while its lookup was in flight. That lookup may have read
+   * a branch before it was deleted, so its answer is filtered rather than trusted, and it is
+   * dropped altogether if the repository was removed meanwhile.
    */
-  const deletedDuringLookUp = new Map<string, Set<string>>()
+  const inFlight = new Map<string, { deleted: Set<string>; forgotten: boolean }>()
 
   /** Runs `task` after every lookup of `root` already queued. */
   function enqueue(root: string, task: () => Promise<void>): Promise<void> {
@@ -58,16 +59,16 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
 
   /** Looks `root` up and stores a good answer. Resolves whether the stored result changed. */
   async function lookUp(root: string): Promise<boolean> {
-    const deleted = new Set<string>()
-    deletedDuringLookUp.set(root, deleted)
+    const meanwhile = { deleted: new Set<string>(), forgotten: false }
+    inFlight.set(root, meanwhile)
     let found: MergedBranch[] | null
     try {
       found = await deps.find(root).catch(() => null)
     } finally {
-      deletedDuringLookUp.delete(root)
+      inFlight.delete(root)
     }
-    if (found === null) return false
-    found = found.filter((branch) => !deleted.has(branch.name))
+    if (found === null || meanwhile.forgotten) return false
+    found = found.filter((branch) => !meanwhile.deleted.has(branch.name))
     const before = results.get(root)
     results.set(root, found)
     return fingerprint(before ?? []) !== fingerprint(found)
@@ -89,7 +90,7 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
       })
     },
     branchDeleted(root, name) {
-      deletedDuringLookUp.get(root)?.add(name)
+      inFlight.get(root)?.deleted.add(name)
       const before = results.get(root)
       if (before === undefined || !before.some((branch) => branch.name === name)) return
       results.set(
@@ -99,6 +100,8 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
       deps.onChanged(root)
     },
     forget(root) {
+      const running = inFlight.get(root)
+      if (running !== undefined) running.forgotten = true
       results.delete(root)
     }
   }
