@@ -44,6 +44,7 @@ import {
   stageFiles,
   unstageFiles
 } from './git'
+import { carriesTip } from './github'
 import type { BranchMenuTarget } from './menu'
 import type { MergedBranchCache } from './mergedBranchCache'
 import type { RepositoryStore } from './repositoryStore'
@@ -471,7 +472,16 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async getBranchDeletion(root, name) {
       await assertOpen(root)
       await assertBranch(root, name)
-      return readBranchDeletion(root, name)
+      const deletion = await readBranchDeletion(root, name)
+      // Judged by what main already has, never by asking GitHub, but against the tip just
+      // read: the result is only looked up again after a fetch, and a commit made since then
+      // isn't merged.
+      const merged = deps.mergedBranches.cached(root)?.find((branch) => branch.name === name)
+      const mergedBy =
+        merged !== undefined && (await carriesTip(root, deletion.oid, merged.pullRequest.headOid))
+          ? merged.pullRequest
+          : null
+      return { ...deletion, mergedBy }
     },
     async deleteBranch(root, name, oid, upstreamOid) {
       await assertOpen(root)

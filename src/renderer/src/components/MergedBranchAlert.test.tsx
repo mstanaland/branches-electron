@@ -147,7 +147,8 @@ describe('the merged branch alert', () => {
       oid: OID,
       branchOnlyCommits: 0,
       goneUpstream: null,
-      deletableUpstream: null
+      deletableUpstream: null,
+      mergedBy: null
     })
     api.deleteBranch.mockResolvedValue(undefined)
     show('feature')
@@ -165,6 +166,23 @@ describe('the merged branch alert', () => {
     await waitFor(() => expect(api.deleteBranch).toHaveBeenCalledWith(ROOT, 'feature', OID, null))
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
     expect(screen.getByRole('status', { name: 'view' }).textContent).toBe('working')
+  })
+
+  it('opens the Delete Branch dialog with the merged note, not the danger alert', async () => {
+    api.getBranchDeletion.mockResolvedValue({
+      name: 'feature',
+      oid: OID,
+      branchOnlyCommits: 2,
+      goneUpstream: null,
+      deletableUpstream: null,
+      mergedBy: mergedFeature.pullRequest
+    })
+    show('feature')
+    fireEvent.click(within(await alert()).getByRole('button', { name: 'Delete' }))
+
+    const dialog = await screen.findByRole('dialog', { name: 'Delete Branch' })
+    await waitFor(() => expect(dialog.textContent).toContain('Merged into main by #42.'))
+    expect(within(dialog).queryByRole('alert')).toBeNull()
   })
 
   it('disables Delete on the current branch, and says why', async () => {

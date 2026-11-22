@@ -558,6 +558,33 @@ describe('showBranchMenu', () => {
   })
 })
 
+/** `feature` with one commit of its own, merged by a pull request whose head is `head`. */
+async function mergedAt(head: 'tip' | 'parent' | 'child') {
+  const repo = await createRepoWithCommit()
+  await repo.git('checkout', '-q', '-b', 'feature')
+  await repo.write('a.txt')
+  await repo.commit('A')
+  if (head === 'child') {
+    await repo.write('b.txt')
+    await repo.commit('B, a review fix the branch never pulled')
+  }
+  const headOid = (await repo.git('rev-parse', 'HEAD')).trim()
+  if (head === 'child') await repo.git('reset', '-q', '--hard', 'HEAD~1')
+  if (head === 'parent') {
+    await repo.write('c.txt')
+    await repo.commit('C, after the merge')
+  }
+  await repo.git('checkout', '-q', 'main')
+  const merged: MergedBranch = {
+    name: 'feature',
+    pullRequest: { ...mergedFeature.pullRequest, headOid }
+  }
+  const { mergedBranches } = mergedBranchesFrom(async () => [merged])
+  const handlers = await opened(repo, { mergedBranches })
+  await handlers.listMergedBranches(repo.root)
+  return { repo, handlers, merged }
+}
+
 describe('getBranchDeletion and deleteBranch', () => {
   it('reads what deleting a branch would lose, then deletes it', async () => {
     const repo = await createRepoWithCommit()
@@ -607,6 +634,45 @@ describe('getBranchDeletion and deleteBranch', () => {
 
     expect(changed).toEqual([])
     await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([mergedFeature])
+  })
+
+  describe('the pull request that merged the branch', () => {
+    it('names it when its head is the tip read', async () => {
+      const { repo, handlers, merged } = await mergedAt('tip')
+
+      await expect(handlers.getBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+        branchOnlyCommits: 1,
+        mergedBy: merged.pullRequest
+      })
+    })
+
+    it('names it when its head contains the tip read', async () => {
+      const { repo, handlers, merged } = await mergedAt('child')
+
+      await expect(handlers.getBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+        mergedBy: merged.pullRequest
+      })
+    })
+
+    it('doesn’t name it once the branch has a commit the pull request never carried', async () => {
+      // Main's merged result is only looked up again after a fetch, so it still names the PR.
+      const { repo, handlers } = await mergedAt('parent')
+
+      await expect(handlers.getBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+        branchOnlyCommits: 2,
+        mergedBy: null
+      })
+    })
+
+    it('names none for a branch no pull request merged', async () => {
+      const repo = await createRepoWithCommit()
+      await repo.git('branch', 'feature')
+      const handlers = await opened(repo, {})
+
+      await expect(handlers.getBranchDeletion(repo.root, 'feature')).resolves.toMatchObject({
+        mergedBy: null
+      })
+    })
   })
 
   it('refuses a branch that does not exist', async () => {

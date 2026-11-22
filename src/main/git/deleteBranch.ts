@@ -173,7 +173,10 @@ async function deletableUpstreamRefs(
  * deleted too, it comes with a second count: without the upstream as somewhere else, and with
  * the commits only the upstream has. See ADR 0009.
  */
-export async function readBranchDeletion(root: string, name: string): Promise<BranchDeletion> {
+export async function readBranchDeletion(
+  root: string,
+  name: string
+): Promise<Omit<BranchDeletion, 'mergedBy'>> {
   const branch = await readBranchTip(root, name)
   if (branch === null) {
     throw new GitError('COMMAND_FAILED', `There is no branch called “${name}”.`, {
