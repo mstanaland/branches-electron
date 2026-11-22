@@ -48,7 +48,8 @@ const mergedBy = (name: string, number: number): MergedBranch => ({
     title: `Pull request ${number}`,
     url: `https://github.com/octo/hello/pull/${number}`,
     baseBranch: 'main',
-    mergedAt: '2026-11-01T10:00:00Z'
+    mergedAt: '2026-11-01T10:00:00Z',
+    headOid: 'a'.repeat(40)
   }
 })
 

@@ -8,6 +8,26 @@ async function oid(repo: { git: (...args: string[]) => Promise<string> }, ref: s
   return (await repo.git('rev-parse', ref)).trim()
 }
 
+/**
+ * A branch pushed, squash-merged on the remote, and its remote branch deleted: what is
+ * left after a pull request on GitHub. Returns the clone and the head the PR merged.
+ */
+async function squashMergedBranch() {
+  const source = await createRepoWithCommit()
+  const clone = await cloneRepo(source)
+  await clone.git('checkout', '-q', '-b', 'feature')
+  await clone.write('a.txt')
+  await clone.commit('A')
+  await clone.write('b.txt')
+  await clone.commit('B')
+  await clone.git('push', '-q', '-u', 'origin', 'feature')
+  await source.git('merge', '-q', '--squash', 'feature')
+  await source.commit('Feature (#1)')
+  await source.git('branch', '-q', '-D', 'feature')
+  await clone.git('fetch', '-q', '--prune')
+  return { clone, head: await oid(clone, 'feature') }
+}
+
 describe('listUnpushedCommits', () => {
   it('is empty for a branch level with its upstream', async () => {
     const clone = await cloneRepo(await createRepoWithCommit())
@@ -82,6 +102,44 @@ describe('listUnpushedCommits', () => {
     await clone.commit('Spaced')
 
     expect(await listUnpushedCommits(clone.root, 'feature/login')).toHaveLength(1)
+  })
+
+  describe('given the head of the pull request that merged the branch', () => {
+    it('lists the merged commits without it, since no remote-tracking branch has them', async () => {
+      const { clone } = await squashMergedBranch()
+
+      expect(await listUnpushedCommits(clone.root, 'feature')).toHaveLength(2)
+    })
+
+    it('does not list the commits the pull request carried', async () => {
+      const { clone, head } = await squashMergedBranch()
+
+      expect(await listUnpushedCommits(clone.root, 'feature', [head])).toEqual([])
+    })
+
+    it('still lists a commit made after the merge', async () => {
+      const { clone, head } = await squashMergedBranch()
+      await clone.write('c.txt')
+      await clone.commit('C')
+
+      expect(await listUnpushedCommits(clone.root, 'feature', [head])).toEqual([
+        await oid(clone, 'feature')
+      ])
+    })
+
+    it('ignores a head that is not here', async () => {
+      const { clone } = await squashMergedBranch()
+
+      expect(await listUnpushedCommits(clone.root, 'feature', ['f'.repeat(40)])).toHaveLength(2)
+    })
+
+    it('ignores anything that is not a full oid', async () => {
+      const { clone } = await squashMergedBranch()
+
+      for (const head of ['--all', 'origin/main', 'feature', 'abc1234']) {
+        expect(await listUnpushedCommits(clone.root, 'feature', [head])).toHaveLength(2)
+      }
+    })
   })
 
   it('is empty with no remote, rather than every commit', async () => {

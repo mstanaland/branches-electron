@@ -45,7 +45,8 @@ const mergedFeature: MergedBranch = {
     title: 'Add the login form',
     url: 'https://github.com/octo/hello/pull/42',
     baseBranch: 'main',
-    mergedAt: '2026-11-18T12:00:00Z'
+    mergedAt: '2026-11-18T12:00:00Z',
+    headOid: 'a'.repeat(40)
   }
 }
 

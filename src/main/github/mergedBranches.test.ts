@@ -107,7 +107,8 @@ describe('findMergedBranches', () => {
           title: pr.title,
           url: pr.url,
           baseBranch: 'main',
-          mergedAt: pr.mergedAt
+          mergedAt: pr.mergedAt,
+          headOid: head
         }
       }
     ])

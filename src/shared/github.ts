@@ -10,6 +10,11 @@ export interface PullRequest {
   baseBranch: string
   /** When it was merged, as an ISO 8601 timestamp. */
   mergedAt: string
+  /**
+   * Full oid of its head commit when it was merged. That commit and everything behind it were
+   * pushed, even after the remote branch is deleted.
+   */
+  headOid: string
 }
 
 /** A **merged branch** (ADR-0011): a local branch and the pull request that merged it. */

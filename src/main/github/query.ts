@@ -3,10 +3,8 @@ import { badResponse } from './errors'
 import type { GitHubRepository } from './remote'
 
 /** A merged pull request, with the head commit GitHub kept as the branch's original tip. */
-export interface MergedPullRequest extends PullRequest {
-  /** Full oid of the pull request's head commit when it was merged. */
-  headOid: string
-}
+/** A merged pull request as the query reads it: everything Branches keeps about one. */
+export type MergedPullRequest = PullRequest
 
 /** GitHub's answer for one repository. */
 export interface MergedPullRequests {

@@ -278,7 +278,9 @@ _Avoid_: Revision, changeset, SHA (for the commit itself)
 A commit no remote-tracking branch reaches: pushing would be the first time any **remote** has
 it. Judged against every remote, not just the branch's **upstream**, so a new branch only counts
 the commits made since it left a pushed one. Until the repository has a **remote** with at
-least one branch fetched from it, no commit is called unpushed.
+least one branch fetched from it, no commit is called unpushed. Nor is a commit the **pull
+request** of a **merged branch** carried, even once its remote branch is deleted: it was pushed,
+and a squash or rebase merge simply left no remote-tracking branch that reaches it.
 _Avoid_: Local-only commit, unpublished commit, outgoing commit
 
 **Short oid**:

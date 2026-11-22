@@ -116,10 +116,15 @@ export function useCommitFileDiff(
  * themselves up in. Idle while there is no repository or no ref.
  */
 export function useUnpushedCommits(root: string | null, ref: string | null) {
+  // Main leaves out what a merged pull request carried, judged by the merged branches it holds.
+  // So wait for them — success or failure — rather than mark a merged commit for a moment, and
+  // read again when the pull request that merged this branch changes.
+  const merged = useMergedBranches(root)
+  const mergedHead = (ref === null ? undefined : merged.data?.get(ref)?.headOid) ?? null
   return useQuery({
-    queryKey: keys.unpushed(root ?? '', ref ?? ''),
+    queryKey: keys.unpushed(root ?? '', ref ?? '', mergedHead),
     queryFn: async () => new Set(await api.listUnpushedCommits(root as string, ref as string)),
-    enabled: root !== null && ref !== null
+    enabled: root !== null && ref !== null && !merged.isPending
   })
 }
 
