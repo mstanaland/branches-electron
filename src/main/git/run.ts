@@ -95,6 +95,10 @@ export async function runGit(
       }
     )
 
+    // git can exit before reading stdin (most commands never read it), and writing to a pipe
+    // nobody is reading fails with EPIPE. Unhandled, that would crash the process; the exit is
+    // what reports how git did, so this is safe to ignore.
+    child.stdin?.on('error', () => {})
     // Always closed, so a command that reads stdin (`commit -F -`) never waits forever.
     child.stdin?.end(options.input ?? '')
   })
