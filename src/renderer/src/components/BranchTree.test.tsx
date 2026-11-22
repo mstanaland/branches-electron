@@ -3,6 +3,7 @@ import { act, cleanup, fireEvent, screen, waitFor, within } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { ApiError } from '../../../shared/apiError'
 import type { Branch, BranchDeletion, RepositoryStatus } from '../../../shared/git'
+import type { MergedBranch } from '../../../shared/github'
 import type { RendererApi } from '../api'
 import { renderWithProviders } from '../data/testUtils'
 
@@ -14,6 +15,7 @@ const api = vi.hoisted(() => ({
   confirmRemoveMissingRepository: vi.fn<RendererApi['confirmRemoveMissingRepository']>(),
   getStatus: vi.fn<RendererApi['getStatus']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
+  listMergedBranches: vi.fn<RendererApi['listMergedBranches']>(),
   checkoutBranch: vi.fn<RendererApi['checkoutBranch']>(),
   createBranch: vi.fn<RendererApi['createBranch']>(),
   showBranchMenu: vi.fn<RendererApi['showBranchMenu']>(),
@@ -36,6 +38,17 @@ const branch = (name: string, overrides: Partial<Branch> = {}): Branch => ({
   ahead: 0,
   behind: 0,
   ...overrides
+})
+
+const mergedBy = (name: string, number: number): MergedBranch => ({
+  name,
+  pullRequest: {
+    number,
+    title: `Pull request ${number}`,
+    url: `https://github.com/octo/hello/pull/${number}`,
+    baseBranch: 'main',
+    mergedAt: '2026-11-01T10:00:00Z'
+  }
 })
 
 const status = (overrides: Partial<RepositoryStatus> = {}): RepositoryStatus => ({
@@ -69,6 +82,7 @@ function outline(): Array<[string | null, string | null]> {
 beforeEach(() => {
   vi.resetAllMocks()
   localStorage.clear()
+  api.listMergedBranches.mockResolvedValue([])
 })
 
 afterEach(() => {
@@ -210,6 +224,49 @@ describe('markers', () => {
 
     expect(within(old).getByRole('img', { name: 'Upstream gone' })).toBeTruthy()
     expect(within(screen.getByRole('treeitem', { name: 'main' })).queryByRole('img')).toBeNull()
+  })
+
+  it('marks a merged branch MERGED, in place of Upstream gone', async () => {
+    api.listMergedBranches.mockResolvedValue([mergedBy('done', 12)])
+    showBranches([
+      branch('done', { upstream: 'origin/done', upstreamGone: true }),
+      branch('abandoned', { upstream: 'origin/abandoned', upstreamGone: true }),
+      branch('main')
+    ])
+    const done = await screen.findByRole('treeitem', { name: 'done' })
+
+    const badge = await within(done).findByRole('img', { name: 'Merged by pull request #12' })
+    expect(badge.textContent).toBe('MERGED')
+    expect(within(done).queryByRole('img', { name: 'Upstream gone' })).toBeNull()
+    const abandoned = screen.getByRole('treeitem', { name: 'abandoned' })
+    expect(within(abandoned).getByRole('img', { name: 'Upstream gone' })).toBeTruthy()
+    expect(within(abandoned).queryByRole('img', { name: /Merged/ })).toBeNull()
+  })
+
+  it('marks a merged branch whose upstream still exists', async () => {
+    api.listMergedBranches.mockResolvedValue([mergedBy('done', 3)])
+    showBranches([branch('done', { upstream: 'origin/done' }), branch('main')])
+    const done = await screen.findByRole('treeitem', { name: 'done' })
+
+    expect(await within(done).findByRole('img', { name: 'Merged by pull request #3' })).toBeTruthy()
+    const description = document.getElementById(done.getAttribute('aria-describedby') ?? '')
+    expect(description?.textContent).toBe('Merged by pull request #3')
+  })
+
+  it('asks for the merged branches of its own repository', async () => {
+    showBranches([branch('main')])
+    await screen.findByRole('tree')
+
+    expect(api.listMergedBranches).toHaveBeenCalledWith(ROOT)
+  })
+
+  it('shows the tree as usual when the merged branches can’t be read', async () => {
+    api.listMergedBranches.mockRejectedValue(new ApiError({ code: 'COMMAND_FAILED', message: 'x' }))
+    showBranches([branch('old', { upstream: 'origin/old', upstreamGone: true }), branch('main')])
+    const old = await screen.findByRole('treeitem', { name: 'old' })
+
+    expect(within(old).getByRole('img', { name: 'Upstream gone' })).toBeTruthy()
+    expect(screen.queryByRole('alert')).toBeNull()
   })
 
   it('describes a branch by its markers, so screen readers hear them', async () => {

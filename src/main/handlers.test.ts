@@ -30,7 +30,8 @@ const dismissed = {
     },
     cancel: () => {}
   },
-  showGenerateError: async () => {}
+  showGenerateError: async () => {},
+  findMergedBranches: async () => []
 }
 
 let storeDir = ''
@@ -78,6 +79,50 @@ describe('openRepository', () => {
 
     await expect(handlers.openRepository()).rejects.toMatchObject({ code: 'NOT_A_REPOSITORY' })
     await expect(handlers.getStatus(dir)).rejects.toMatchObject({ code: 'REPOSITORY_NOT_OPEN' })
+  })
+})
+
+describe('listMergedBranches', () => {
+  const merged = {
+    name: 'feature',
+    pullRequest: {
+      number: 7,
+      title: 'Add a feature',
+      url: 'https://github.com/octo/hello/pull/7',
+      baseBranch: 'main',
+      mergedAt: '2026-11-01T10:00:00Z'
+    }
+  }
+
+  it('serves an opened repository’s merged branches', async () => {
+    const repo = await createRepoWithCommit()
+    const asked: string[] = []
+    const handlers = handlersChoosing(repo.root, {
+      findMergedBranches: async (root) => {
+        asked.push(root)
+        return [merged]
+      }
+    })
+    await handlers.openRepository()
+
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([merged])
+    expect(asked).toEqual([repo.root])
+  })
+
+  it('rejects a repository that was never opened, without asking GitHub', async () => {
+    const repo = await createRepoWithCommit()
+    let asked = false
+    const handlers = handlersChoosing(null, {
+      findMergedBranches: async () => {
+        asked = true
+        return [merged]
+      }
+    })
+
+    await expect(handlers.listMergedBranches(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+    expect(asked).toBe(false)
   })
 })
 

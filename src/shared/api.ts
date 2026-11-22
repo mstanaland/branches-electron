@@ -12,6 +12,7 @@ import type {
   RepositoryStatus,
   SavedRepository
 } from './git'
+import type { MergedBranch } from './github'
 import type { ApiResult } from './result'
 import type { TabCommand } from './tabs'
 
@@ -44,6 +45,14 @@ export interface BranchesApi {
   getStatus: (root: string) => Promise<ApiResult<RepositoryStatus>>
   /** `root` must be a saved repository or one the user opened this session. */
   listBranches: (root: string) => Promise<ApiResult<Branch[]>>
+  /**
+   * The **merged branches** of `root`: each local branch a merged GitHub **pull request** carried
+   * into the **default branch**, with that pull request (ADR-0011). Asks GitHub through the
+   * user's own `gh`, so it reaches the network. Without a usable `gh` — missing, logged out,
+   * offline — it resolves with an empty list rather than failing: the feature is silent.
+   * `root` must be a saved repository or one the user opened this session.
+   */
+  listMergedBranches: (root: string) => Promise<ApiResult<MergedBranch[]>>
   /**
    * One page of the commits reachable from `ref`, newest first and in topological order.
    *

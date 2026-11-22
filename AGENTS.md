@@ -7,13 +7,14 @@ A Mac git client. Electron + React + TypeScript, built with electron-vite and pn
 - `src/main/` — Electron main process (Node). The only place that runs git or touches the file system.
 - `src/main/git/` — All git execution and output parsing.
 - `src/main/claude/` — Runs the user's Claude Code for **Generate**. See `docs/adr/0010-generate-spawns-claude-code-with-no-tools.md`.
+- `src/main/github/` — Asks GitHub, through the user's `gh`, which branches a pull request merged. See `docs/adr/0011-merged-branches-are-proven-by-a-github-pull-request.md`.
 - `src/preload/` — Exposes `window.api` to the renderer via `contextBridge`. Nothing else.
 - `src/shared/` — Types and pure functions used by more than one process. `api.ts` defines the `BranchesApi` contract.
 - `src/renderer/` — The React app.
 
 ## Architecture rules
 
-- All git execution lives in `src/main/git/`, and Claude Code runs only from `src/main/claude/`. Nothing else spawns processes. Both follow the rules under Running git for `execFile`, async calls and typed errors.
+- All git execution lives in `src/main/git/`, Claude Code runs only from `src/main/claude/`, and `gh` runs only from `src/main/github/`. Nothing else spawns processes. All three follow the rules under Running git for `execFile`, async calls and typed errors.
 - The renderer talks to the main process only through `window.api`. Never expose `ipcRenderer`, Node APIs or Electron internals to the renderer.
 - Adding a capability means updating `BranchesApi` in `src/shared/api.ts` first, then the preload, then an `ipcMain.handle` in main.
 - Keep `contextIsolation: true` and `sandbox: true`.

@@ -5,6 +5,7 @@ import { settle } from './apiResult'
 import { createFetchScheduler } from './fetchScheduler'
 import { createCommitMessageGenerator, getClaudeExecutable } from './claude'
 import { fetchRemote, hasRemote, readCommitContext } from './git'
+import { findMergedBranches, lookUpMergedPullRequests } from './github'
 import { createHandlers } from './handlers'
 import { createBranchMenuTemplate } from './menu'
 import { createRepositoryStore } from './repositoryStore'
@@ -93,6 +94,7 @@ export function registerIpc(deps: IpcDeps): void {
       locate: getClaudeExecutable,
       readContext: (root) => readCommitContext(root)
     }),
+    findMergedBranches: (root) => findMergedBranches(root, lookUpMergedPullRequests),
     showGenerateError: async (message) => {
       const options = {
         type: 'warning' as const,
@@ -136,6 +138,9 @@ export function registerIpc(deps: IpcDeps): void {
   )
   ipcMain.handle('repository:branches', (_event, root: string) =>
     settle(() => handlers.listBranches(root))
+  )
+  ipcMain.handle('repository:merged-branches', (_event, root: string) =>
+    settle(() => handlers.listMergedBranches(root))
   )
   ipcMain.handle(
     'repository:commits',
