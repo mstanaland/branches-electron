@@ -78,6 +78,8 @@ export interface HandlerDeps {
   mergedBranches: MergedBranchCache
   /** Tells the user why **Generate** failed, in a native warning sheet. */
   showGenerateError: (message: string) => Promise<void>
+  /** Opens a URL in the user's default browser. Only ever given one `openExternal` checked. */
+  openExternal: (url: string) => Promise<void>
 }
 
 export interface Handlers {
@@ -89,6 +91,7 @@ export interface Handlers {
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
   listMergedBranches: (root: string) => Promise<MergedBranch[]>
+  openExternal: (root: string, url: string) => Promise<void>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
   listUnpushedCommits: (root: string, ref: string) => Promise<string[]>
   getCommitDetails: (root: string, oid: string) => Promise<CommitDetails>
@@ -142,6 +145,17 @@ async function assertBranch(root: string, name: string): Promise<Branch> {
     throw new ApiError({ code: 'INVALID_REF', message: `${name} is not a branch.` })
   }
   return branch
+}
+
+/**
+ * A URL off IPC that is about to reach the browser: only an https page a **pull request** in
+ * `merged` has, compared exactly as GitHub gave it, so the renderer can't open anything else.
+ */
+function assertPullRequestUrl(url: string, merged: readonly MergedBranch[] | undefined): void {
+  const known = merged?.some((branch) => branch.pullRequest.url === url) ?? false
+  if (!known || !url.startsWith('https://')) {
+    throw new ApiError({ code: 'INVALID_URL', message: `${url} is not a pull request’s page.` })
+  }
 }
 
 function isFullOid(value: string): boolean {
@@ -274,6 +288,12 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listMergedBranches(root) {
       await assertOpen(root)
       return deps.mergedBranches.get(root)
+    },
+    async openExternal(root, url) {
+      await assertOpen(root)
+      // What main kept, never a fresh lookup: the renderer only links what it was shown.
+      assertPullRequestUrl(url, deps.mergedBranches.cached(root))
+      await deps.openExternal(url)
     },
     async listCommits(root, ref, limit, skip) {
       await assertOpen(root)

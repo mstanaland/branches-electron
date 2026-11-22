@@ -6,6 +6,7 @@ import type { CommitGraphRow } from '../../../shared/commitGraph'
 import type { Commit } from '../../../shared/git'
 import { describeError, useCommits, useSelection, useUnpushedCommits } from '../data'
 import { EmptyState, Pending, Tooltip } from '../ui'
+import { MergedBranchAlert } from './MergedBranchAlert'
 import shared from './shared.module.css'
 import styles from './CommitHistory.module.css'
 
@@ -259,6 +260,8 @@ export function CommitHistory({
 
   return (
     <section className={styles.history} aria-label="History">
+      {/* Only a branch name can be merged; a detached HEAD's oid simply finds nothing. */}
+      <MergedBranchAlert root={root} name={commitRef} />
       {error && (
         <p role="alert" className={shared.error}>
           {error.message}

@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Menu } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, Menu, shell } from 'electron'
 import { join } from 'node:path'
 import type { CommitMessage } from '../shared/git'
 import { settle } from './apiResult'
@@ -104,6 +104,7 @@ export function registerIpc(deps: IpcDeps): void {
       readContext: (root) => readCommitContext(root)
     }),
     mergedBranches,
+    openExternal: (url) => shell.openExternal(url),
     showGenerateError: async (message) => {
       const options = {
         type: 'warning' as const,
@@ -150,6 +151,9 @@ export function registerIpc(deps: IpcDeps): void {
   )
   ipcMain.handle('repository:merged-branches', (_event, root: string) =>
     settle(() => handlers.listMergedBranches(root))
+  )
+  ipcMain.handle('repository:open-external', (_event, root: string, url: string) =>
+    settle(() => handlers.openExternal(root, url))
   )
   ipcMain.handle(
     'repository:commits',

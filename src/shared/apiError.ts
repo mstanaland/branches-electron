@@ -15,6 +15,7 @@ export type ApiErrorCode =
   | 'INVALID_REF'
   | 'INVALID_TAB_COUNT'
   | 'INVALID_DRAFT'
+  | 'INVALID_URL'
   | 'CLAUDE_NOT_FOUND'
   | 'CLAUDE_FAILED'
   | 'GENERATE_TIMED_OUT'

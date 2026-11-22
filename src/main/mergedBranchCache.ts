@@ -13,6 +13,8 @@ export interface MergedBranchCacheDeps {
 export interface MergedBranchCache {
   /** The last result for `root`, looked up first if there is none yet. Never rejects. */
   get: (root: string) => Promise<MergedBranch[]>
+  /** The last result for `root` as it stands, or undefined before any. Never asks GitHub. */
+  cached: (root: string) => readonly MergedBranch[] | undefined
   /** Looks `root` up again after a fetch, reporting a change. Never rejects. */
   recompute: (root: string) => Promise<void>
   /**
@@ -84,6 +86,7 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
       }
       return results.get(root) ?? []
     },
+    cached: (root) => results.get(root),
     recompute(root) {
       return enqueue(root, async () => {
         if (await lookUp(root)) deps.onChanged(root)
