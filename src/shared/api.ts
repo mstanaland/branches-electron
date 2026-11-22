@@ -270,6 +270,11 @@ export interface BranchesEvents {
    * ahead/behind counts the renderer is showing are stale. Returns an unsubscribe function.
    */
   onRemoteRefsChanged: (listener: (root: string) => void) => () => void
+  /**
+   * Main looked up `root`'s **merged branches** again — after a background or manual fetch, or
+   * a delete — and the result changed. Returns an unsubscribe function.
+   */
+  onMergedBranchesChanged: (listener: (root: string) => void) => () => void
 }
 
 /** Everything the preload exposes as `window.api`. */

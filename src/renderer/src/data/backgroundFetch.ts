@@ -2,6 +2,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { useEffect } from 'react'
 import { api } from '../api'
 import { invalidateAfterFetch } from './fetch'
+import { keys } from './keys'
 import { useSelection } from './tabs'
 
 /**
@@ -10,7 +11,9 @@ import { useSelection } from './tabs'
  * change when one moves a ref.
  *
  * Nothing on disk changes when a branch is merged upstream, so without this the ahead/behind
- * counts stay as stale as the user's last manual fetch. Mounted once, near the top of the app.
+ * counts stay as stale as the user's last manual fetch. Main also looks the **merged branches**
+ * up again after every fetch and delete, and says when they changed, so they are re-read then —
+ * and only then, since asking GitHub is main's business. Mounted once, near the top of the app.
  */
 export function useBackgroundFetch(): void {
   const { activeRoot } = useSelection()
@@ -26,6 +29,12 @@ export function useBackgroundFetch(): void {
   useEffect(() => {
     return api.onRemoteRefsChanged((root) => {
       void invalidateAfterFetch(client, root)
+    })
+  }, [client])
+
+  useEffect(() => {
+    return api.onMergedBranchesChanged((root) => {
+      void client.invalidateQueries({ queryKey: keys.mergedBranches(root) })
     })
   }, [client])
 }

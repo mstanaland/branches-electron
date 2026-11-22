@@ -1,11 +1,13 @@
 import { mkdir, rm, symlink } from 'node:fs/promises'
 import { join } from 'node:path'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest'
 import type { CommitMessage, SavedRepository } from '../shared/git'
+import type { MergedBranch } from '../shared/github'
 import { MAX_TABS } from '../shared/tabs'
 import { ClaudeError } from './claude'
 import { createHandlers, type HandlerDeps } from './handlers'
 import type { BranchMenuTarget } from './menu'
+import { createMergedBranchCache } from './mergedBranchCache'
 import { createRepositoryStore } from './repositoryStore'
 import {
   addBareRemote,
@@ -31,7 +33,35 @@ const dismissed = {
     cancel: () => {}
   },
   showGenerateError: async () => {},
-  findMergedBranches: async () => []
+  mergedBranches: createMergedBranchCache({ find: async () => [], onChanged: () => {} })
+}
+
+/**
+ * Main's real merged-branch cache over a GitHub that answers `find`, recording each lookup in
+ * `asked` and each pushed "merged branches changed" event in `changed`.
+ */
+function mergedBranchesFrom(find: (root: string) => Promise<MergedBranch[] | null>) {
+  const asked: string[] = []
+  const changed: string[] = []
+  const mergedBranches = createMergedBranchCache({
+    find: (root) => {
+      asked.push(root)
+      return find(root)
+    },
+    onChanged: (root) => changed.push(root)
+  })
+  return { mergedBranches, asked, changed }
+}
+
+const mergedFeature: MergedBranch = {
+  name: 'feature',
+  pullRequest: {
+    number: 7,
+    title: 'Add a feature',
+    url: 'https://github.com/octo/hello/pull/7',
+    baseBranch: 'main',
+    mergedAt: '2026-11-01T10:00:00Z'
+  }
 }
 
 let storeDir = ''
@@ -83,46 +113,50 @@ describe('openRepository', () => {
 })
 
 describe('listMergedBranches', () => {
-  const merged = {
-    name: 'feature',
-    pullRequest: {
-      number: 7,
-      title: 'Add a feature',
-      url: 'https://github.com/octo/hello/pull/7',
-      baseBranch: 'main',
-      mergedAt: '2026-11-01T10:00:00Z'
-    }
-  }
-
   it('serves an opened repository’s merged branches', async () => {
     const repo = await createRepoWithCommit()
-    const asked: string[] = []
-    const handlers = handlersChoosing(repo.root, {
-      findMergedBranches: async (root) => {
-        asked.push(root)
-        return [merged]
-      }
-    })
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [mergedFeature])
+    const handlers = handlersChoosing(repo.root, { mergedBranches })
     await handlers.openRepository()
 
-    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([merged])
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([mergedFeature])
+    expect(asked).toEqual([repo.root])
+  })
+
+  it('serves a re-read, as after Refresh, from what main kept, without asking GitHub again', async () => {
+    const repo = await createRepoWithCommit()
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [mergedFeature])
+    const handlers = handlersChoosing(repo.root, { mergedBranches })
+    await handlers.openRepository()
+    await handlers.listMergedBranches(repo.root)
+
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([mergedFeature])
     expect(asked).toEqual([repo.root])
   })
 
   it('rejects a repository that was never opened, without asking GitHub', async () => {
     const repo = await createRepoWithCommit()
-    let asked = false
-    const handlers = handlersChoosing(null, {
-      findMergedBranches: async () => {
-        asked = true
-        return [merged]
-      }
-    })
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [mergedFeature])
+    const handlers = handlersChoosing(null, { mergedBranches })
 
     await expect(handlers.listMergedBranches(repo.root)).rejects.toMatchObject({
       code: 'REPOSITORY_NOT_OPEN'
     })
-    expect(asked).toBe(false)
+    expect(asked).toEqual([])
+  })
+
+  it('looks a repository up afresh once it has been removed and opened again', async () => {
+    const repo = await createRepoWithCommit()
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [mergedFeature])
+    const handlers = handlersChoosing(repo.root, { mergedBranches })
+    await handlers.openRepository()
+    await handlers.listMergedBranches(repo.root)
+
+    await handlers.removeRepository(repo.root)
+    await handlers.openRepository()
+    await handlers.listMergedBranches(repo.root)
+
+    expect(asked).toEqual([repo.root, repo.root])
   })
 })
 
@@ -438,6 +472,41 @@ describe('getBranchDeletion and deleteBranch', () => {
     expect((await repo.git('branch', '--list', 'feature')).trim()).toBe('')
   })
 
+  it('drops a deleted merged branch from the merged result, and reports the change', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'feature')
+    const { mergedBranches, asked, changed } = mergedBranchesFrom(async () => [mergedFeature])
+    const handlers = await opened(repo, { mergedBranches })
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([mergedFeature])
+
+    const deletion = await handlers.getBranchDeletion(repo.root, 'feature')
+    await handlers.deleteBranch(repo.root, 'feature', deletion.oid, null)
+
+    expect(changed).toEqual([repo.root])
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([])
+    expect(asked).toEqual([repo.root])
+  })
+
+  it('leaves the merged result alone when a delete fails', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('branch', 'feature')
+    const { mergedBranches, changed } = mergedBranchesFrom(async () => [mergedFeature])
+    const handlers = await opened(repo, { mergedBranches })
+    await handlers.listMergedBranches(repo.root)
+    const deletion = await handlers.getBranchDeletion(repo.root, 'feature')
+    await repo.write('moved.txt')
+    await repo.git('add', 'moved.txt')
+    await repo.git('commit', '-q', '-m', 'Moved')
+    await repo.git('branch', '-f', 'feature', 'HEAD')
+
+    await expect(
+      handlers.deleteBranch(repo.root, 'feature', deletion.oid, null)
+    ).rejects.toMatchObject({ code: 'BRANCH_MOVED' })
+
+    expect(changed).toEqual([])
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([mergedFeature])
+  })
+
   it('refuses a branch that does not exist', async () => {
     const repo = await createRepoWithCommit()
     const handlers = await opened(repo, {})
@@ -714,15 +783,34 @@ describe('fetchRepository', () => {
     expect(main?.behind).toBe(1)
   })
 
+  it('looks the merged branches up again afterwards, and reports a change', async () => {
+    const origin = await createRepoWithCommit()
+    const clone = await cloneRepo(origin)
+    let answer: MergedBranch[] = []
+    const { mergedBranches, asked, changed } = mergedBranchesFrom(async () => answer)
+    const handlers = handlersChoosing(clone.root, { mergedBranches })
+    await handlers.openRepository()
+    await expect(handlers.listMergedBranches(clone.root)).resolves.toEqual([])
+
+    answer = [mergedFeature]
+    await handlers.fetchRepository(clone.root)
+
+    await vi.waitFor(() => expect(changed).toEqual([clone.root]))
+    expect(asked).toEqual([clone.root, clone.root])
+    await expect(handlers.listMergedBranches(clone.root)).resolves.toEqual([mergedFeature])
+  })
+
   it('fails rather than staying quiet when the remote cannot be reached', async () => {
     const repo = await createRepoWithCommit()
     await repo.git('remote', 'add', 'origin', '/nowhere/there-is-no-repository-here')
-    const handlers = handlersChoosing(repo.root)
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [])
+    const handlers = handlersChoosing(repo.root, { mergedBranches })
     await handlers.openRepository()
 
     await expect(handlers.fetchRepository(repo.root)).rejects.toMatchObject({
       code: 'COMMAND_FAILED'
     })
+    expect(asked).toEqual([])
   })
 
   it('says so when the repository has no remote, rather than reporting a fetch that did nothing', async () => {

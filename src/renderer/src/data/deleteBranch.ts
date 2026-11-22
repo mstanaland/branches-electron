@@ -44,7 +44,9 @@ export interface DeleteBranch {
  * branch list is read again and the deleted branch's cached history dropped; HEAD and the work
  * tree are untouched, since the current branch is never deleted. Deleting the upstream too
  * moves remote-tracking refs, so then everything a fetch touches is read again as well —
- * another branch may track the same upstream, and the publish target may change.
+ * another branch may track the same upstream, and the publish target may change. The **merged
+ * branches** are read again too: main dropped the deleted branch before the delete resolved, so
+ * this reads what main kept and never reaches GitHub.
  */
 export function useDeleteBranch(root: string): DeleteBranch {
   const queryClient = useQueryClient()
@@ -59,9 +61,12 @@ export function useDeleteBranch(root: string): DeleteBranch {
       ),
     onSuccess: async (_result, { deletion: { name }, alsoUpstream }) => {
       queryClient.removeQueries({ queryKey: keys.commits(root, name) })
-      await (alsoUpstream
-        ? invalidateAfterFetch(queryClient, root)
-        : queryClient.invalidateQueries({ queryKey: keys.branches(root) }))
+      await Promise.all([
+        alsoUpstream
+          ? invalidateAfterFetch(queryClient, root)
+          : queryClient.invalidateQueries({ queryKey: keys.branches(root) }),
+        queryClient.invalidateQueries({ queryKey: keys.mergedBranches(root) })
+      ])
     }
   })
 

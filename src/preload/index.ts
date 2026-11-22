@@ -36,6 +36,14 @@ const api: WindowApi = {
       ipcRenderer.removeListener('repository:remote-refs-changed', forward)
     }
   },
+  onMergedBranchesChanged: (listener) => {
+    // Wrap it so the IPC event object never reaches the renderer.
+    const forward = (_event: unknown, root: string): void => listener(root)
+    ipcRenderer.on('repository:merged-branches-changed', forward)
+    return () => {
+      ipcRenderer.removeListener('repository:merged-branches-changed', forward)
+    }
+  },
   getStatus: (root) => ipcRenderer.invoke('repository:status', root),
   listBranches: (root) => ipcRenderer.invoke('repository:branches', root),
   listMergedBranches: (root) => ipcRenderer.invoke('repository:merged-branches', root),

@@ -7,7 +7,11 @@ import {
   testRepoAt,
   type TestRepo
 } from '../git/test-repo'
-import { findMergedBranches, type LookUpMergedPullRequests } from './mergedBranches'
+import {
+  findMergedBranches,
+  findMergedBranchesOrNull,
+  type LookUpMergedPullRequests
+} from './mergedBranches'
 import type { MergedPullRequest } from './query'
 import type { GitHubRepository } from './remote'
 
@@ -334,5 +338,31 @@ describe('findMergedBranches', () => {
     await repo.git('init', '-q', '-b', 'main')
 
     await expect(findMergedBranches(root, fakeGitHub({}))).resolves.toEqual([])
+  })
+})
+
+describe('findMergedBranchesOrNull', () => {
+  it('finds the same merged branches when GitHub answers', async () => {
+    const repo = await createGitHubClone()
+    const head = await pushedBranch(repo, 'feature')
+    const pr = pullRequest(head)
+
+    const merged = await findMergedBranchesOrNull(repo.root, fakeGitHub({ feature: [pr] }))
+
+    expect(merged?.map((branch) => branch.name)).toEqual(['feature'])
+  })
+
+  it('finds an empty result, not null, when GitHub answers with nothing merged', async () => {
+    const repo = await createGitHubClone()
+    await pushedBranch(repo, 'feature')
+
+    await expect(findMergedBranchesOrNull(repo.root, fakeGitHub({}))).resolves.toEqual([])
+  })
+
+  it('resolves null, rather than empty, when GitHub can’t be asked', async () => {
+    const repo = await createGitHubClone()
+    await pushedBranch(repo, 'feature')
+
+    await expect(findMergedBranchesOrNull(repo.root, notLoggedIn)).resolves.toBeNull()
   })
 })
