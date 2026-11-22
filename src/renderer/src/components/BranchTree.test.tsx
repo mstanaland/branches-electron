@@ -751,6 +751,7 @@ describe('deleting a branch', () => {
     branchOnlyCommits: 0,
     goneUpstream: null,
     deletableUpstream: null,
+    mergedBy: null,
     ...overrides
   })
   const UPSTREAM_OID = 'b'.repeat(40)
@@ -838,6 +839,92 @@ describe('deleting a branch', () => {
     expect(dialog.textContent).toContain(
       'origin/work was deleted from origin. This branch’s 3 commits aren’t on any other branch — if it was merged with a squash or rebase they’re already in; anything committed after that will be lost.'
     )
+  })
+
+  describe('a merged branch', () => {
+    const mergedNote = 'Merged into main by #4.'
+    const pullRequest = mergedBy('work', 4).pullRequest
+
+    beforeEach(() => {
+      showBranches(twoBranches())
+    })
+
+    it('notes the pull request calmly in place of the danger alert', async () => {
+      const dialog = await openDeleteDialog(
+        deletion({ branchOnlyCommits: 3, mergedBy: pullRequest })
+      )
+
+      expect(within(dialog).queryByRole('alert')).toBeNull()
+      expect(dialog.textContent).toContain(mergedNote)
+      expect(dialog.textContent).not.toContain('lost')
+    })
+
+    it('notes the pull request when the branch has no branch-only commits', async () => {
+      const dialog = await openDeleteDialog(deletion({ mergedBy: pullRequest }))
+
+      expect(within(dialog).queryByRole('alert')).toBeNull()
+      expect(dialog.textContent).toContain(mergedNote)
+    })
+
+    it('notes the pull request in place of the gone-upstream note', async () => {
+      const dialog = await openDeleteDialog(
+        deletion({
+          branchOnlyCommits: 3,
+          goneUpstream: { name: 'origin/work', remote: 'origin' },
+          mergedBy: pullRequest
+        })
+      )
+
+      expect(within(dialog).queryByRole('alert')).toBeNull()
+      expect(dialog.textContent).toContain(mergedNote)
+      expect(dialog.textContent).not.toContain('was deleted from origin')
+    })
+
+    it('still offers the upstream unticked, and stays calm when it is ticked', async () => {
+      const dialog = await openDeleteDialog({ ...withUpstream(3, 3), mergedBy: pullRequest })
+
+      const box = within(dialog).getByRole('checkbox', {
+        name: 'Also delete “origin/bar” from origin'
+      })
+      expect(box.getAttribute('aria-checked')).toBe('false')
+      fireEvent.click(box)
+      expect(within(dialog).queryByRole('alert')).toBeNull()
+      expect(dialog.textContent).toContain(mergedNote)
+    })
+
+    it('still offers no upstream when the branch has none that may be', async () => {
+      const dialog = await openDeleteDialog(
+        deletion({ branchOnlyCommits: 3, mergedBy: pullRequest })
+      )
+
+      expect(within(dialog).queryByRole('checkbox')).toBeNull()
+    })
+
+    it('still deletes at the oid it read', async () => {
+      api.deleteBranch.mockResolvedValue(undefined)
+      const dialog = await openDeleteDialog(
+        deletion({ branchOnlyCommits: 3, mergedBy: pullRequest })
+      )
+
+      fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+
+      await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+      expect(api.deleteBranch).toHaveBeenCalledWith(ROOT, 'work', OID, null)
+    })
+  })
+
+  it('warns as usual when main finds commits the pull request never carried', async () => {
+    // The tree still marks it merged until the next fetch; the dialog goes by what it read.
+    api.listMergedBranches.mockResolvedValue([mergedBy('work', 4)])
+    showBranches(twoBranches())
+    const work = await screen.findByRole('treeitem', { name: 'work' })
+    await within(work).findByRole('img', { name: 'Merged by pull request #4' })
+    const dialog = await openDeleteDialog(deletion({ branchOnlyCommits: 3 }))
+
+    expect(within(dialog).getByRole('alert').textContent).toBe(
+      '3 commits on this branch aren’t on any other branch or remote, and will be lost.'
+    )
+    expect(dialog.textContent).not.toContain('Merged into')
   })
 
   it('offers no upstream to delete when the branch has none that may be', async () => {

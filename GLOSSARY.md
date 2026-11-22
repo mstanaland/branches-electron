@@ -230,11 +230,12 @@ Creating a local branch from the tip of a branch chosen in its context menu and 
 The new branch starts without an **upstream**. **Publish branch** sets one when the user is ready.
 
 **Delete branch**:
-Removing a local branch, chosen from its context menu and always confirmed first — optionally
+Removing a local branch, chosen from its context menu (or a **merged branch**'s History alert)
+and always confirmed first — optionally
 deleting its **upstream** from the **remote** too. Never offered for the **current branch**,
 the **default branch**, or a branch checked out in another work tree.
 When the branch has **branch-only commits** the confirmation says so, and confirming deletes it
-anyway.
+anyway. For a **merged branch** it names the **pull request** instead, calmly.
 _Avoid_: Remove branch, force delete (in UI text), prune
 
 **Default branch**:

@@ -12,7 +12,9 @@ function commitsAreNot(count: number, between = ''): string {
 }
 
 /**
- * What the dialog says about the **branch-only commits**, by tier (ADR 0009): nothing when
+ * What the dialog says about the **branch-only commits**, by tier (ADR 0009, ADR 0011): for a
+ * **merged branch**, a calm note naming the **pull request** that merged it, whatever the
+ * count, since main checked that it carried the tip being deleted; otherwise nothing when
  * there are none; a calm note when the upstream is **gone**, since a squash or rebase merge
  * leaves exactly that behind; a danger alert otherwise. With `alsoUpstream`, the count is the
  * one without the upstream as somewhere else.
@@ -24,6 +26,15 @@ function Warning({
   deletion: BranchDeletion
   alsoUpstream: boolean
 }): React.JSX.Element | null {
+  const pullRequest = deletion.mergedBy
+  if (pullRequest !== null) {
+    return (
+      <p className={styles.note}>
+        Merged into <code className={styles.base}>{pullRequest.baseBranch}</code> by #
+        {pullRequest.number}.
+      </p>
+    )
+  }
   const upstream = deletion.deletableUpstream
   const count =
     alsoUpstream && upstream !== null ? upstream.branchOnlyCommits : deletion.branchOnlyCommits
@@ -48,11 +59,13 @@ function Warning({
 }
 
 /**
- * **Delete branch**: confirms deleting a local branch, chosen from its context menu. Counts
- * the branch's **branch-only commits** on opening and warns by them; confirming always
- * deletes, but only while the branch is still where it was counted. When the branch has an
- * **upstream** that may be deleted, a checkbox (unticked by default) deletes that from the
- * **remote** first; the warning follows it, both counts having been read on opening.
+ * **Delete branch**: confirms deleting a local branch, chosen from its context menu or from
+ * the History alert of a **merged branch**. Counts the branch's **branch-only commits** on
+ * opening and warns by them, or, for a merged branch, notes the pull request that merged it
+ * in place of any warning (ADR 0011). Confirming always deletes, but only while the branch is
+ * still where it was counted. When the branch has an **upstream** that may be deleted, a
+ * checkbox (unticked by default) deletes that from the **remote** first; the warning follows
+ * it, both counts having been read on opening.
  *
  * Mounted only while open, so each opening counts afresh with no old failure. Cancel has
  * initial focus, so Return never deletes. While the delete runs the dialog can't be

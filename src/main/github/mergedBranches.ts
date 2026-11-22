@@ -1,7 +1,7 @@
 import type { MergedBranch } from '../../shared/github'
 import { isAncestor } from '../git/log'
 import { readBranchUpstreams, type BranchUpstream } from '../git/upstreams'
-import type { MergedPullRequest, MergedPullRequests } from './query'
+import type { MergedPullRequests } from './query'
 import { parseGitHubRemote, type GitHubRepository } from './remote'
 
 /**
@@ -101,7 +101,7 @@ async function mergedInRepository(
         .filter((pr) => pr.baseBranch === defaultBranch)
         .toSorted((a, b) => Date.parse(b.mergedAt) - Date.parse(a.mergedAt))
       for (const pr of candidates) {
-        if (await carriesTip(root, branch.tip, pr)) {
+        if (await carriesTip(root, branch.tip, pr.headOid)) {
           return { name: branch.name, pullRequest: pr }
         }
       }
@@ -112,10 +112,11 @@ async function mergedInRepository(
 }
 
 /**
- * Whether the pull request carried everything on the branch: its head is the tip, or contains
- * it — a teammate's review fix the branch never pulled. Only provable when the head is here.
+ * Whether a pull request whose head was `headOid` carried everything on a branch at `tip`: its
+ * head is the tip, or contains it — a teammate's review fix the branch never pulled. Only
+ * provable when the head is here.
  */
-async function carriesTip(root: string, tip: string, pr: MergedPullRequest): Promise<boolean> {
-  if (pr.headOid === tip) return true
-  return isAncestor(root, tip, pr.headOid)
+export async function carriesTip(root: string, tip: string, headOid: string): Promise<boolean> {
+  if (headOid === tip) return true
+  return isAncestor(root, tip, headOid)
 }

@@ -1,5 +1,7 @@
 /** Data types for git state, shared by the main process and the renderer. */
 
+import type { PullRequest } from './github'
+
 /** What happened to a file on one side (index or work tree). */
 export type FileStatus =
   | 'unmodified'
@@ -129,6 +131,12 @@ export interface BranchDeletion {
    * **gone**) on a **remote**, and isn't the branch the remote's HEAD points at. Else null.
    */
   deletableUpstream: DeletableUpstream | null
+  /**
+   * The **pull request** that merged the branch, when main's last **merged branches** result
+   * names one that carried `oid` (ADR 0011). Null otherwise, including for a branch with
+   * commits made since, so the dialog never calls commits it is about to lose merged.
+   */
+  mergedBy: PullRequest | null
 }
 
 /** An **upstream** the Delete Branch dialog can offer to delete along with its branch. */

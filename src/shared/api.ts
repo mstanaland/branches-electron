@@ -234,8 +234,9 @@ export interface BranchesApi {
   /**
    * What deleting local branch `name` would lose, for the Delete Branch dialog to warn about:
    * its tip, its **branch-only commits**, its **upstream** if that is **gone**, and an upstream it
-   * may offer to delete too, with the count were it deleted (ADR 0009).
-   * A name that isn't a local branch is `INVALID_REF`. `root` must be a saved repository or
+   * may offer to delete too, with the count were it deleted (ADR 0009); and the **pull request**
+   * that merged it, from main's last **merged branches** result, only if it carried that tip
+   * (ADR 0011). Never asks GitHub. A name that isn't a local branch is `INVALID_REF`. `root` must be a saved repository or
    * one opened this session.
    */
   getBranchDeletion: (root: string, name: string) => Promise<ApiResult<BranchDeletion>>
