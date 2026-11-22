@@ -15,6 +15,7 @@ function setup(overrides: Partial<FetchSchedulerDeps> = {}) {
     hasRemote: vi.fn<FetchSchedulerDeps['hasRemote']>().mockResolvedValue(true),
     fetch: vi.fn<FetchSchedulerDeps['fetch']>().mockResolvedValue({ changed: false }),
     onRefsChanged: vi.fn<FetchSchedulerDeps['onRefsChanged']>(),
+    onFetched: vi.fn<FetchSchedulerDeps['onFetched']>(),
     intervalMs: INTERVAL,
     ...overrides
   }
@@ -122,6 +123,27 @@ describe('createFetchScheduler', () => {
     await vi.advanceTimersByTimeAsync(INTERVAL)
 
     expect(deps.onRefsChanged).toHaveBeenCalledWith('/repo')
+  })
+
+  it('reports every fetch that worked, moved refs or not, so merged branches are looked up again', async () => {
+    const fetch = vi
+      .fn<FetchSchedulerDeps['fetch']>()
+      .mockResolvedValueOnce({ changed: false })
+      .mockResolvedValueOnce({ changed: true })
+      .mockRejectedValue(new Error('offline'))
+    const { deps, scheduler } = setup({ fetch })
+    scheduler.setFocused(true)
+    scheduler.setActiveRepository('/repo')
+    await settle()
+    expect(deps.onFetched).toHaveBeenCalledTimes(1)
+
+    await vi.advanceTimersByTimeAsync(INTERVAL)
+    expect(deps.onFetched).toHaveBeenCalledTimes(2)
+    expect(deps.onFetched).toHaveBeenLastCalledWith('/repo')
+
+    await vi.advanceTimersByTimeAsync(INTERVAL)
+    expect(fetch).toHaveBeenCalledTimes(3)
+    expect(deps.onFetched).toHaveBeenCalledTimes(2)
   })
 
   it('backs off after repeated failures instead of retrying every interval', async () => {
@@ -259,6 +281,7 @@ describe('createFetchScheduler against real repositories', () => {
       hasRemote,
       fetch: fetchRemote,
       onRefsChanged: (root) => changed.push(root),
+      onFetched: () => {},
       intervalMs: 20
     })
     onTestFinished(() => scheduler.stop())

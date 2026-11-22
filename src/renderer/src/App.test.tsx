@@ -37,7 +37,8 @@ const api = vi.hoisted(() => ({
   setTabCount: vi.fn<RendererApi['setTabCount']>(),
   onOpenRepositoryRequested: vi.fn<RendererApi['onOpenRepositoryRequested']>(),
   onTabCommand: vi.fn<RendererApi['onTabCommand']>(),
-  onRemoteRefsChanged: vi.fn<RendererApi['onRemoteRefsChanged']>()
+  onRemoteRefsChanged: vi.fn<RendererApi['onRemoteRefsChanged']>(),
+  onMergedBranchesChanged: vi.fn<RendererApi['onMergedBranchesChanged']>()
 }))
 vi.mock('./api', () => ({ api }))
 
@@ -136,6 +137,7 @@ beforeEach(() => {
   })
   api.setTabCount.mockResolvedValue(undefined)
   api.onRemoteRefsChanged.mockReturnValue(() => {})
+  api.onMergedBranchesChanged.mockReturnValue(() => {})
   api.setActiveRepository.mockResolvedValue(undefined)
   api.cancelGenerate.mockResolvedValue(undefined)
   api.fetchRepository.mockResolvedValue(undefined)

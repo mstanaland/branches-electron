@@ -5,8 +5,9 @@ import { settle } from './apiResult'
 import { createFetchScheduler } from './fetchScheduler'
 import { createCommitMessageGenerator, getClaudeExecutable } from './claude'
 import { fetchRemote, hasRemote, readCommitContext } from './git'
-import { findMergedBranches, lookUpMergedPullRequests } from './github'
+import { findMergedBranchesOrNull, lookUpMergedPullRequests } from './github'
 import { createHandlers } from './handlers'
+import { createMergedBranchCache } from './mergedBranchCache'
 import { createBranchMenuTemplate } from './menu'
 import { createRepositoryStore } from './repositoryStore'
 import { createWindowTitle } from './windowTitle'
@@ -40,12 +41,20 @@ export function registerIpc(deps: IpcDeps): void {
     }
   })
 
+  // The last merged-branch result per repository. Refresh reads it; only a first read, a fetch
+  // or a delete asks GitHub again.
+  const mergedBranches = createMergedBranchCache({
+    find: (root) => findMergedBranchesOrNull(root, lookUpMergedPullRequests),
+    onChanged: (root) => broadcast('repository:merged-branches-changed', root)
+  })
+
   // Keeps the active repository's remote-tracking refs current so ahead/behind counts notice
   // work merged elsewhere, where there is no local change for anything to watch.
   const fetchScheduler = createFetchScheduler({
     hasRemote,
     fetch: fetchRemote,
-    onRefsChanged: (root) => broadcast('repository:remote-refs-changed', root)
+    onRefsChanged: (root) => broadcast('repository:remote-refs-changed', root),
+    onFetched: (root) => void mergedBranches.recompute(root)
   })
   // No network traffic from a backgrounded app.
   fetchScheduler.setFocused(BrowserWindow.getFocusedWindow() !== null)
@@ -94,7 +103,7 @@ export function registerIpc(deps: IpcDeps): void {
       locate: getClaudeExecutable,
       readContext: (root) => readCommitContext(root)
     }),
-    findMergedBranches: (root) => findMergedBranches(root, lookUpMergedPullRequests),
+    mergedBranches,
     showGenerateError: async (message) => {
       const options = {
         type: 'warning' as const,

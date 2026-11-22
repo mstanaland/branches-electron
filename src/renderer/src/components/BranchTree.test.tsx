@@ -919,6 +919,25 @@ describe('deleting a branch', () => {
     expect(client.isMutating()).toBe(0)
   })
 
+  it('re-reads the merged branches once a merged branch is deleted', async () => {
+    api.listMergedBranches.mockResolvedValue([mergedBy('work', 4)])
+    showBranches([
+      branch('main', { isCurrent: true }),
+      branch('work', { upstream: 'origin/work', upstreamGone: true })
+    ])
+    api.deleteBranch.mockImplementation(async () => {
+      api.listBranches.mockResolvedValue([branch('main', { isCurrent: true })])
+      api.listMergedBranches.mockResolvedValue([])
+    })
+    const work = await screen.findByRole('treeitem', { name: 'work' })
+    await within(work).findByRole('img', { name: 'Merged by pull request #4' })
+    const dialog = await openDeleteDialog()
+
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Delete Branch' }))
+
+    await waitFor(() => expect(api.listMergedBranches).toHaveBeenCalledTimes(2))
+  })
+
   it('can’t be dismissed while the delete runs', async () => {
     showBranches(twoBranches())
     api.deleteBranch.mockReturnValue(new Promise(() => {}))

@@ -45,6 +45,7 @@ import {
   unstageFiles
 } from './git'
 import type { BranchMenuTarget } from './menu'
+import type { MergedBranchCache } from './mergedBranchCache'
 import type { RepositoryStore } from './repositoryStore'
 
 export interface HandlerDeps {
@@ -71,10 +72,10 @@ export interface HandlerDeps {
   /** Runs **Generate**, one run per repository. */
   generator: CommitMessageGenerator
   /**
-   * The repository's **merged branches**, asking GitHub through `gh`. Never rejects for
-   * GitHub's sake: without a usable `gh` it resolves empty.
+   * The **merged branches** main keeps per repository. Reads are served from it, so Refresh
+   * never reaches GitHub; a manual fetch and a delete bring it up to date.
    */
-  findMergedBranches: (root: string) => Promise<MergedBranch[]>
+  mergedBranches: MergedBranchCache
   /** Tells the user why **Generate** failed, in a native warning sheet. */
   showGenerateError: (message: string) => Promise<void>
 }
@@ -223,6 +224,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     }
     if (!(await ask(repository))) return false
     deps.generator.cancel(root)
+    deps.mergedBranches.forget(root)
     openRoots.delete(root)
     await deps.store.remove(root)
     return true
@@ -255,6 +257,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     listRepositories: () => deps.store.list(),
     removeRepository: async (root) => {
       deps.generator.cancel(root)
+      deps.mergedBranches.forget(root)
       openRoots.delete(root)
       await deps.store.remove(root)
     },
@@ -270,7 +273,7 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     },
     async listMergedBranches(root) {
       await assertOpen(root)
-      return deps.findMergedBranches(root)
+      return deps.mergedBranches.get(root)
     },
     async listCommits(root, ref, limit, skip) {
       await assertOpen(root)
@@ -361,6 +364,9 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       // Whatever else git says — offline, a remote that is gone, refused credentials —
       // travels back as a failed result rather than being swallowed.
       await fetchRemote(root)
+      // Not awaited: the fetch is done, and asking GitHub may take a while. A changed result
+      // reaches the renderer as an event.
+      void deps.mergedBranches.recompute(root)
     },
     async pullRepository(root) {
       await assertOpen(root)
@@ -454,6 +460,9 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       }
       // The remote and its branch are read from the repository's config, never taken off IPC.
       await deleteBranch(root, name, oid, upstreamOid)
+      // Before resolving, so the renderer's next read no longer has it. No need to ask GitHub:
+      // a delete changes nothing about any other branch's pull request.
+      deps.mergedBranches.branchDeleted(root, name)
     }
   }
 }

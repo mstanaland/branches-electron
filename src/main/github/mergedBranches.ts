@@ -56,6 +56,27 @@ export async function findMergedBranches(
   return found.flat()
 }
 
+/**
+ * As `findMergedBranches`, but resolves null when asking GitHub failed for any of the
+ * repository's GitHub remotes, so a caller holding an earlier answer can keep it rather than
+ * mistake an outage for "nothing is merged".
+ */
+export async function findMergedBranchesOrNull(
+  root: string,
+  lookUp: LookUpMergedPullRequests
+): Promise<MergedBranch[] | null> {
+  let failed = false
+  const merged = await findMergedBranches(root, async (repository, headNames) => {
+    try {
+      return await lookUp(repository, headNames)
+    } catch (error) {
+      failed = true
+      throw error
+    }
+  })
+  return failed ? null : merged
+}
+
 async function mergedInRepository(
   root: string,
   repository: GitHubRepository,

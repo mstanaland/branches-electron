@@ -13,6 +13,11 @@ export interface FetchSchedulerDeps {
   fetch: (root: string) => Promise<FetchResult>
   /** Called after a fetch moved a ref, so the renderer can re-read branches and status. */
   onRefsChanged: (root: string) => void
+  /**
+   * Called after every fetch that worked, whether or not it moved a ref, so the **merged
+   * branches** are looked up again: a pull request can merge without a ref here moving.
+   */
+  onFetched: (root: string) => void
   intervalMs?: number
 }
 
@@ -85,6 +90,8 @@ export function createFetchScheduler(deps: FetchSchedulerDeps): FetchScheduler {
       if (!(await hasRemoteNow(root))) return
       const { changed } = await deps.fetch(root)
       consecutiveFailures = 0
+      // Even for a repository just left: the root travels with it, and the fetch did happen.
+      deps.onFetched(root)
       if (changed && mine === generation) deps.onRefsChanged(root)
     } catch {
       // Offline, no credentials, a remote that is gone: all quiet, all backed off.

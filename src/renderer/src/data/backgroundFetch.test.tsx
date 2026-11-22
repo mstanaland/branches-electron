@@ -9,7 +9,8 @@ import { createTestQueryClient } from './testUtils'
 
 const api = vi.hoisted(() => ({
   setActiveRepository: vi.fn<UnwrappedApi['setActiveRepository']>(),
-  onRemoteRefsChanged: vi.fn<WindowApi['onRemoteRefsChanged']>()
+  onRemoteRefsChanged: vi.fn<WindowApi['onRemoteRefsChanged']>(),
+  onMergedBranchesChanged: vi.fn<WindowApi['onMergedBranchesChanged']>()
 }))
 vi.mock('../api', () => ({ api }))
 
@@ -18,9 +19,13 @@ import { keys } from './keys'
 import { TabsProvider, useSelection, useTabs } from './tabs'
 
 /** Hands back the listener the hook subscribed with, so a test can push an event at it. */
-function emitter() {
+function emitter(
+  subscribe:
+    | typeof api.onRemoteRefsChanged
+    | typeof api.onMergedBranchesChanged = api.onRemoteRefsChanged
+) {
   const listeners = new Set<(root: string) => void>()
-  api.onRemoteRefsChanged.mockImplementation((listener) => {
+  subscribe.mockImplementation((listener) => {
     listeners.add(listener)
     return () => listeners.delete(listener)
   })
@@ -56,6 +61,7 @@ beforeEach(() => {
   localStorage.clear()
   api.setActiveRepository.mockResolvedValue(undefined)
   api.onRemoteRefsChanged.mockReturnValue(() => {})
+  api.onMergedBranchesChanged.mockReturnValue(() => {})
 })
 afterEach(cleanup)
 
@@ -102,6 +108,37 @@ describe('useBackgroundFetch', () => {
     events.emit('/repo')
 
     expect(invalidate).not.toHaveBeenCalledWith({ queryKey: keys.diffs('/repo') })
+  })
+
+  it('re-reads the merged branches when main says they changed', () => {
+    const events = emitter(api.onMergedBranchesChanged)
+    const { client } = setup()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+
+    events.emit('/repo')
+
+    expect(invalidate).toHaveBeenCalledWith({ queryKey: keys.mergedBranches('/repo') })
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: keys.branches('/repo') })
+  })
+
+  it('leaves the merged branches alone when only refs moved, since main reports those itself', () => {
+    const events = emitter()
+    const { client } = setup()
+    const invalidate = vi.spyOn(client, 'invalidateQueries')
+
+    events.emit('/repo')
+
+    expect(invalidate).not.toHaveBeenCalledWith({ queryKey: keys.mergedBranches('/repo') })
+  })
+
+  it('unsubscribes from the merged-branches event when it goes away', () => {
+    const events = emitter(api.onMergedBranchesChanged)
+    const { unmount } = setup()
+    expect(events.count).toBe(1)
+
+    unmount()
+
+    expect(events.count).toBe(0)
   })
 
   it('unsubscribes when it goes away', () => {
