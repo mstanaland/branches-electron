@@ -7,15 +7,15 @@
 }
 
 .topGroup {
-  padding-right: 12px;
+  padding-right: var(--space-3);
 }
 
 /* The Working view, above the branch tree. */
 .working {
   justify-content: flex-start;
-  gap: 6px;
+  gap: var(--space-1-5);
   width: 100%;
-  margin: 0 0 2px;
+  margin: 0 0 var(--space-0-5);
   text-align: left;
 }
 
@@ -31,17 +31,17 @@
    outranks the rule above, so without this the accent is wiped out on hover and the white
    text is left on the sidebar. Already selected, so hover has nothing left to say. */
 .working[data-selected='true']:hover:not([data-disabled]) {
-  --color-text: var(--color-accent-text);
-  --color-text-muted: var(--color-accent-text);
-  --color-hover: rgba(255, 255, 255, 0.22);
-  background: var(--color-accent);
-  color: var(--color-accent-text);
+  --text: var(--on-accent);
+  --text-muted: var(--on-accent);
+  --bg-hover: var(--bg-hover-on-accent);
+  background: var(--bg-selected-strong);
+  color: var(--on-accent);
 }
 
 /* Refresh, pinned to the bottom of the column below the branch tree, which scrolls above it. */
 .footer {
   display: flex;
   flex: none;
-  padding-top: 8px;
-  border-top: 1px solid var(--color-border);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
 }

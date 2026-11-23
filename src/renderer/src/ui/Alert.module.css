@@ -1,12 +1,12 @@
 .alert {
-  --alert-accent: var(--badge-info-text);
-  --alert-surface: var(--badge-info-bg);
+  --alert-accent: var(--info-text);
+  --alert-surface: var(--info-bg);
 
   display: grid;
   grid-template-columns: 1fr;
-  gap: 6px;
-  padding: 12px;
-  color: var(--color-text);
+  gap: var(--space-1-5);
+  padding: var(--space-3);
+  color: var(--text);
   background: var(--alert-surface);
   border: 1px solid color-mix(in oklch, var(--alert-accent) 20%, transparent);
   border-radius: var(--radius-sm);
@@ -23,8 +23,8 @@
 }
 
 .alert[data-variant='success'] {
-  --alert-accent: var(--badge-success-text);
-  --alert-surface: var(--badge-success-bg);
+  --alert-accent: var(--success-text);
+  --alert-surface: var(--success-bg);
 }
 
 .icon {
@@ -40,16 +40,16 @@
 .heading {
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .body {
   display: flex;
   flex: 1;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
-  color: var(--color-text-secondary);
+  color: var(--text-muted);
   font-size: var(--font-size-sm);
   line-height: var(--line-height-sm);
 }
@@ -62,5 +62,5 @@
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }

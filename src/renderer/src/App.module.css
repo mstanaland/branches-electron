@@ -11,7 +11,7 @@
   flex-direction: column;
   height: 100vh;
   overflow: hidden;
-  background: var(--color-chrome);
+  background: var(--bg-window);
 }
 
 /* The columns, under the chrome. A grid item's automatic minimum size is its content, so
@@ -30,8 +30,8 @@
     minmax(var(--content-min), 1fr);
   flex: 1;
   min-height: 0;
-  background: var(--color-bg);
-  border-top: 1px solid var(--color-border);
+  background: var(--bg-content);
+  border-top: 1px solid var(--border);
 }
 
 /* No repository in the focused tab, so no branches to switch views within: the Repositories
@@ -44,8 +44,8 @@
   display: flex;
   flex-direction: column;
   min-height: 0;
-  border-right: 1px solid var(--color-border);
-  padding: 12px 0 12px 12px;
+  border-right: 1px solid var(--border);
+  padding: var(--space-3) 0 var(--space-3) var(--space-3);
 }
 
 .content {

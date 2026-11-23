@@ -6,7 +6,7 @@
   align-items: center;
   flex: none;
   height: 40px;
-  padding: 0 10px 0 78px;
+  padding: 0 var(--space-3) 0 var(--titlebar-inset);
   -webkit-app-region: drag;
 }
 
@@ -14,7 +14,7 @@
 .operations {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   margin-left: auto;
 }
 
@@ -28,8 +28,8 @@
 /* What a manual fetch failed with, beside the control that started it. Git's messages can run
    long, so it is clipped to a readable width, with the whole of it in a tooltip. */
 .error {
-  margin: 0 4px;
-  color: var(--color-danger);
+  margin: 0 var(--space-1);
+  color: var(--danger-text);
   max-width: 320px;
   overflow: hidden;
   white-space: nowrap;
@@ -39,11 +39,11 @@
 /* How far behind the current branch is, inside the Pull button. A quiet pill rather than a
    loud notification badge: it is information about the branch, not an alert. */
 .count {
-  padding: 0 5px;
+  padding: 0 var(--space-1-5);
   border-radius: 999px;
-  background: var(--color-hover);
-  color: var(--color-text-muted);
+  background: var(--bg-hover);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
   font-variant-numeric: tabular-nums;
-  line-height: 16px;
+  line-height: var(--line-height-xs);
 }

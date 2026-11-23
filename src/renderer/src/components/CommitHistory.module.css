@@ -7,7 +7,7 @@
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
-  padding: 12px 10px;
+  padding: var(--space-3) var(--space-3);
 }
 
 .list {
@@ -18,22 +18,22 @@
 
 .row {
   height: var(--row-height);
-  padding: 0 6px;
+  padding: 0 var(--space-1-5);
   outline: none;
   cursor: default;
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
   margin-top: -1px;
 }
 
 .rowContent {
   display: flex;
   align-items: center;
-  gap: 10px;
-  padding-right: 12px;
+  gap: var(--space-3);
+  padding-right: var(--space-3);
 }
 
 .row:hover {
-  background: var(--color-hover);
+  background: var(--bg-hover);
 }
 
 /* The divider sits on the row above, so hide that one along with the selected row's own. */
@@ -44,27 +44,27 @@
 }
 
 .row[aria-selected='true'] {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
-  font-weight: 600;
+  background: var(--bg-selected-strong);
+  color: var(--on-accent);
+  font-weight: var(--font-weight-semibold);
 
   .nodeStroke {
-    fill: rgba(255, 255, 255, 0.2);
+    fill: var(--bg-hover-on-accent);
   }
 
   .nodeFill {
-    fill: var(--color-bg);
+    fill: var(--bg-content);
   }
 
   .unpushed {
-    color: var(--color-accent-text);
+    color: var(--on-accent);
   }
 
   .author,
   .date,
   .oid {
-    color: oklch(from var(--color-accent-text) l c h / 0.8);
-    font-weight: 500;
+    color: var(--on-accent-muted);
+    font-weight: var(--font-weight-medium);
   }
 
   .details {
@@ -73,7 +73,7 @@
 }
 
 .row:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: -2px;
 }
 
@@ -85,11 +85,11 @@
 }
 
 .nodeStroke {
-  fill: var(--color-text-muted);
+  fill: var(--text-muted);
 }
 
 .nodeFill {
-  fill: var(--color-bg);
+  fill: var(--bg-content);
 }
 
 .details {
@@ -98,14 +98,14 @@
   min-width: 0;
   flex-direction: column;
   justify-content: center;
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
   height: var(--row-height);
 }
 
 .line {
   display: flex;
   align-items: baseline;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
   justify-content: space-between;
 }
@@ -113,7 +113,7 @@
 .authorAndId {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -123,20 +123,20 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
 
 .date {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-variant-numeric: tabular-nums;
   font-size: var(--font-size-xs);
 }
 
 .oid {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
 }
@@ -148,15 +148,15 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--font-size-sm);
-  line-height: 20px;
-  font-weight: 500;
+  line-height: var(--line-height-sm);
+  font-weight: var(--font-weight-medium);
 }
 
 /* The subject's line: 16px between the subject and the icon slot, which is held open on every
    row and ends flush with the date below. */
 .subjectLine {
   align-items: center;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .unpushedSlot {
@@ -167,7 +167,7 @@
 
 .unpushed {
   display: flex;
-  color: var(--color-accent);
+  color: var(--accent-text);
 }
 
 /* Watched to load the next page; nothing is drawn. */

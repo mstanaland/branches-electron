@@ -5,11 +5,11 @@
 
   display: flex;
   position: relative;
-  border-radius: 6px;
-  padding-inline: 2px;
+  border-radius: var(--radius-sm);
+  padding-inline: var(--space-0-5);
 
   &[data-focused='true'] {
-    --color-background: var(--color-field-bg);
+    --color-background: var(--bg-content);
     --color-button-display: flex;
   }
 
@@ -18,11 +18,11 @@
   }
 
   &:hover:not([data-focused='true']) {
-    --color-background: var(--color-chrome-item-hover);
+    --color-background: var(--bg-window-hover);
   }
 
   &:has(:focus-visible):not(&:has(.closeButton:focus-visible)) {
-    outline: 2px solid var(--color-focus);
+    outline: 2px solid var(--focus-ring);
   }
 }
 
@@ -34,7 +34,7 @@
   top: 25%;
   height: 50%;
   width: 1px;
-  background-color: var(--color-border);
+  background-color: var(--border);
   /* transition: opacity var(--transition-duration) ease-out; */
 }
 
@@ -68,22 +68,20 @@
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   flex-grow: 1;
   height: 32px;
-  padding-inline: 12px;
+  padding-inline: var(--space-3);
   text-align: left;
   background-color: var(--color-background);
-  font-weight: 500;
+  font-weight: var(--font-weight-medium);
   /* transition:
     background-color var(--transition-duration) ease-out,
     box-shadow var(--transition-duration) ease-out; */
-  border-radius: 6px;
+  border-radius: var(--radius-sm);
 
   &.isActive {
-    box-shadow:
-      0 1px 3px 0 rgb(0 0 0 / 0.1),
-      0 1px 2px -1px rgb(0 0 0 / 0.1);
+    box-shadow: var(--shadow-sm);
   }
 
   &.isMissing svg,
@@ -99,7 +97,7 @@
   height: 32px;
   width: 44px;
   right: 0;
-  padding: 8px;
+  padding: var(--space-2);
   background: linear-gradient(
     90deg,
     var(--color-background-transparent) 0%,
@@ -121,15 +119,15 @@
   width: 16px;
   height: 16px;
   border-radius: 999px;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 
   &:hover {
-    background: rgb(0 0 0 / 0.07);
-    color: var(--color-text);
+    background: var(--bg-hover);
+    color: var(--text);
   }
 
   &:active {
-    background: rgb(0 0 0 / 0.2);
+    background: var(--bg-pressed);
   }
 
   &::after {
@@ -141,11 +139,11 @@
   }
 
   &:focus-visible {
-    outline: 2px solid var(--color-focus);
+    outline: 2px solid var(--focus-ring);
     outline-offset: 2px;
   }
 }
 
 .folder {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }

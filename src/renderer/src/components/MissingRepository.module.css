@@ -4,10 +4,10 @@
   display: grid;
   justify-items: center;
   align-content: center;
-  gap: 12px;
+  gap: var(--space-3);
   flex: 1;
   min-height: 0;
-  padding: 24px;
+  padding: var(--space-6);
 }
 
 .icon {
@@ -16,6 +16,6 @@
   width: 52px;
   height: 52px;
   border-radius: 12px;
-  background: var(--color-hover);
-  color: var(--color-text-muted);
+  background: var(--bg-hover);
+  color: var(--text-muted);
 }

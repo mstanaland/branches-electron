@@ -3,14 +3,14 @@
   flex: none;
   align-items: center;
   justify-content: center;
-  gap: 3px;
-  padding: 0 6px;
+  gap: var(--space-1);
+  padding: 0 var(--space-1-5);
   font-size: var(--font-size-xs);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   letter-spacing: 0.03em;
   white-space: nowrap;
-  color: var(--color-text);
-  background: var(--color-hover);
+  color: var(--text);
+  background: var(--bg-hover);
   outline: 1px solid transparent;
   border-radius: var(--radius-sm);
   height: 18px;
@@ -22,46 +22,46 @@
 }
 
 .badge[data-variant='primary'] {
-  color: var(--badge-primary-text);
-  background: var(--badge-primary-bg);
-  outline-color: oklch(from var(--color-bg) l c h / 0.2);
+  color: var(--on-accent);
+  background: var(--accent);
+  outline-color: oklch(from var(--bg-content) l c h / 0.2);
 }
 
 .badge[data-variant='secondary'] {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .badge[data-variant='outline'] {
   background: transparent;
-  outline-color: var(--color-border);
+  outline-color: var(--border);
 }
 
 .badge[data-variant='destructive'] {
-  color: var(--badge-destructive-text);
-  background: var(--badge-destructive-bg);
+  color: var(--danger-text);
+  background: var(--danger-bg);
 }
 
 .badge[data-variant='success'] {
-  color: var(--badge-success-text);
-  background: var(--badge-success-bg);
+  color: var(--success-text);
+  background: var(--success-bg);
 }
 
 .badge[data-variant='warning'] {
-  color: var(--badge-warning-text);
-  background: var(--badge-warning-bg);
+  color: var(--warning-text);
+  background: var(--warning-bg);
 }
 
 .badge[data-variant='info'] {
-  color: var(--badge-info-text);
-  background: var(--badge-info-bg);
+  color: var(--info-text);
+  background: var(--info-bg);
 }
 
 .badge:has(> [data-icon='inline-start']) {
-  padding-left: 4px;
+  padding-left: var(--space-1);
 }
 
 .badge:has(> [data-icon='inline-end']) {
-  padding-right: 4px;
+  padding-right: var(--space-1);
 }
 
 .badge > svg {

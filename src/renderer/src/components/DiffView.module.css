@@ -6,7 +6,7 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--border);
 }
 
 /* The same band as the changes column's header, so the two line up across the window: sticky,
@@ -18,45 +18,45 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   margin: 0;
-  padding: 12px 16px;
+  padding: var(--space-3) var(--space-4);
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   overflow-wrap: anywhere;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--bg-content);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Everything under the title. */
 .body {
   display: flex;
   flex-direction: column;
-  gap: 12px;
-  padding: 12px;
+  gap: var(--space-3);
+  padding: var(--space-3);
 }
 
 .arrow {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 /* The one place that decides how Staged and Unstaged sit together; change it to rearrange. */
 .sections {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: var(--space-4);
 }
 
 .section {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 .sectionTitle {
   margin: 0;
   font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
 }

@@ -1,13 +1,13 @@
 .alert {
   flex: none;
-  margin: 0 6px 10px;
+  margin: 0 var(--space-1-5) var(--space-3);
 }
 
 .when {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .reason {
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }

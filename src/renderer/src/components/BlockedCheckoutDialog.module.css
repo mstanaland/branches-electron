@@ -1,10 +1,10 @@
 .files {
   margin: 0;
-  padding: 6px 10px;
+  padding: var(--space-1-5) var(--space-3);
   overflow-y: auto;
   list-style: none;
   user-select: text;
-  background: var(--color-hover);
+  background: var(--bg-hover);
   border-radius: var(--radius-sm);
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);

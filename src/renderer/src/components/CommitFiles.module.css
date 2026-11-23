@@ -1,18 +1,18 @@
 .files {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .note {
   margin: 0;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .title {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   min-width: 0;
 }
 
@@ -24,23 +24,23 @@
 }
 
 .kind[data-kind='added'] {
-  color: var(--badge-success-text);
+  color: var(--success-text);
 }
 
 .kind[data-kind='modified'] {
-  color: var(--badge-warning-text);
+  color: var(--warning-text);
 }
 
 .kind[data-kind='deleted'] {
-  color: var(--badge-destructive-text);
+  color: var(--danger-text);
 }
 
 .kind[data-kind='renamed'] {
-  color: var(--badge-info-text);
+  color: var(--info-text);
 }
 
 .kind[data-kind='typeChanged'] {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .badge {
@@ -51,26 +51,26 @@
 .path {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--space-1);
   min-width: 0;
   overflow-wrap: anywhere;
 }
 
 .arrow {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .changes {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 4px 0 12px;
+  gap: var(--space-2);
+  padding: var(--space-1) 0 var(--space-3);
 }
 
 .summary {
   margin: 0;
   font-family: var(--font-mono);
   font-size: var(--font-size-xs);
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }

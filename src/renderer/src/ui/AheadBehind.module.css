@@ -1,7 +1,7 @@
 .counts {
   display: inline-flex;
-  gap: 6px;
-  color: var(--color-text-muted);
+  gap: var(--space-1-5);
+  color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
 

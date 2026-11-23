@@ -19,26 +19,26 @@
   display: flex;
   flex: none;
   align-items: center;
-  gap: 6px;
-  padding: 12px 16px;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-1-5);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-content);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Everything under the header: the commit form, then the changes. */
 .body {
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  padding: 12px;
+  gap: var(--space-2);
+  padding: var(--space-3);
 }
 
 .branch {
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
 }
 
 .upstream {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .list {
@@ -50,7 +50,7 @@
 
 /* The list takes focus after a commit, so a keyboard user can see where they landed. */
 .list:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: -2px;
 }
 
@@ -58,20 +58,20 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   height: 26px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   border-radius: var(--radius-sm);
   content-visibility: auto;
   contain-intrinsic-size: auto 26px;
 }
 
 .row:hover {
-  background: var(--color-hover);
+  background: var(--bg-hover);
 }
 
 .row[data-conflict='true'] {
-  background: var(--badge-destructive-bg);
+  background: var(--danger-bg);
 }
 
 .check {
@@ -84,10 +84,10 @@
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   min-width: 0;
   height: 100%;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   font: inherit;
   color: inherit;
   text-align: left;
@@ -97,8 +97,8 @@
 }
 
 button.content[aria-pressed='true'] {
-  background: var(--color-accent);
-  color: var(--color-accent-text);
+  background: var(--bg-selected-strong);
+  color: var(--on-accent);
 }
 
 button.content[aria-pressed='true'] .folder {
@@ -107,7 +107,7 @@ button.content[aria-pressed='true'] .folder {
 }
 
 button.content:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: -2px;
 }
 
@@ -115,7 +115,7 @@ button.content:focus-visible {
 .badges {
   display: flex;
   flex: none;
-  gap: 3px;
+  gap: var(--space-1);
   min-width: 40px;
 }
 
@@ -123,7 +123,7 @@ button.content:focus-visible {
   display: flex;
   flex: 1;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
   min-width: 0;
   white-space: nowrap;
 }
@@ -136,11 +136,11 @@ button.content:focus-visible {
 .folder {
   min-width: 0;
   overflow: hidden;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   text-overflow: ellipsis;
 }
 
 .arrow {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
