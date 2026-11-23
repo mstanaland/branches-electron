@@ -1,7 +1,7 @@
 import { Button as BaseButton } from '@base-ui/react/button'
 import styles from './Button.module.css'
 
-export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger'
+export type ButtonVariant = 'primary' | 'secondary' | 'quiet' | 'danger' | 'link'
 
 export interface ButtonProps extends Omit<BaseButton.Props, 'className'> {
   /**

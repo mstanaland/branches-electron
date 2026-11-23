@@ -8,8 +8,10 @@ export interface AlertProps extends useRender.ComponentProps<'div'> {
   variant?: AlertVariant
   /** A decorative `lucide-react` icon, drawn at the start. Meaning goes in the text. */
   icon?: React.ReactNode
-  /** Buttons under the message. */
+  /** Buttons in their own row below the message. */
   actions?: React.ReactNode
+  /** A title for the alert. */
+  heading?: React.ReactNode
 }
 
 /**
@@ -20,6 +22,7 @@ export interface AlertProps extends useRender.ComponentProps<'div'> {
 export function Alert({
   variant = 'info',
   icon,
+  heading,
   actions,
   className,
   render,
@@ -36,15 +39,19 @@ export function Alert({
       ...props,
       children: (
         <>
-          {icon !== undefined && (
+          {icon != null && (
             <span className={styles.icon} aria-hidden="true">
               {icon}
             </span>
           )}
+
+          {heading != null && <div className={styles.heading}>{heading}</div>}
+
           <div className={styles.body}>
             <div className={styles.message}>{children}</div>
-            {actions !== undefined && <div className={styles.actions}>{actions}</div>}
           </div>
+
+          {actions != null && <div className={styles.actions}>{actions}</div>}
         </>
       )
     }

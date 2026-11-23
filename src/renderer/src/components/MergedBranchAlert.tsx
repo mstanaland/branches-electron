@@ -1,4 +1,4 @@
-import { ExternalLink, GitMerge, Trash2 } from 'lucide-react'
+import { GitMerge, Trash2 } from 'lucide-react'
 import { useId, useState } from 'react'
 import type { Branch } from '../../../shared/git'
 import {
@@ -23,8 +23,8 @@ function undeletableReason(branch: Branch | undefined): string | null {
 }
 
 /**
- * Above the History of a **merged branch**: which **pull request** merged it, a way to open that
- * on GitHub, and a way to delete the branch through the Delete Branch dialog. Nothing for any
+ * Above the History of a **merged branch**: which **pull request** merged it, into what and when,
+ * a link that opens it on GitHub, and a way to delete the branch through the Delete Branch dialog. Nothing for any
  * other branch. It can't be dismissed: it stays while the branch is merged and still here.
  *
  * Delete is off, saying why, for the **current branch** and a branch checked out in another
@@ -54,24 +54,22 @@ export function MergedBranchAlert({
   return (
     <>
       <Alert
-        variant="success"
+        variant="info"
+        heading="This branch has been merged"
         aria-label="Merged branch"
         className={styles.alert}
-        icon={<GitMerge />}
+        icon={<GitMerge size={16} />}
         actions={
           <>
-            <Button onClick={() => openPullRequest.mutate(pullRequest.url)}>
-              <ExternalLink aria-hidden="true" />
-              View on GitHub
-            </Button>
             <Button
+              variant="secondary"
               disabled={!canDelete}
               focusableWhenDisabled
               aria-describedby={reason === null ? undefined : reasonId}
               onClick={() => setDeleting(true)}
             >
               <Trash2 aria-hidden="true" />
-              Delete
+              Delete Branch
             </Button>
             {reason !== null && (
               <span id={reasonId} className={styles.reason}>
@@ -81,9 +79,15 @@ export function MergedBranchAlert({
           </>
         }
       >
-        Merged into <code className={styles.base}>{pullRequest.baseBranch}</code> by #
-        {pullRequest.number} <span className={styles.title}>{pullRequest.title}</span>
-        <span className={styles.when}> · {timeAgo(pullRequest.mergedAt)}</span>
+        Merged into “{pullRequest.baseBranch}”{' '}
+        <span className={styles.when}>{timeAgo(pullRequest.mergedAt)}</span> by{' '}
+        <Button
+          variant="link"
+          aria-label={`PR #${pullRequest.number}, opens on GitHub`}
+          onClick={() => openPullRequest.mutate(pullRequest.url)}
+        >
+          PR #{pullRequest.number}
+        </Button>
         {openError && (
           <p role="alert" className={shared.error}>
             {openError.message}

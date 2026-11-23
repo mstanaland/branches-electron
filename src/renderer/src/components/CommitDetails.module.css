@@ -20,7 +20,7 @@
   flex: none;
   margin: 0;
   padding: 12px var(--padding-inline);
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
