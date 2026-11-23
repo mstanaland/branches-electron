@@ -1,0 +1,233 @@
+/* Branches design system — generated from the design system's tokens.json. Edit the design
+   system, not this file. Raw scales (gray, brand, red, green, amber, blue) are paint; components
+   use only the semantic tokens below them. */
+
+:root {
+  --gray-0: oklch(0.995 0.002 60);
+  --gray-50: oklch(0.977 0.003 60);
+  --gray-100: oklch(0.957 0.004 60);
+  --gray-200: oklch(0.925 0.005 60);
+  --gray-300: oklch(0.87 0.007 60);
+  --gray-400: oklch(0.735 0.009 60);
+  --gray-500: oklch(0.6 0.01 60);
+  --gray-600: oklch(0.5 0.01 60);
+  --gray-700: oklch(0.4 0.009 60);
+  --gray-800: oklch(0.31 0.008 60);
+  --gray-850: oklch(0.262 0.007 60);
+  --gray-900: oklch(0.222 0.006 60);
+  --gray-950: oklch(0.185 0.005 60);
+  --gray-1000: oklch(0.155 0.004 60);
+
+  --brand-50: oklch(0.972 0.014 9.644);
+  --brand-100: oklch(0.937 0.03 9.644);
+  --brand-200: oklch(0.88 0.055 9.644);
+  --brand-300: oklch(0.79 0.085 9.644);
+  --brand-400: oklch(0.65 0.11 9.644);
+  --brand-450: oklch(0.525 0.102 9.644);
+  --brand-500: oklch(0.463 0.095 9.644);
+  --brand-600: oklch(0.405 0.086 9.644);
+  --brand-700: oklch(0.35 0.074 9.644);
+  --brand-800: oklch(0.295 0.06 9.644);
+  --brand-900: oklch(0.24 0.046 9.644);
+  --brand-950: oklch(0.195 0.034 9.644);
+
+  --red-50: oklch(0.975 0.012 29);
+  --red-100: oklch(0.95 0.024 29);
+  --red-200: oklch(0.905 0.048 29);
+  --red-300: oklch(0.835 0.085 29);
+  --red-400: oklch(0.74 0.12 29);
+  --red-500: oklch(0.65 0.15 29);
+  --red-600: oklch(0.575 0.155 29);
+  --red-700: oklch(0.505 0.15 29);
+  --red-800: oklch(0.43 0.13 29);
+  --red-900: oklch(0.335 0.085 29);
+  --red-950: oklch(0.26 0.055 29);
+
+  --green-50: oklch(0.975 0.012 152);
+  --green-100: oklch(0.95 0.028 152);
+  --green-200: oklch(0.905 0.05 152);
+  --green-300: oklch(0.835 0.08 152);
+  --green-400: oklch(0.74 0.1 152);
+  --green-500: oklch(0.65 0.105 152);
+  --green-600: oklch(0.57 0.1 152);
+  --green-700: oklch(0.495 0.09 152);
+  --green-800: oklch(0.415 0.075 152);
+  --green-900: oklch(0.325 0.056 152);
+  --green-950: oklch(0.255 0.042 152);
+
+  --amber-50: oklch(0.975 0.019 75);
+  --amber-100: oklch(0.948 0.041 75);
+  --amber-200: oklch(0.905 0.079 75);
+  --amber-300: oklch(0.845 0.13 75);
+  --amber-400: oklch(0.78 0.155 75);
+  --amber-500: oklch(0.7 0.148 75);
+  --amber-600: oklch(0.6 0.128 75);
+  --amber-700: oklch(0.505 0.108 75);
+  --amber-800: oklch(0.42 0.09 75);
+  --amber-900: oklch(0.33 0.07 75);
+  --amber-950: oklch(0.26 0.05 75);
+
+  --blue-50: oklch(0.975 0.01 260);
+  --blue-100: oklch(0.95 0.018 260);
+  --blue-200: oklch(0.89 0.04 260);
+  --blue-300: oklch(0.8 0.071 260);
+  --blue-400: oklch(0.7 0.085 260);
+  --blue-500: oklch(0.6 0.09 260);
+  --blue-600: oklch(0.53 0.088 260);
+  --blue-700: oklch(0.46 0.08 260);
+  --blue-800: oklch(0.39 0.068 260);
+  --blue-900: oklch(0.3 0.052 260);
+  --blue-950: oklch(0.24 0.04 260);
+
+  --bg-content: var(--gray-0);
+  --bg-window: var(--gray-100);
+  --bg-window-hover: var(--gray-200);
+  --bg-sidebar: var(--gray-100);
+  --bg-raised: var(--gray-0);
+  --bg-hover: oklch(0.185 0.005 60 / 0.06);
+  --bg-pressed: oklch(0.185 0.005 60 / 0.16);
+  --bg-hover-on-accent: oklch(0.995 0.002 60 / 0.2);
+  --bg-selected: var(--brand-100);
+  --bg-selected-strong: var(--brand-500);
+  --border: var(--gray-200);
+  --border-strong: var(--gray-300);
+  --border-control: var(--gray-500);
+  --text: var(--gray-950);
+  --text-muted: var(--gray-600);
+  --text-disabled: var(--gray-400);
+  --accent: var(--brand-500);
+  --accent-hover: var(--brand-600);
+  --on-accent: var(--gray-0);
+  --on-accent-muted: oklch(0.995 0.002 60 / 0.8);
+  --accent-text: var(--brand-500);
+  --focus-ring: var(--brand-400);
+  --danger: var(--red-700);
+  --danger-hover: var(--red-800);
+  --danger-text: var(--red-700);
+  --danger-bg: var(--red-50);
+  --success: var(--green-700);
+  --success-hover: var(--green-800);
+  --success-text: var(--green-700);
+  --success-bg: var(--green-50);
+  --warning-text: var(--amber-800);
+  --warning-bg: var(--amber-100);
+  --info-text: var(--blue-700);
+  --info-bg: var(--blue-100);
+  --diff-add-bg: var(--green-100);
+  --diff-add-gutter: var(--green-200);
+  --diff-add-word: var(--green-300);
+  --diff-add-fg: var(--green-800);
+  --diff-del-bg: var(--red-100);
+  --diff-del-gutter: var(--red-200);
+  --diff-del-word: var(--red-300);
+  --diff-del-fg: var(--red-800);
+  --diff-hunk-bg: var(--gray-100);
+  --diff-gutter-bg: var(--gray-50);
+  --backdrop: oklch(0.155 0.004 60 / 0.35);
+
+  --graph-lane-1: oklch(0.56 0.14 9.644);
+  --graph-lane-2: oklch(0.6 0.1 190);
+  --graph-lane-3: oklch(0.56 0.115 95);
+  --graph-lane-4: oklch(0.6 0.14 280);
+  --graph-lane-5: oklch(0.56 0.14 55);
+  --graph-lane-6: oklch(0.6 0.125 235);
+  --graph-lane-7: oklch(0.56 0.14 140);
+  --graph-lane-8: oklch(0.6 0.14 325);
+
+  --shadow-2xs: 0 1px rgb(0 0 0 / 0.05);
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgb(0 0 0 / 0.25);
+
+  --font-sans: Inter, -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --font-weight-regular: 400;
+  --font-weight-medium: 500;
+  --font-weight-semibold: 600;
+
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 16px;
+  --font-size-lg: 19px;
+  --font-size-xl: 23px;
+  --diff-font-size: 12px;
+
+  --line-height-2xs: 15px;
+  --line-height-xs: 16px;
+  --line-height-sm: 20px;
+  --line-height-md: 24px;
+  --line-height-lg: 26px;
+  --line-height-xl: 30px;
+  --diff-line-height: 20px;
+
+  --radius-xs: 3px;
+  --radius-sm: 6px;
+  --radius-md: 9px;
+  --radius-lg: 18px;
+  --radius-xl: 27px;
+
+  --space-0-5: 2px;
+  --space-1: 4px;
+  --space-1-5: 6px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-6: 24px;
+  --space-12: 48px;
+  --space-16: 64px;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg-content: var(--gray-950);
+    --bg-window: var(--gray-900);
+    --bg-window-hover: var(--gray-850);
+    --bg-sidebar: var(--gray-1000);
+    --bg-raised: var(--gray-850);
+    --bg-hover: oklch(0.995 0.002 60 / 0.08);
+    --bg-pressed: oklch(0.995 0.002 60 / 0.16);
+    --bg-selected: var(--brand-900);
+    --bg-selected-strong: var(--brand-600);
+    --border: var(--gray-800);
+    --border-strong: var(--gray-700);
+    --text: var(--gray-50);
+    --text-muted: var(--gray-400);
+    --text-disabled: var(--gray-600);
+    --accent: var(--brand-450);
+    --accent-hover: var(--brand-500);
+    --accent-text: var(--brand-300);
+    --focus-ring: var(--brand-300);
+    --danger-text: var(--red-300);
+    --danger-bg: var(--red-950);
+    --success-text: var(--green-300);
+    --success-bg: var(--green-950);
+    --warning-text: var(--amber-300);
+    --warning-bg: var(--amber-950);
+    --info-text: var(--blue-300);
+    --info-bg: var(--blue-950);
+    --diff-add-bg: var(--green-950);
+    --diff-add-gutter: var(--green-900);
+    --diff-add-word: var(--green-800);
+    --diff-add-fg: var(--green-300);
+    --diff-del-bg: var(--red-950);
+    --diff-del-gutter: var(--red-900);
+    --diff-del-word: var(--red-800);
+    --diff-del-fg: var(--red-300);
+    --diff-hunk-bg: var(--gray-850);
+    --diff-gutter-bg: var(--gray-900);
+    --backdrop: oklch(0.08 0.004 60 / 0.5);
+    --graph-lane-1: oklch(0.72 0.14 9.644);
+    --graph-lane-2: oklch(0.8 0.135 190);
+    --graph-lane-3: oklch(0.72 0.14 95);
+    --graph-lane-4: oklch(0.8 0.1 280);
+    --graph-lane-5: oklch(0.72 0.14 55);
+    --graph-lane-6: oklch(0.8 0.115 235);
+    --graph-lane-7: oklch(0.72 0.14 140);
+    --graph-lane-8: oklch(0.8 0.14 325);
+  }
+}

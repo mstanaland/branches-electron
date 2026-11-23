@@ -10,23 +10,23 @@
 .saved {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: var(--space-1);
   min-height: 0;
-  padding: 8px 12px 12px;
-  border-right: 1px solid var(--color-border);
+  padding: var(--space-2) var(--space-3) var(--space-3);
+  border-right: 1px solid var(--border);
 }
 
 /* Matches the branch tree's heading, which sits in the same place in a repository tab. */
 .heading {
-  margin: 10px 4px 2px;
+  margin: var(--space-3) var(--space-1) var(--space-0-5);
   font-size: var(--font-size-xs);
-  font-weight: 600;
-  color: var(--color-text-muted);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text-muted);
 }
 
 .none {
-  margin: 0 4px;
-  color: var(--color-text-muted);
+  margin: 0 var(--space-1);
+  color: var(--text-muted);
 }
 
 .list {
@@ -40,15 +40,15 @@
 .row {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
+  gap: var(--space-2);
+  padding: var(--space-1-5) var(--space-2);
   border-radius: var(--radius-sm);
   cursor: default;
 }
 
 .row svg {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .rowName {
@@ -59,11 +59,11 @@
 }
 
 .row:hover {
-  background: var(--color-hover);
+  background: var(--bg-hover);
 }
 
 .row:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: -2px;
 }
 
@@ -80,14 +80,14 @@
   justify-items: start;
   min-width: 0;
   min-height: 0;
-  padding: 72px 56px;
+  padding: var(--space-16) var(--space-12);
   overflow-y: auto;
 }
 
 .hero {
   display: grid;
   justify-items: start;
-  gap: 16px;
+  gap: var(--space-4);
   max-width: 40ch;
 }
 
@@ -97,13 +97,13 @@
   width: 56px;
   height: 56px;
   border-radius: 50%;
-  background: var(--badge-info-bg);
-  color: var(--color-accent);
+  background: var(--info-bg);
+  color: var(--accent-text);
 }
 
 .heroTitle {
   margin: 0;
   font-size: var(--font-size-xl);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   line-height: 1.3;
 }

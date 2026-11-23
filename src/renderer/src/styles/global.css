@@ -1,153 +1,21 @@
 @import './geist/geist.css';
 @import './inter/inter.css';
 @import './reset.css';
+@import './tokens.css';
 
 :root {
   color-scheme: light dark;
-  font-size: 13px;
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 
-  --color-burgundy-50: oklch(0.863 0.039 9.644);
-  --color-burgundy-100: oklch(0.783 0.067 9.644);
-  --color-burgundy-200: oklch(0.703 0.1 9.644);
-  --color-burgundy-300: oklch(0.623 0.128 9.644);
-  --color-burgundy-400: oklch(0.543 0.112 9.644);
-  --color-burgundy-500: oklch(0.463 0.095 9.644);
-  --color-burgundy-600: oklch(0.383 0.079 9.644);
-  --color-burgundy-700: oklch(0.303 0.062 9.644);
-  --color-burgundy-800: oklch(0.223 0.046 9.644);
-  --color-burgundy-900: oklch(0.143 0.029 9.644);
-  --color-burgundy-950: oklch(0.063 0.013 9.644);
-
-  --color-bg: #fbfbfb;
-  /* The window chrome above the columns: the title bar and the tab strip. The focused tab
-     is a card of --color-bg on it, so the two tones have to stay distinguishable. */
-  --color-chrome: #ececec;
-  --color-chrome-item-hover: #e0e0e0;
-  --color-border: #d4d4d4;
-  --color-text: #171717;
-  --color-text-secondary: #555;
-  --color-text-muted: #666;
-  --color-text-faint: #999;
-  --color-accent: var(--color-burgundy-500);
-  --color-accent-text: #ffffff;
-  --color-hover: rgba(0, 0, 0, 0.06);
-  --color-danger: #c4271b;
-  /* A button that destroys something, and the panel a warning about data loss sits on. */
-  --color-danger-button-bg: #d92d20;
-  --color-danger-button-text: #ffffff;
-  --color-danger-surface: #fbe3e1;
-  --color-focus: #0ea5e9;
-  --color-field-bg: #ffffff;
-
-  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
-
-  --font-size-2xs: 10px;
-  --font-size-xs: 11px;
-  --font-size-sm: 13px;
-  --font-size-md: 16px;
-  --font-size-lg: 19px;
-  --font-size-xl: 23px;
-  --diff-font-size: 12px;
-
-  --line-height-2xs: 15px;
-  --line-height-xs: 16px;
-  --line-height-sm: 20px;
-  --line-height-md: 24px;
-  --line-height-lg: 26px;
-  --line-height-xl: 30px;
-  --diff-line-height: 20px;
-
-  --radius-xs: 3px;
-  --radius-sm: 6px;
-  --radius-md: 9px;
-  --radius-lg: 18px;
-  --radius-xl: 27px;
-
+  /* App-only sizing. Colors, type, spacing, radii and shadows come from tokens.css. */
   --control-height: 28px;
-  --focus-ring-color: var(--color-focus);
   --focus-ring-width: 2px;
 
-  --popup-bg: #ffffff;
-  --popup-border: #d2d2d7;
-  --popup-shadow: 0 4px 14px rgba(0, 0, 0, 0.14);
-
-  --badge-primary-bg: oklch(62.3% 0.214 259.815);
-  --badge-primary-text: #ffffff;
-  --badge-destructive-bg: #fbe3e1;
-  --badge-destructive-text: #9c1c12;
-  --badge-success-bg: #dff3e4;
-  --badge-success-text: #1b6b31;
-  --badge-warning-bg: #fdf0d2;
-  --badge-warning-text: #7a5200;
-  --badge-info-bg: #dce9fb;
-  --badge-info-text: #0a4fa8;
-
-  /* The history graph's lanes, cycled through in order. Distinct hues rather than shades,
-     so two lines crossing stay telling apart. */
-  --graph-lane-1: #f59e0b;
-  --graph-lane-2: #ef4444;
-  --graph-lane-3: #10b981;
-  --graph-lane-4: #8b5cf6;
-  --graph-lane-5: #84cc16;
-  --graph-lane-6: #06b6d4;
-  --graph-lane-7: #a16207;
-  --graph-lane-8: #be185d;
-
-  --diff-added-bg: #e6f6ea;
-  --diff-added-gutter-bg: #cdeed6;
-  --diff-removed-bg: #fdeceb;
-  --diff-removed-gutter-bg: #f9d5d2;
-  --diff-hunk-bg: #ebebeb;
-  --diff-gutter-bg: #f9f9f9;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --color-bg: #1e1e1e;
-    --color-chrome: #2a2a2c;
-    --color-border: #333336;
-    --color-text: #f5f5f7;
-    --color-text-secondary: #c7c7cc;
-    --color-text-muted: #98989d;
-    --color-accent: #0a84ff;
-    --color-accent-text: #ffffff;
-    --color-hover: rgba(255, 255, 255, 0.08);
-    --color-danger: #ff6961;
-    --color-danger-button-bg: #e5483d;
-    --color-danger-button-text: #ffffff;
-    --color-danger-surface: #3d1c1a;
-
-    --popup-bg: #2c2c2e;
-    --popup-border: #48484a;
-    --popup-shadow: 0 4px 14px rgba(0, 0, 0, 0.5);
-
-    --badge-destructive-bg: #4a1f1c;
-    --badge-destructive-text: #ffaaa4;
-    --badge-success-bg: #1d3b26;
-    --badge-success-text: #8fdca3;
-    --badge-warning-bg: #473a16;
-    --badge-warning-text: #f2cd72;
-    --badge-info-bg: #1b3556;
-    --badge-info-text: #9cc6ff;
-
-    --graph-lane-1: #4ea3ff;
-    --graph-lane-2: #f2a14b;
-    --graph-lane-3: #5ec97d;
-    --graph-lane-4: #c08cff;
-    --graph-lane-5: #ff7b72;
-    --graph-lane-6: #4fd0e0;
-    --graph-lane-7: #d9a05b;
-    --graph-lane-8: #ff86cf;
-
-    --diff-added-bg: #17301f;
-    --diff-added-gutter-bg: #1f4229;
-    --diff-removed-bg: #3a1c1a;
-    --diff-removed-gutter-bg: #522724;
-    --diff-hunk-bg: #1c2a40;
-    --diff-gutter-bg: #232325;
-  }
+  /* Clearances for the traffic lights the OS draws over the window's top-left corner. */
+  --titlebar-inset: 78px;
+  --tabstrip-inset: 72px;
 }
 
 *,
@@ -166,7 +34,7 @@ body {
 
 body {
   margin: 0;
-  background: var(--color-bg);
-  color: var(--color-text);
+  background: var(--bg-content);
+  color: var(--text);
   user-select: none;
 }

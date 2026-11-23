@@ -33,7 +33,11 @@ A Mac git client. Electron + React + TypeScript, built with electron-vite and pn
 ## Renderer
 
 - Server state (anything from git) goes through TanStack Query (`useQuery`, `useMutation`). Mutations invalidate the queries they affect.
-- Styling is CSS modules (`*.module.css`) plus `src/renderer/src/styles/global.css`. Use the CSS variables in `global.css` for colors; support light and dark mode.
+- Styling is CSS modules (`*.module.css`) plus `src/renderer/src/styles/global.css`. Support light and dark mode.
+- Design system: every color, font size, font weight, line height, spacing value (padding, margin, gap), radius and shadow comes from `src/renderer/src/styles/tokens.css`. Never hard-code a hex, rgb, px font size, spacing value or radius. `tokens.css` is generated from the Branches design system; change the design system, not the file.
+- Use the semantic tokens (`--bg-content`, `--bg-window`, `--text`, `--text-muted`, `--accent`, `--bg-selected-strong`, `--danger`, `--diff-add-bg`, `--graph-lane-N`…), never raw scale steps (`--gray-400`, `--brand-500`) in components.
+- `--font-size-sm` (13/20) is the default body size, not a small variant.
+- Rules for surfaces, selection, status colors, diffs and commit-graph lanes are in `docs/design-system.md`. Read it before building UI.
 - Build screens from the components in `src/renderer/src/ui/`, which wrap Base UI (`@base-ui/react`). Import Base UI only inside `ui/`. Add a wrapper when a ticket first needs one. See `docs/adr/0004-ui-layer-wraps-base-ui.md`.
 - Icons come from `lucide-react`, imported by name. One `LucideProvider` sets the default size and stroke. Icons are decorative: put meaning in text or `aria-label`.
 - Keep OS-level surfaces (application menu, context menus, simple confirms) native and driven from main. Use Base UI for in-window dialogs, popovers and tooltips. See `docs/adr/0003-native-os-surfaces-base-ui-in-window.md`.

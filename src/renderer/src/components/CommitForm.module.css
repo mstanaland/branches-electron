@@ -2,29 +2,29 @@
   display: flex;
   flex-direction: column;
   flex: none;
-  gap: 6px;
-  padding: 0 4px 8px;
-  border-bottom: 1px solid var(--color-border);
+  gap: var(--space-1-5);
+  padding: 0 var(--space-1) var(--space-2);
+  border-bottom: 1px solid var(--border);
 }
 
 .actions {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--space-1-5);
 }
 
 /* Generate has a row of its own, between the description and the button row. */
 .generate {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
 }
 
 .generating {
   display: inline-flex;
   align-items: center;
-  gap: 6px;
-  color: var(--color-text-muted);
+  gap: var(--space-1-5);
+  color: var(--text-muted);
 }
 
 /* Commit sits at the right-hand end, away from Stage All. */

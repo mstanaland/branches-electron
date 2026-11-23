@@ -1,7 +1,7 @@
 /* Styles used by more than one component. */
 .error {
-  margin: 0 4px;
-  color: var(--color-danger);
+  margin: 0 var(--space-1);
+  color: var(--danger-text);
 }
 
 /* An operation's icon while it is in flight: Fetch, Pull and Refresh. */

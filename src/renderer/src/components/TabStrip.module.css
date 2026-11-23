@@ -7,9 +7,9 @@
 .strip {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: var(--space-0-5);
   /* left padding is actually 12px: 10 here + 2 from the tab padding */
-  padding: 0 72px 4px 10px;
+  padding: 0 var(--tabstrip-inset) var(--space-1) calc(var(--space-3) - var(--space-0-5));
   -webkit-app-region: drag;
 }
 
@@ -32,7 +32,7 @@
 .add {
   flex: none;
   min-height: 0;
-  margin-left: 4px;
-  padding: 5px;
-  color: var(--color-text-muted);
+  margin-left: var(--space-1);
+  padding: var(--space-1-5);
+  color: var(--text-muted);
 }

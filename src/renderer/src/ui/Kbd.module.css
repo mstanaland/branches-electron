@@ -2,12 +2,12 @@
   display: inline-flex;
   align-items: center;
   min-width: 18px;
-  padding: 0 4px;
+  padding: 0 var(--space-1);
   font-family: inherit;
   font-size: var(--font-size-xs);
-  line-height: 16px;
+  line-height: var(--line-height-xs);
   color: inherit;
-  background: var(--color-hover);
-  border-radius: 4px;
+  background: var(--bg-hover);
+  border-radius: var(--radius-xs);
   opacity: 0.85;
 }

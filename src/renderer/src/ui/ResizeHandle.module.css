@@ -24,10 +24,10 @@
 }
 
 .handle:hover::after {
-  background: var(--color-border);
+  background: var(--border);
 }
 
 .handle[data-dragging='true']::after,
 .handle:focus-visible::after {
-  background: var(--color-border);
+  background: var(--border);
 }

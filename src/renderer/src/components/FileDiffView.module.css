@@ -1,6 +1,6 @@
 .scroller {
   overflow-x: auto;
-  border: 1px solid var(--color-border);
+  border: 1px solid var(--border);
   border-radius: var(--radius-sm);
 }
 
@@ -15,8 +15,8 @@
 }
 
 .hunk td {
-  padding: 2px 8px;
-  color: var(--color-text-muted);
+  padding: var(--space-0-5) var(--space-2);
+  color: var(--text-muted);
   background: var(--diff-hunk-bg);
 }
 
@@ -25,8 +25,8 @@
 .gutter {
   width: 1px;
   min-width: 44px;
-  padding: 0 8px;
-  color: var(--color-text-muted);
+  padding: 0 var(--space-2);
+  color: var(--text-muted);
   text-align: right;
   white-space: nowrap;
   user-select: none;
@@ -35,20 +35,20 @@
 
 .sign {
   width: 1px;
-  padding: 0 4px;
-  color: var(--color-text-muted);
+  padding: 0 var(--space-1);
+  color: var(--text-muted);
   text-align: center;
   user-select: none;
 }
 
 .code {
-  padding: 0 8px 0 0;
+  padding: 0 var(--space-2) 0 0;
   white-space: pre;
   user-select: text;
 }
 
 .marker {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   font-style: italic;
 }
 
@@ -58,20 +58,20 @@
 
 .line[data-kind='added'] > .sign,
 .line[data-kind='added'] > .code {
-  background: var(--diff-added-bg);
-  font-weight: 500;
+  background: var(--diff-add-bg);
+  font-weight: var(--font-weight-medium);
 }
 
 .line[data-kind='removed'] > .sign,
 .line[data-kind='removed'] > .code {
-  background: var(--diff-removed-bg);
-  font-weight: 500;
+  background: var(--diff-del-bg);
+  font-weight: var(--font-weight-medium);
 }
 
 .line[data-kind='added'] > .gutter {
-  background: var(--diff-added-gutter-bg);
+  background: var(--diff-add-gutter);
 }
 
 .line[data-kind='removed'] > .gutter {
-  background: var(--diff-removed-gutter-bg);
+  background: var(--diff-del-gutter);
 }

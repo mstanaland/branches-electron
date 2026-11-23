@@ -1,10 +1,10 @@
 .popup {
   max-width: 260px;
-  padding: 4px 8px;
+  padding: var(--space-1) var(--space-2);
   font-size: var(--font-size-xs);
-  color: var(--color-text);
-  background: var(--popup-bg);
-  border: 1px solid var(--popup-border);
+  color: var(--text);
+  background: var(--bg-raised);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
-  box-shadow: var(--popup-shadow);
+  box-shadow: var(--shadow-md);
 }

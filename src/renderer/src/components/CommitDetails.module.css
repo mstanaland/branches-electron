@@ -1,6 +1,6 @@
 /* The whole column scrolls as one, under the subject band, which stays put. */
 .pane {
-  --padding-inline: 24px;
+  --padding-inline: var(--space-6);
 
   display: flex;
   flex-direction: column;
@@ -8,7 +8,7 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  border-left: 1px solid var(--color-border);
+  border-left: 1px solid var(--border);
 }
 
 /* One line, truncated: the full subject is in the list beside it. Sticky, and opaque so the
@@ -19,30 +19,30 @@
   z-index: 1;
   flex: none;
   margin: 0;
-  padding: 12px var(--padding-inline);
+  padding: var(--space-3) var(--padding-inline);
   font-size: var(--font-size-sm);
-  font-weight: 600;
+  font-weight: var(--font-weight-semibold);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  background: var(--color-bg);
-  border-bottom: 1px solid var(--color-border);
+  background: var(--bg-content);
+  border-bottom: 1px solid var(--border);
 }
 
 .body {
   display: flex;
   flex-direction: column;
-  gap: 16px;
-  padding: 12px var(--padding-inline) var(--padding-inline);
+  gap: var(--space-4);
+  padding: var(--space-3) var(--padding-inline) var(--padding-inline);
 }
 
 .metadata {
   display: grid;
   grid-template-columns: max-content minmax(0, 1fr);
-  gap: 4px 16px;
+  gap: var(--space-1) var(--space-4);
   margin: 0;
-  padding-bottom: 12px;
-  border-bottom: 1px solid var(--color-border);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--border);
 }
 
 /* Each label/value pair is one grid row; the wrapper only groups them for the `dl`. */
@@ -51,7 +51,7 @@
 }
 
 .label {
-  color: var(--color-text-muted);
+  color: var(--text-muted);
 }
 
 .value,

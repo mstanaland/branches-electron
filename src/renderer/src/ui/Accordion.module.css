@@ -1,11 +1,11 @@
 .accordion {
   display: flex;
   flex-direction: column;
-  border-top: 1px solid var(--color-border);
+  border-top: 1px solid var(--border);
 }
 
 .item {
-  border-bottom: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--border);
 }
 
 .header {
@@ -16,10 +16,10 @@
 .trigger {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--space-2);
   width: 100%;
   min-width: 0;
-  padding: 6px 0;
+  padding: var(--space-1-5) 0;
   color: inherit;
   font: inherit;
   text-align: left;
@@ -29,17 +29,17 @@
 }
 
 .trigger:hover {
-  background: var(--color-hover);
+  background: var(--bg-hover);
 }
 
 .trigger:focus-visible {
-  outline: var(--focus-ring-width) solid var(--focus-ring-color);
+  outline: var(--focus-ring-width) solid var(--focus-ring);
   outline-offset: -2px;
 }
 
 .chevron {
   flex: none;
-  color: var(--color-text-muted);
+  color: var(--text-muted);
   transition: transform 120ms ease;
 }
 
