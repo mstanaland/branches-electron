@@ -54,6 +54,13 @@ export interface BranchesApi {
    */
   listMergedBranches: (root: string) => Promise<ApiResult<MergedBranch[]>>
   /**
+   * Asks GitHub for `root`'s **merged branches** again, for **Refresh**. Resolves once the
+   * answer is in; a lookup that fails keeps the last good result and still resolves. A changed
+   * result also arrives as `onMergedBranchesChanged`. `root` must be a saved repository or one
+   * the user opened this session.
+   */
+  recheckMergedBranches: (root: string) => Promise<ApiResult<void>>
+  /**
    * Opens a **merged branch**'s **pull request** in the default browser. `url` must be an
    * `https://` URL that a pull request in `root`'s last `listMergedBranches` result has, exactly;
    * anything else is `INVALID_URL`. `root` must be a saved repository or one opened this session.
@@ -280,8 +287,8 @@ export interface BranchesEvents {
    */
   onRemoteRefsChanged: (listener: (root: string) => void) => () => void
   /**
-   * Main looked up `root`'s **merged branches** again — after a background or manual fetch, or
-   * a delete — and the result changed. Returns an unsubscribe function.
+   * Main looked up `root`'s **merged branches** again — after a background or manual fetch, a
+   * Refresh, the window regaining focus, or a delete — and the result changed. Returns an unsubscribe function.
    */
   onMergedBranchesChanged: (listener: (root: string) => void) => () => void
 }

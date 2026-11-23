@@ -40,8 +40,8 @@ export function useBranches(root: string | null) {
 /**
  * The **merged branches** of the active repository, by local branch name. Idle while `root` is
  * null. Read when the repository is first shown in a tab, then kept until main says the result
- * changed (see `useBackgroundFetch`): main holds the last answer, and only a fetch or a delete
- * asks GitHub again. A failure is never shown — merged marks are a nicety.
+ * changed (see `useBackgroundFetch`): main holds the last answer, and a fetch, a Refresh,
+ * regaining focus or a delete asks GitHub again. A failure is never shown — merged marks are a nicety.
  */
 export function useMergedBranches(root: string | null) {
   return useQuery({

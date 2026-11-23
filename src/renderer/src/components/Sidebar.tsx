@@ -48,7 +48,8 @@ function WorkingItem({
 /**
  * The **Refresh** control, at the foot of the column: re-reads the repository from disk, as
  * regaining focus does, for when something changed it behind the app's back and the window
- * never lost focus. It touches no network — that is Fetch's job, in the title bar.
+ * never lost focus, and asks GitHub again for the merged branches. It never runs `git fetch` —
+ * that is Fetch's job, in the title bar.
  *
  * While a refresh is in flight the icon spins and the control is disabled, read from the query
  * client so switching tab and back doesn't lose it.

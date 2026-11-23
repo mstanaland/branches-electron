@@ -28,8 +28,9 @@ export const keys = {
    */
   branchDeletion: (root: string, name: string) => ['branch-deletion', root, name] as const,
   /**
-   * The **merged branches** of one repository, which asks GitHub. Outside `repository(root)` on
-   * purpose: Refresh and window focus re-read only from disk, and must never reach the network.
+   * The **merged branches** of one repository, as main last found them. Outside
+   * `repository(root)` on purpose: re-reading it only returns main's cached answer, so it is
+   * re-read when main says the answer changed, not on every Refresh or focus.
    */
   mergedBranches: (root: string) => ['merged-branches', root] as const,
   /** Where the current branch can be pushed or published: its remotes, and a gone upstream's. */

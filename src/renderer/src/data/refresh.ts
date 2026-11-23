@@ -1,4 +1,5 @@
 import { useIsMutating, useMutation, useQueryClient } from '@tanstack/react-query'
+import { api } from '../api'
 import { keys } from './keys'
 
 /** The Refresh operation's state for one repository. */
@@ -11,10 +12,13 @@ export interface RepositoryRefresh {
 
 /**
  * The **refresh**: re-reads everything on screen for one repository from disk — the same
- * re-read the window does when it regains focus — on demand.
+ * re-read the window does when it regains focus — on demand, and asks GitHub again which
+ * branches a pull request merged (ADR-0011), since nothing on disk says so.
  *
- * It never reaches the network. Fetch is the only control that talks to the remote, so a
- * refresh is always as fast as the local repository, and works offline.
+ * It never runs `git fetch`: Fetch is the only control that talks to the remote. Main reports
+ * changed **merged branches** as an event, which `useBackgroundFetch` turns into a re-read; the
+ * refresh stays busy until that answer is in. A failed GitHub lookup is never shown — merged
+ * marks are a nicety — so offline, a refresh still finishes with what is on disk.
  *
  * Invalidating marks every query for the repository stale and refetches the ones on screen,
  * which keeps their data in place until the new read lands: nothing the user is reading
@@ -33,7 +37,10 @@ export function useRefreshRepository(root: string): RepositoryRefresh {
     mutationFn: async () => {
       await Promise.all([
         queryClient.invalidateQueries({ queryKey: keys.repository(root) }),
-        queryClient.invalidateQueries({ queryKey: keys.repositories() })
+        queryClient.invalidateQueries({ queryKey: keys.repositories() }),
+        api.recheckMergedBranches(root).catch((error: unknown) => {
+          console.error('Could not check the merged branches again:', error)
+        })
       ])
     }
   })

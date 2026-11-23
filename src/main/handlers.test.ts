@@ -936,6 +936,35 @@ describe('setActiveRepository', () => {
   })
 })
 
+describe('recheckMergedBranches', () => {
+  it('asks GitHub again and resolves once the new answer is served', async () => {
+    const repo = await createRepoWithCommit()
+    let answer: MergedBranch[] = []
+    const { mergedBranches, asked, changed } = mergedBranchesFrom(async () => answer)
+    const handlers = handlersChoosing(repo.root, { mergedBranches })
+    await handlers.openRepository()
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([])
+
+    answer = [mergedFeature]
+    await handlers.recheckMergedBranches(repo.root)
+
+    expect(asked).toEqual([repo.root, repo.root])
+    expect(changed).toEqual([repo.root])
+    await expect(handlers.listMergedBranches(repo.root)).resolves.toEqual([mergedFeature])
+  })
+
+  it('refuses a repository that was never opened, without asking GitHub', async () => {
+    const repo = await createRepoWithCommit()
+    const { mergedBranches, asked } = mergedBranchesFrom(async () => [])
+    const handlers = handlersChoosing(null, { mergedBranches })
+
+    await expect(handlers.recheckMergedBranches(repo.root)).rejects.toMatchObject({
+      code: 'REPOSITORY_NOT_OPEN'
+    })
+    expect(asked).toEqual([])
+  })
+})
+
 describe('fetchRepository', () => {
   it('updates the remote-tracking refs, so the branch reports behind by one', async () => {
     const origin = await createRepoWithCommit()

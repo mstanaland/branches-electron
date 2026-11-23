@@ -183,12 +183,13 @@ _Avoid_: Auto fetch, polling, sync
 The same `git fetch --prune` run for the **active repository** when the user presses Fetch in
 the **operations area**. Loud, unlike **background fetch**: a failure is shown, and a
 repository with no remote is told about rather than reported as a fetch that did nothing.
-_Avoid_: Refresh (that one touches no network), sync, update
+_Avoid_: Refresh (that one never runs `git fetch`), sync, update
 
 **Refresh**:
 Re-reading the **active repository** from disk on demand, with the control at the foot of the
-sidebar — the same re-read regaining window focus does. Touches no network: reaching the
-remote is **manual fetch**'s job. A refresh keeps what is on screen until the new read lands.
+sidebar — the same re-read regaining window focus does — and asking GitHub again for its
+**merged branches**. Never runs `git fetch`: reaching the remote is **manual fetch**'s job. A
+refresh keeps what is on screen until the new read lands.
 _Avoid_: Reload, sync, fetch (that one reaches the remote)
 
 **First load**:

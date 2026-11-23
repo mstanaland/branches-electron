@@ -15,6 +15,7 @@ function bridgeReturning(result: unknown): BranchesApi {
     getStatus: respond,
     listBranches: respond,
     listMergedBranches: respond,
+    recheckMergedBranches: respond,
     openExternal: respond,
     listCommits: respond,
     listUnpushedCommits: respond,

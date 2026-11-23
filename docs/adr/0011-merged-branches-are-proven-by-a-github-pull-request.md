@@ -2,7 +2,7 @@
 
 A branch is a **merged branch** only when Branches can name the **pull request** that merged it: a merged PR on GitHub whose base is the repository's default branch, whose head branch name equals the name of the branch's **upstream** (gone or not), and whose head commit is the local tip or a descendant of it, when that commit is present locally. That one check is both necessary and sufficient. Git's own reachability check, the **gone** upstream, and merge-commit subjects are not consulted, and none of them can make a branch merged on its own. The MERGED badge and the History alert exist to clean up the leftovers of the common workflow, a branch pushed, reviewed and merged on GitHub. The PR is the evidence the user can check with one click, and it works the same for merge-commit, rebase and squash merges, because GitHub keeps the PR's head commit as the branch's original tip. Don't "improve" it by also accepting a locally reachable branch or a gone upstream.
 
-Branches finds PRs by running the user's installed GitHub CLI: one `gh api graphql` query per repository, with one alias per branch, against the GitHub repository of the **remote** each branch tracks. It runs when a repository opens and after every background or manual fetch. Main caches the answer, so **Refresh** stays offline. With no usable `gh` (missing, logged out or offline), the feature is off and says nothing.
+Branches finds PRs by running the user's installed GitHub CLI: one `gh api graphql` query per repository, with one alias per branch, against the GitHub repository of the **remote** each branch tracks. It runs when a repository opens, after every background or manual fetch, on **Refresh**, and when the window regains focus. Main caches the answer between those, so re-reading it is free. Refresh and focus were first kept offline, reading only the cache, but a badge that lags a merge the user just made on GitHub is worse than one `gh` call: the user presses Refresh precisely because they expect current data. With no usable `gh` (missing, logged out or offline), the feature is off and says nothing.
 
 ## Considered Options
 
@@ -12,6 +12,7 @@ Branches finds PRs by running the user's installed GitHub CLI: one `gh api graph
 - **Merge-commit analysis by branch name and timestamp.** It means parsing human-written subjects and guessing. Real merge commits are covered by the PR anyway.
 - **Calling the GitHub REST/GraphQL API directly.** Needs a token Branches would have to obtain and store. `gh` already holds the user's login, the same reasoning as ADR-0010.
 - **`gh pr list --state merged --limit N`.** One call, but anything older than the newest N PRs is silently missed. Querying by head branch name is exact.
+- **Keeping Refresh and focus offline**, with only fetches asking GitHub. This was the first design. It left a merge made on GitHub invisible for up to the background-fetch interval, even after the user pressed Refresh.
 - **Supporting forks** (asking the parent repository too). Left out as an edge case. A fork's PR lives on a repository the branch doesn't track.
 
 ## Consequences
