@@ -21,6 +21,18 @@
   opacity: 0.5;
 }
 
+.button[data-variant='link'] {
+  background: transparent;
+  border-color: transparent;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+  color: inherit;
+  cursor: pointer;
+  font-weight: 500;
+  height: auto;
+}
+
 .button[data-variant='primary'] {
   color: var(--color-accent-text);
   background: var(--color-accent);

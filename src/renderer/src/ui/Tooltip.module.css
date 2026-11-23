@@ -1,7 +1,7 @@
 .popup {
   max-width: 260px;
   padding: 4px 8px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   color: var(--color-text);
   background: var(--popup-bg);
   border: 1px solid var(--popup-border);

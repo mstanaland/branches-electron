@@ -10,6 +10,8 @@ export interface AlertProps extends useRender.ComponentProps<'div'> {
   icon?: React.ReactNode
   /** Buttons under the message. */
   actions?: React.ReactNode
+  /** A title for the alert. */
+  heading?: React.ReactNode
 }
 
 /**
@@ -20,6 +22,7 @@ export interface AlertProps extends useRender.ComponentProps<'div'> {
 export function Alert({
   variant = 'info',
   icon,
+  heading,
   actions,
   className,
   render,
@@ -41,10 +44,14 @@ export function Alert({
               {icon}
             </span>
           )}
+
+          {heading ? <div className={styles.heading}>{heading}</div> : null}
+
           <div className={styles.body}>
             <div className={styles.message}>{children}</div>
-            {actions !== undefined && <div className={styles.actions}>{actions}</div>}
           </div>
+
+          {actions ? <div className={styles.actions}>{actions}</div> : null}
         </>
       )
     }

@@ -11,6 +11,7 @@
   font-family: var(--font-mono);
   font-size: var(--diff-font-size);
   line-height: var(--diff-line-height);
+  letter-spacing: -0.025em;
 }
 
 .hunk td {
@@ -58,11 +59,13 @@
 .line[data-kind='added'] > .sign,
 .line[data-kind='added'] > .code {
   background: var(--diff-added-bg);
+  font-weight: 500;
 }
 
 .line[data-kind='removed'] > .sign,
 .line[data-kind='removed'] > .code {
   background: var(--diff-removed-bg);
+  font-weight: 500;
 }
 
 .line[data-kind='added'] > .gutter {

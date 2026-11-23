@@ -54,24 +54,26 @@ export function MergedBranchAlert({
   return (
     <>
       <Alert
-        variant="success"
+        variant="info"
+        heading="This branch has been merged"
         aria-label="Merged branch"
         className={styles.alert}
-        icon={<GitMerge />}
+        icon={<GitMerge size={16} />}
         actions={
           <>
-            <Button onClick={() => openPullRequest.mutate(pullRequest.url)}>
+            {/* <Button variant="link" onClick={() => openPullRequest.mutate(pullRequest.url)}>
               <ExternalLink aria-hidden="true" />
               View on GitHub
-            </Button>
+            </Button> */}
             <Button
+              variant="secondary"
               disabled={!canDelete}
               focusableWhenDisabled
               aria-describedby={reason === null ? undefined : reasonId}
               onClick={() => setDeleting(true)}
             >
               <Trash2 aria-hidden="true" />
-              Delete
+              Delete Branch
             </Button>
             {reason !== null && (
               <span id={reasonId} className={styles.reason}>
@@ -81,9 +83,11 @@ export function MergedBranchAlert({
           </>
         }
       >
-        Merged into <code className={styles.base}>{pullRequest.baseBranch}</code> by #
-        {pullRequest.number} <span className={styles.title}>{pullRequest.title}</span>
-        <span className={styles.when}> · {timeAgo(pullRequest.mergedAt)}</span>
+        Merged into “{pullRequest.baseBranch}”{' '}
+        <span className={styles.when}>{timeAgo(pullRequest.mergedAt)}</span> by{' '}
+        <Button variant="link" onClick={() => openPullRequest.mutate(pullRequest.url)}>
+          PR #{pullRequest.number}
+        </Button>{' '}
         {openError && (
           <p role="alert" className={shared.error}>
             {openError.message}

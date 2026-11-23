@@ -28,6 +28,7 @@
   --color-chrome-item-hover: #e0e0e0;
   --color-border: #d4d4d4;
   --color-text: #171717;
+  --color-text-secondary: #555;
   --color-text-muted: #666;
   --color-text-faint: #999;
   --color-accent: var(--color-burgundy-500);
@@ -41,8 +42,22 @@
   --color-focus: #0ea5e9;
   --color-field-bg: #ffffff;
 
-  --font-mono: 'Geist Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --font-size-2xs: 10px;
+  --font-size-xs: 11px;
+  --font-size-sm: 13px;
+  --font-size-md: 16px;
+  --font-size-lg: 19px;
+  --font-size-xl: 23px;
   --diff-font-size: 12px;
+
+  --line-height-2xs: 15px;
+  --line-height-xs: 16px;
+  --line-height-sm: 20px;
+  --line-height-md: 24px;
+  --line-height-lg: 26px;
+  --line-height-xl: 30px;
   --diff-line-height: 20px;
 
   --radius-xs: 3px;
@@ -85,8 +100,8 @@
   --diff-added-gutter-bg: #cdeed6;
   --diff-removed-bg: #fdeceb;
   --diff-removed-gutter-bg: #f9d5d2;
-  --diff-hunk-bg: #eef3fb;
-  --diff-gutter-bg: #f7f7f9;
+  --diff-hunk-bg: #ebebeb;
+  --diff-gutter-bg: #f9f9f9;
 }
 
 @media (prefers-color-scheme: dark) {

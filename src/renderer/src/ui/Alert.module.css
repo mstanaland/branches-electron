@@ -2,13 +2,24 @@
   --alert-accent: var(--badge-info-text);
   --alert-surface: var(--badge-info-bg);
 
-  display: flex;
-  gap: 8px;
-  padding: 10px 12px;
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 6px;
+  padding: 12px;
   color: var(--color-text);
   background: var(--alert-surface);
-  border: 1px solid color-mix(in oklch, var(--alert-accent) 30%, transparent);
+  border: 1px solid color-mix(in oklch, var(--alert-accent) 20%, transparent);
   border-radius: var(--radius-sm);
+
+  &:has(.icon) {
+    grid-template-columns: auto 1fr;
+
+    .heading,
+    .body,
+    .actions {
+      grid-column-start: 2;
+    }
+  }
 }
 
 .alert[data-variant='success'] {
@@ -19,10 +30,17 @@
 .icon {
   display: flex;
   flex: none;
-  /* Level with the first line of the message. */
-  height: 1lh;
   align-items: center;
-  color: var(--alert-accent);
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  color: oklch(from var(--alert-accent) l c h / 0.7);
+}
+
+.heading {
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
+  font-weight: 600;
 }
 
 .body {
@@ -31,6 +49,9 @@
   flex-direction: column;
   gap: 8px;
   min-width: 0;
+  color: var(--color-text-secondary);
+  font-size: var(--font-size-sm);
+  line-height: var(--line-height-sm);
 }
 
 .message {

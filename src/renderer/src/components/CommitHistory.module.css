@@ -124,21 +124,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--color-text-muted);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .date {
   flex: none;
   color: var(--color-text-muted);
   font-variant-numeric: tabular-nums;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .oid {
   flex: none;
   color: var(--color-text-muted);
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: var(--font-size-xs);
 }
 
 .subject {
@@ -147,7 +147,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 13px;
+  font-size: var(--font-size-sm);
   line-height: 20px;
   font-weight: 500;
 }

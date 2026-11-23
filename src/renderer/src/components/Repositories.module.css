@@ -19,7 +19,7 @@
 /* Matches the branch tree's heading, which sits in the same place in a repository tab. */
 .heading {
   margin: 10px 4px 2px;
-  font-size: 12px;
+  font-size: var(--font-size-xs);
   font-weight: 600;
   color: var(--color-text-muted);
 }
@@ -103,7 +103,7 @@
 
 .heroTitle {
   margin: 0;
-  font-size: 21px;
+  font-size: var(--font-size-xl);
   font-weight: 600;
   line-height: 1.3;
 }
