@@ -144,6 +144,8 @@ describe('writeCommitMessage', () => {
 
     expect(error).toMatchObject({ code: 'CLAUDE_FAILED' })
     expect((error as Error).message).toMatch(/log in/i)
+    // A login that lives in the shell profile, like Bedrock's, never reaches an app from Finder.
+    expect((error as Error).message).toContain('~/.claude/settings.json')
   })
 
   it('fails with CLAUDE_FAILED and Claude Code’s own words when it reports an error', async () => {

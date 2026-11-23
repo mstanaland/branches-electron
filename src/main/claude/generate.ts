@@ -178,13 +178,24 @@ function parseAnswer(stdout: string): CommitMessage {
   return { subject, description: message.description.trim() }
 }
 
+/**
+ * Said when Claude Code reports no login. An app opened from Finder doesn't read the shell
+ * profile, so a login that lives there (like `CLAUDE_CODE_USE_BEDROCK` for Amazon Bedrock)
+ * works in Terminal but not here; Claude Code's own settings file reaches both.
+ */
+const NOT_LOGGED_IN =
+  'Claude Code isn’t logged in. Run `claude` in Terminal to log in, then try again.\n\n' +
+  'If it already works in Terminal, your login may come from your shell profile, such as ' +
+  'the variables for Amazon Bedrock, which apps opened from Finder don’t read. Move those ' +
+  'variables into the "env" section of ~/.claude/settings.json.'
+
 /** A CLAUDE_FAILED error, worded for the user. A missing login gets instructions. */
 function failure(
   reason: string,
   details: { exitCode?: number | null; stderr?: string } = {}
 ): ClaudeError {
   const message = /not logged in|\/login|invalid api key|authentication/i.test(reason)
-    ? 'Claude Code isn’t logged in. Run `claude` in Terminal to log in, then try again.'
+    ? NOT_LOGGED_IN
     : `Claude Code couldn’t write a commit message: ${reason.trim()}`
   return new ClaudeError('CLAUDE_FAILED', message, details)
 }
