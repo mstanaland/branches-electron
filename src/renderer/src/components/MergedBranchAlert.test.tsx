@@ -105,8 +105,8 @@ describe('the merged branch alert', () => {
     show('feature')
 
     const note = await alert()
-    expect(note.textContent).toContain('Merged into main by #42')
-    expect(within(note).getByText('Add the login form')).toBeTruthy()
+    expect(note.textContent).toContain('Merged into “main”')
+    expect(note.textContent).toContain('by PR #42')
     // The locale's own words for it, whatever locale the test machine is in.
     const threeDaysAgo = new Intl.RelativeTimeFormat(undefined, { numeric: 'auto' }).format(
       -3,
@@ -127,7 +127,7 @@ describe('the merged branch alert', () => {
     api.openExternal.mockResolvedValue(undefined)
     show('feature')
 
-    fireEvent.click(within(await alert()).getByRole('button', { name: 'View on GitHub' }))
+    fireEvent.click(within(await alert()).getByRole('button', { name: 'PR #42, opens on GitHub' }))
 
     await waitFor(() =>
       expect(api.openExternal).toHaveBeenCalledWith(ROOT, mergedFeature.pullRequest.url)
@@ -138,7 +138,7 @@ describe('the merged branch alert', () => {
     show('feature')
 
     const buttons = within(await alert()).getAllByRole('button')
-    expect(buttons.map((button) => button.textContent)).toEqual(['View on GitHub', 'Delete'])
+    expect(buttons.map((button) => button.textContent)).toEqual(['PR #42', 'Delete Branch'])
   })
 
   it('deletes the branch through the Delete Branch dialog, then falls back to Working', async () => {
@@ -155,7 +155,7 @@ describe('the merged branch alert', () => {
     // Select the branch, as the sidebar would have.
     fireEvent.click(screen.getByRole('button', { name: 'Select feature' }))
     expect(screen.getByRole('status', { name: 'view' }).textContent).toBe('feature')
-    fireEvent.click(within(await alert()).getByRole('button', { name: 'Delete' }))
+    fireEvent.click(within(await alert()).getByRole('button', { name: 'Delete Branch' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete Branch' })
     expect(api.getBranchDeletion).toHaveBeenCalledWith(ROOT, 'feature')
@@ -178,7 +178,7 @@ describe('the merged branch alert', () => {
       mergedBy: mergedFeature.pullRequest
     })
     show('feature')
-    fireEvent.click(within(await alert()).getByRole('button', { name: 'Delete' }))
+    fireEvent.click(within(await alert()).getByRole('button', { name: 'Delete Branch' }))
 
     const dialog = await screen.findByRole('dialog', { name: 'Delete Branch' })
     await waitFor(() => expect(dialog.textContent).toContain('Merged into main by #42.'))
@@ -190,7 +190,7 @@ describe('the merged branch alert', () => {
 
     const note = await alert()
     const remove = await within(note).findByRole('button', {
-      name: 'Delete',
+      name: 'Delete Branch',
       description: 'Switch to another branch to delete it'
     })
     expect(isDisabled(remove)).toBe(true)
@@ -201,7 +201,7 @@ describe('the merged branch alert', () => {
 
     const note = await alert()
     const remove = await within(note).findByRole('button', {
-      name: 'Delete',
+      name: 'Delete Branch',
       description: 'Switch its work tree to another branch to delete it'
     })
     expect(isDisabled(remove)).toBe(true)
@@ -210,7 +210,7 @@ describe('the merged branch alert', () => {
   it('leaves Delete enabled on any other merged branch', async () => {
     show('feature')
 
-    const remove = within(await alert()).getByRole('button', { name: 'Delete' })
+    const remove = within(await alert()).getByRole('button', { name: 'Delete Branch' })
     await waitFor(() => expect(isDisabled(remove)).toBe(false))
     expect(remove.getAttribute('aria-describedby')).toBeNull()
   })

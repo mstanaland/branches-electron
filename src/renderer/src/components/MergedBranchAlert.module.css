@@ -3,8 +3,8 @@
   margin: 0 6px 10px;
 }
 
-.title {
-  font-style: italic;
+.when {
+  color: var(--color-text-muted);
 }
 
 .reason {

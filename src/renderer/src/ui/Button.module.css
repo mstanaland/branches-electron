@@ -33,6 +33,10 @@
   height: auto;
 }
 
+.button[data-variant='link']:hover:not([data-disabled]) {
+  text-decoration-thickness: 2px;
+}
+
 .button[data-variant='primary'] {
   color: var(--color-accent-text);
   background: var(--color-accent);
