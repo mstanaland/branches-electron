@@ -33,7 +33,7 @@ _Avoid_: Toolbar, header, top bar
 
 **Operations area**:
 The right-hand end of the **title bar**, holding the operations on the **active repository** —
-Fetch, Pull, Push and the overflow menu. Empty when no repository is in front.
+Fetch, Pull, Push, Refresh and the overflow menu. Disabled when no repository is in front.
 _Avoid_: Action bar, button bar, toolbar
 
 **Window title**:
@@ -186,8 +186,8 @@ repository with no remote is told about rather than reported as a fetch that did
 _Avoid_: Refresh (that one never runs `git fetch`), sync, update
 
 **Refresh**:
-Re-reading the **active repository** from disk on demand, with the control at the foot of the
-sidebar — the same re-read regaining window focus does — and asking GitHub again for its
+Re-reading the **active repository** from disk on demand, with the control at the end of the
+**operations area** — the same re-read regaining window focus does — and asking GitHub again for its
 **merged branches**. Never runs `git fetch`: reaching the remote is **manual fetch**'s job. A
 refresh keeps what is on screen until the new read lands.
 _Avoid_: Reload, sync, fetch (that one reaches the remote)

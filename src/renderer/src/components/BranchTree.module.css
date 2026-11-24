@@ -31,7 +31,7 @@
 }
 
 .group {
-  padding-left: var(--space-6);
+  padding-left: var(--space-5);
 }
 
 .item {
@@ -96,7 +96,6 @@
 .chevron {
   display: flex;
   justify-content: center;
-  width: 16px;
   flex: none;
   color: var(--text-muted);
 }
