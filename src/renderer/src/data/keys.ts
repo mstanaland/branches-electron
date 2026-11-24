@@ -40,6 +40,12 @@ export const keys = {
    */
   commits: (root: string, ref: string) => ['repository', root, 'commits', ref] as const,
   /**
+   * Where the **default branch**'s line starts in one branch's history. Under `commits` so
+   * whatever re-reads the history re-reads this with it.
+   */
+  defaultBranchBase: (root: string, ref: string) =>
+    [...keys.commits(root, ref), 'default-branch-base'] as const,
+  /**
    * The **unpushed commits** of one branch's history, keyed by the same ref as `commits`. Kept
    * apart from the paged history so a push or fetch re-reads this one cheap set rather than
    * every page. Also keyed by the head of the pull request that merged the branch, if one did,

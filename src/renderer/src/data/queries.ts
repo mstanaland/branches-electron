@@ -128,6 +128,18 @@ export function useUnpushedCommits(root: string | null, ref: string | null) {
   })
 }
 
+/**
+ * Where the **default branch**'s line starts in one branch's history, for the graph to hold it
+ * in the first lane. Idle while there is no repository or no ref.
+ */
+export function useDefaultBranchBase(root: string | null, ref: string | null) {
+  return useQuery({
+    queryKey: keys.defaultBranchBase(root ?? '', ref ?? ''),
+    queryFn: () => api.findDefaultBranchBase(root as string, ref as string),
+    enabled: root !== null && ref !== null
+  })
+}
+
 /** Commits fetched per page. Big enough that scrolling rarely asks for another. */
 export const COMMIT_PAGE_SIZE = 200
 

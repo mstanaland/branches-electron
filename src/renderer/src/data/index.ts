@@ -36,7 +36,8 @@ export {
   usePublishTarget,
   useRepositories,
   useStatus,
-  useUnpushedCommits
+  useUnpushedCommits,
+  useDefaultBranchBase
 } from './queries'
 export { useConfirmRemoveMissing, useRepositoryMenu } from './removal'
 export { useTabMenu } from './tabMenu'

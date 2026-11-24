@@ -18,6 +18,7 @@ function bridgeReturning(result: unknown): BranchesApi {
     openExternal: respond,
     listCommits: respond,
     listUnpushedCommits: respond,
+    findDefaultBranchBase: respond,
     getCommitDetails: respond,
     listCommitFiles: respond,
     getCommitFileDiff: respond,

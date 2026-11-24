@@ -163,6 +163,9 @@ export function registerIpc(deps: IpcDeps): void {
   ipcMain.handle('repository:unpushed-commits', (_event, root: string, ref: string) =>
     settle(() => handlers.listUnpushedCommits(root, ref))
   )
+  ipcMain.handle('repository:default-branch-base', (_event, root: string, ref: string) =>
+    settle(() => handlers.findDefaultBranchBase(root, ref))
+  )
   ipcMain.handle('repository:commit-details', (_event, root: string, oid: string) =>
     settle(() => handlers.getCommitDetails(root, oid))
   )
