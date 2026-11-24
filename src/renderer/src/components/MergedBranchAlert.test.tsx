@@ -9,6 +9,7 @@ import { renderWithProviders } from '../data/testUtils'
 const api = vi.hoisted(() => ({
   listCommits: vi.fn<RendererApi['listCommits']>(),
   listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>(),
+  findDefaultBranchBase: vi.fn<RendererApi['findDefaultBranchBase']>(),
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listMergedBranches: vi.fn<RendererApi['listMergedBranches']>(),
   openExternal: vi.fn<RendererApi['openExternal']>(),
@@ -70,6 +71,7 @@ function show(
 ): void {
   api.listCommits.mockResolvedValue([])
   api.listUnpushedCommits.mockResolvedValue([])
+  api.findDefaultBranchBase.mockResolvedValue(null)
   api.listBranches.mockResolvedValue(branches)
   api.listMergedBranches.mockResolvedValue(merged)
   renderWithProviders(

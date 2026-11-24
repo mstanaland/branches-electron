@@ -1,6 +1,6 @@
 import { afterAll, describe, expect, it } from 'vitest'
-import { listCommits, parseCommits } from './log'
-import { cleanupTestRepos, createRepo, createRepoWithCommit } from './test-repo'
+import { findDefaultBranchBase, listCommits, parseCommits } from './log'
+import { cleanupTestRepos, createRepo, createRepoWithCommit, type TestRepo } from './test-repo'
 
 afterAll(cleanupTestRepos)
 
@@ -147,5 +147,74 @@ describe('parseCommits', () => {
     ].join('\0')
 
     expect(parseCommits(record)[0].parents).toEqual(parents)
+  })
+})
+
+async function head(repo: TestRepo, ref: string): Promise<string> {
+  return (await repo.git('rev-parse', ref)).trim()
+}
+
+describe('findDefaultBranchBase', () => {
+  it('is where a branch forked from the default branch', async () => {
+    const repo = await createRepoWithCommit()
+    const fork = await head(repo, 'main')
+    await repo.git('checkout', '-q', '-b', 'work')
+    await repo.write('work.txt')
+    await repo.commit('Work commit')
+    await repo.git('checkout', '-q', 'main')
+    await repo.write('main.txt')
+    await repo.commit('Main commit')
+
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({ oid: fork, movedOn: true })
+  })
+
+  it("is the default branch's tip once a branch has merged it in", async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('checkout', '-q', '-b', 'work')
+    await repo.write('work.txt')
+    await repo.commit('Work commit')
+    await repo.git('checkout', '-q', 'main')
+    await repo.write('main.txt')
+    await repo.commit('Main commit')
+    const tip = await head(repo, 'main')
+    await repo.git('checkout', '-q', 'work')
+    await repo.git('merge', '-q', '--no-edit', 'main')
+
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({ oid: tip, movedOn: false })
+    // A raw oid, as a detached HEAD is listed by.
+    expect(await findDefaultBranchBase(repo.root, await head(repo, 'work'))).toEqual({
+      oid: tip,
+      movedOn: false
+    })
+
+    // The default branch moves on again after being merged in.
+    await repo.git('checkout', '-q', 'main')
+    await repo.write('later.txt')
+    await repo.commit('Later main commit')
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({ oid: tip, movedOn: true })
+  })
+
+  it("is the default branch's own tip for the default branch", async () => {
+    const repo = await createRepoWithCommit()
+    expect(await findDefaultBranchBase(repo.root, 'main')).toEqual({
+      oid: await head(repo, 'main'),
+      movedOn: false
+    })
+  })
+
+  it('is null for a branch with no history in common', async () => {
+    const repo = await createRepoWithCommit()
+    await repo.git('checkout', '-q', '--orphan', 'other')
+    await repo.write('other.txt')
+    await repo.commit('Other root')
+
+    expect(await findDefaultBranchBase(repo.root, 'other')).toBeNull()
+  })
+
+  it('is null without a default branch, and in a repository with no commits', async () => {
+    expect(
+      await findDefaultBranchBase((await createRepoWithCommit('feature')).root, 'feature')
+    ).toBeNull()
+    expect(await findDefaultBranchBase((await createRepo()).root, 'main')).toBeNull()
   })
 })

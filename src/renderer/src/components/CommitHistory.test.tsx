@@ -10,6 +10,7 @@ import { renderWithProviders } from '../data/testUtils'
 const api = vi.hoisted(() => ({
   listCommits: vi.fn<RendererApi['listCommits']>(),
   listUnpushedCommits: vi.fn<RendererApi['listUnpushedCommits']>(),
+  findDefaultBranchBase: vi.fn<RendererApi['findDefaultBranchBase']>(),
   // For the merged branch alert above the list, which has its own tests.
   listBranches: vi.fn<RendererApi['listBranches']>(),
   listMergedBranches: vi.fn<RendererApi['listMergedBranches']>()
@@ -42,6 +43,7 @@ function commit(seed: string, overrides: Partial<Commit> = {}): Commit {
 function show(commits: Commit[], ref = 'main', unpushed: string[] = []) {
   api.listCommits.mockResolvedValue(commits)
   api.listUnpushedCommits.mockResolvedValue(unpushed)
+  api.findDefaultBranchBase.mockResolvedValue(null)
   return renderWithProviders(<CommitHistory root={ROOT} commitRef={ref} />, { tabs: [ROOT] })
 }
 

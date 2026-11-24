@@ -77,6 +77,21 @@ export interface Commit {
 }
 
 /**
+ * Where the **default branch**'s line starts in one branch's history: the newest commit of
+ * the history that the default branch has. Its tip, when the branch merged it in, otherwise
+ * where the branch forked from it.
+ */
+export interface DefaultBranchBase {
+  /** Full object id of that commit. */
+  oid: string
+  /**
+   * Whether the default branch has commits since that the history doesn't — it moved on
+   * after the fork, or after it was last merged in. False when the history contains its tip.
+   */
+  movedOn: boolean
+}
+
+/**
  * What **commit details** shows about one commit beyond its row in the history: who wrote it
  * and who committed it, when, and its **commit description**. The subject is the row's.
  */

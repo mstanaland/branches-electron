@@ -1,5 +1,6 @@
+import { readBranches } from './branches'
 import { GitError } from './errors'
-import type { Commit } from '../../shared/git'
+import type { Commit, DefaultBranchBase } from '../../shared/git'
 import { shortOid } from '../../shared/oid'
 import { runGit } from './run'
 
@@ -90,6 +91,35 @@ export async function isAncestor(
   } catch (error) {
     // Exit 1 is git's "no"; anything else is a real failure.
     if (error instanceof GitError && error.exitCode === 1) return false
+    throw error
+  }
+}
+
+/**
+ * The newest commit of `ref`'s history that the **default branch** has — its tip when `ref`
+ * contains it, as after merging it in, otherwise where `ref` forked from it — and whether the
+ * default branch has moved on past it. This is where the default branch's line starts in
+ * `ref`'s graph. Null when there is no default branch, when either side resolves to nothing,
+ * or when the two share no history.
+ */
+export async function findDefaultBranchBase(
+  root: string,
+  ref: string
+): Promise<DefaultBranchBase | null> {
+  const { defaultName } = await readBranches(root)
+  if (defaultName === null) return null
+  const defaultRef = `refs/heads/${defaultName}`
+  if (!(await resolves(root, defaultRef)) || !(await resolves(root, ref))) return null
+  try {
+    const [base, tip] = await Promise.all([
+      runGit(root, ['merge-base', defaultRef, ref]),
+      runGit(root, ['rev-parse', '--verify', `${defaultRef}^{commit}`])
+    ])
+    const oid = base.stdout.trim()
+    return { oid, movedOn: oid !== tip.stdout.trim() }
+  } catch (error) {
+    // Exit 1 is git's "no common ancestor"; anything else is a real failure.
+    if (error instanceof GitError && error.exitCode === 1) return null
     throw error
   }
 }

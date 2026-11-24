@@ -8,6 +8,7 @@ import type {
   CommitDetails,
   CommitFile,
   CommitMessage,
+  DefaultBranchBase,
   FileDiff,
   PublishTarget,
   RepositoryStatus,
@@ -26,6 +27,7 @@ import {
   readBranchDeletion,
   undeletableBranches,
   fetchRemote,
+  findDefaultBranchBase,
   hasRemote,
   isRepositoryRoot,
   listBranches,
@@ -95,6 +97,7 @@ export interface Handlers {
   openExternal: (root: string, url: string) => Promise<void>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
   listUnpushedCommits: (root: string, ref: string) => Promise<string[]>
+  findDefaultBranchBase: (root: string, ref: string) => Promise<DefaultBranchBase | null>
   getCommitDetails: (root: string, oid: string) => Promise<CommitDetails>
   listCommitFiles: (root: string, oid: string) => Promise<CommitFile[]>
   getCommitFileDiff: (
@@ -309,6 +312,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
       // again when the merged branches change.
       const merged = deps.mergedBranches.cached(root)?.find((branch) => branch.name === ref)
       return listUnpushedCommits(root, ref, merged ? [merged.pullRequest.headOid] : [])
+    },
+    async findDefaultBranchBase(root, ref) {
+      await assertOpen(root)
+      await assertRef(root, ref)
+      return findDefaultBranchBase(root, ref)
     },
     async getCommitDetails(root, oid) {
       await assertOpen(root)

@@ -4,7 +4,13 @@ import { CloudUploadIcon } from 'lucide-react'
 import { MAX_LANES, buildCommitGraph, outEdgeColorLane } from '../../../shared/commitGraph'
 import type { CommitGraphRow } from '../../../shared/commitGraph'
 import type { Commit } from '../../../shared/git'
-import { describeError, useCommits, useSelection, useUnpushedCommits } from '../data'
+import {
+  describeError,
+  useCommits,
+  useDefaultBranchBase,
+  useSelection,
+  useUnpushedCommits
+} from '../data'
 import { EmptyState, Pending, Tooltip } from '../ui'
 import { MergedBranchAlert } from './MergedBranchAlert'
 import shared from './shared.module.css'
@@ -14,6 +20,13 @@ import styles from './CommitHistory.module.css'
 const ROW_HEIGHT = 56
 const LANE_WIDTH = 10
 const NODE_RADIUS = 5
+/** Spacing of the dots in the default branch's placeholder line. */
+const PLACEHOLDER_DOT_SPACING = 5
+/**
+ * How far below the top of the first row the placeholder starts: inside the row's padding, so
+ * its round caps don't poke past the edge of a selected row's background.
+ */
+const PLACEHOLDER_FIRST_ROW_INSET = 12
 
 /** Built once: an `Intl` formatter per row would be the most expensive thing on screen. */
 const dateFormat = new Intl.DateTimeFormat(undefined, { dateStyle: 'short' })
@@ -43,15 +56,19 @@ function edgePath(fromX: number, fromY: number, toX: number, toY: number): strin
  */
 function GraphCell({
   row,
+  rowIndex,
   laneCount
 }: {
   row: CommitGraphRow
+  /** Position in the list, so the placeholder's dots keep their spacing across rows. */
+  rowIndex: number
   laneCount: number
 }): React.JSX.Element {
   const width = Math.max(laneCount, 1) * LANE_WIDTH
   const middle = ROW_HEIGHT / 2
   const nodeX = laneX(row.lane)
   const strokeWidth = 2
+  const placeholderTop = rowIndex === 0 ? PLACEHOLDER_FIRST_ROW_INSET : 0
 
   return (
     <svg
@@ -61,6 +78,21 @@ function GraphCell({
       viewBox={`0 0 ${width} ${ROW_HEIGHT}`}
       aria-hidden="true"
     >
+      {row.placeholder !== null && (
+        // The default branch carrying on beside this work: dotted, with no nodes, so it never
+        // reads as history. Offset by the row's position so the dots run evenly down the list.
+        <line
+          x1={laneX(0)}
+          y1={placeholderTop}
+          x2={laneX(0)}
+          y2={row.placeholder === 'through' ? ROW_HEIGHT : middle}
+          stroke={laneColor(0)}
+          strokeWidth={strokeWidth}
+          strokeLinecap="round"
+          strokeDasharray={`0 ${PLACEHOLDER_DOT_SPACING}`}
+          strokeDashoffset={(rowIndex * ROW_HEIGHT + placeholderTop) % PLACEHOLDER_DOT_SPACING}
+        />
+      )}
       {row.through.map((lane) => (
         <line
           key={`through-${lane}`}
@@ -101,6 +133,7 @@ function GraphCell({
 function CommitRow({
   commit,
   row,
+  index,
   laneCount,
   selected,
   unpushed,
@@ -110,6 +143,7 @@ function CommitRow({
 }: {
   commit: Commit
   row: CommitGraphRow
+  index: number
   laneCount: number
   selected: boolean
   unpushed: boolean
@@ -129,7 +163,7 @@ function CommitRow({
       onKeyDown={onKeyDown}
     >
       <div className={styles.rowContent}>
-        <GraphCell row={row} laneCount={laneCount} />
+        <GraphCell row={row} rowIndex={index} laneCount={laneCount} />
         <div className={styles.details}>
           <div className={`${styles.line} ${styles.subjectLine}`}>
             <span className={styles.subject}>{commit.subject}</span>
@@ -187,7 +221,12 @@ export function CommitHistory({
   const listed = useMemo(() => commits.data?.pages.flat() ?? [], [commits.data])
   // Recomputed over the whole list on every append rather than continued page by page: a
   // lane that started mid-page would otherwise land in a different position each time.
-  const graph = useMemo(() => buildCommitGraph(listed), [listed])
+  // Until it lands, or if it fails, the graph lays out without holding a lane for it.
+  const defaultBranchBase = useDefaultBranchBase(root, commitRef).data ?? null
+  const graph = useMemo(
+    () => buildCommitGraph(listed, defaultBranchBase),
+    [listed, defaultBranchBase]
+  )
 
   // Per tab, so it survives a tab switch and shows in **commit details** beside the list.
   const { selectedCommit: selectedOid, setSelectedCommit: setSelectedOid } = useSelection()
@@ -279,6 +318,7 @@ export function CommitHistory({
               key={commit.oid}
               commit={commit}
               row={graph.rows[index]}
+              index={index}
               laneCount={graph.laneCount}
               selected={commit.oid === selectedOid}
               unpushed={unpushed?.has(commit.oid) ?? false}

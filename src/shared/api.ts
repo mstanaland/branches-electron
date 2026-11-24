@@ -7,6 +7,7 @@ import type {
   CommitDetails,
   CommitFile,
   CommitMessage,
+  DefaultBranchBase,
   FileDiff,
   PublishTarget,
   RepositoryStatus,
@@ -86,6 +87,16 @@ export interface BranchesApi {
    * saved repository or one the user opened this session.
    */
   listUnpushedCommits: (root: string, ref: string) => Promise<ApiResult<string[]>>
+  /**
+   * Where the **default branch**'s line starts in `ref`'s history, and whether the default
+   * branch has moved on past it, for the history graph to hold the default branch's line in the
+   * first lane. Null when there is no default branch, when `ref` shares no history with it, and
+   * in a repository with no commits.
+   *
+   * `ref` is a local branch name or a full object id, as for `listCommits`. `root` must be a
+   * saved repository or one the user opened this session.
+   */
+  findDefaultBranchBase: (root: string, ref: string) => Promise<ApiResult<DefaultBranchBase | null>>
   /**
    * What **commit details** shows about one commit beyond its row: author and committer with
    * their emails and dates, and the commit description. `oid` must be a full object id, as
