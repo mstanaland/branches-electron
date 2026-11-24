@@ -74,6 +74,13 @@ function createWindow(): void {
 void app.whenReady().then(() => {
   electronApp.setAppUserModelId('com.branches.app')
 
+  // A packaged app gets its icon from the bundle (build/Branches.icon, compiled by
+  // electron-builder). In dev the Dock would show Electron's, so point it at the exported PNG
+  // that `pnpm icon` writes.
+  if (is.dev && process.platform === 'darwin') {
+    app.dock?.setIcon(join(__dirname, '../../resources/icon.png'))
+  }
+
   // F12 toggles DevTools in dev; Cmd+R reload is disabled in production.
   app.on('browser-window-created', (_, window) => optimizer.watchWindowShortcuts(window))
 

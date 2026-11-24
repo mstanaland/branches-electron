@@ -13,6 +13,9 @@ files:
 asarUnpack:
   - resources/**
 mac:
+  # Icon Composer file: electron-builder compiles it with actool (Xcode 26+) into the Liquid
+  # Glass Assets.car plus an icon.icns fallback for older macOS.
+  icon: Branches.icon
   entitlementsInherit: build/entitlements.mac.plist
   notarize: false
 dmg:
