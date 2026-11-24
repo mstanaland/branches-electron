@@ -11,6 +11,7 @@
     "build": "pnpm typecheck && electron-vite build",
     "build:unpack": "pnpm build && electron-builder --dir",
     "build:mac": "pnpm build && electron-builder --mac",
+    "icon": "sh scripts/export-icon.sh",
     "typecheck:node": "tsc --noEmit -p tsconfig.node.json --composite false",
     "typecheck:web": "tsc --noEmit -p tsconfig.web.json --composite false",
     "typecheck": "pnpm typecheck:node && pnpm typecheck:web",

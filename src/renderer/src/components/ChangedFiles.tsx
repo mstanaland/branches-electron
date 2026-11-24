@@ -1,4 +1,4 @@
-import { ArrowRight, GitBranch } from 'lucide-react'
+import { ArrowRight, GitBranch, ChevronRight } from 'lucide-react'
 import { useCallback, useMemo, useRef } from 'react'
 import {
   changedSide,
@@ -165,7 +165,12 @@ export function ChangedFiles({ root }: { root: string }): React.JSX.Element | nu
           <span className={styles.branch}>
             {data.branch ?? `Detached at ${data.headOid ? shortOid(data.headOid) : 'no commits'}`}
           </span>
-          {data.upstream && <span className={styles.upstream}>{data.upstream}</span>}
+          {data.upstream && (
+            <span className={styles.upstream}>
+              <ChevronRight size={12} />
+              <span>{data.upstream}</span>
+            </span>
+          )}
           <AheadBehind ahead={data.ahead} behind={data.behind} />
         </header>
       )}
