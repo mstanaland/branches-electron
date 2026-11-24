@@ -3,6 +3,8 @@
   display: flex;
   flex-direction: column;
   flex: 1;
+  /* A long branch or upstream truncates in the header; it must not widen this column. */
+  min-width: 0;
   min-height: 0;
   overflow-y: auto;
   /* Roughly the header's height, so a row focused by keyboard never scrolls in behind it. */
@@ -17,12 +19,54 @@
   top: 0;
   z-index: 1;
   display: flex;
+  flex-wrap: nowrap;
   flex: none;
   align-items: center;
   gap: var(--space-1-5);
+  min-width: 0;
   padding: var(--space-3) var(--space-4);
   background: var(--bg-content);
   border-bottom: 1px solid var(--border);
+  max-width: 100%;
+
+  /* The branch icon and the ahead/behind counts keep their size. */
+  > * {
+    flex: none;
+  }
+
+  /* Truncates only after the upstream has shrunk to its floor. */
+  .branch {
+    flex: 0 1 auto;
+    min-width: 0;
+    overflow: hidden;
+    font-weight: var(--font-weight-semibold);
+    white-space: nowrap;
+    text-overflow: ellipsis;
+  }
+
+  /* Shrinks first, down to 60px, and only then does the branch truncate. A zero basis
+     freezes it at that floor while the line is short; spare room grows it back up to its text. */
+  .upstream {
+    display: flex;
+    flex: 1 1 0;
+    align-items: center;
+    gap: var(--space-0-5);
+    min-width: 60px;
+    max-width: max-content;
+    overflow: hidden;
+    color: var(--text-muted);
+
+    svg {
+      flex: none;
+    }
+
+    span {
+      min-width: 0;
+      overflow: hidden;
+      white-space: nowrap;
+      text-overflow: ellipsis;
+    }
+  }
 }
 
 /* Everything under the header: the commit form, then the changes. */
@@ -31,14 +75,6 @@
   flex-direction: column;
   gap: var(--space-2);
   padding: var(--space-3);
-}
-
-.branch {
-  font-weight: var(--font-weight-semibold);
-}
-
-.upstream {
-  color: var(--text-muted);
 }
 
 .list {
