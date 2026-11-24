@@ -75,8 +75,8 @@ export interface HandlerDeps {
   /** Runs **Generate**, one run per repository. */
   generator: CommitMessageGenerator
   /**
-   * The **merged branches** main keeps per repository. Reads are served from it, so Refresh
-   * never reaches GitHub; a manual fetch and a delete bring it up to date.
+   * The **merged branches** main keeps per repository. Reads are served from it; Refresh, a
+   * fetch and a delete bring it up to date.
    */
   mergedBranches: MergedBranchCache
   /** Tells the user why **Generate** failed, in a native warning sheet. */
@@ -94,6 +94,7 @@ export interface Handlers {
   getStatus: (root: string) => Promise<RepositoryStatus>
   listBranches: (root: string) => Promise<Branch[]>
   listMergedBranches: (root: string) => Promise<MergedBranch[]>
+  recheckMergedBranches: (root: string) => Promise<void>
   openExternal: (root: string, url: string) => Promise<void>
   listCommits: (root: string, ref: string, limit: number, skip: number) => Promise<Commit[]>
   listUnpushedCommits: (root: string, ref: string) => Promise<string[]>
@@ -292,6 +293,11 @@ export function createHandlers(deps: HandlerDeps): Handlers {
     async listMergedBranches(root) {
       await assertOpen(root)
       return deps.mergedBranches.get(root)
+    },
+    async recheckMergedBranches(root) {
+      await assertOpen(root)
+      // Awaited, unlike after a fetch: Refresh stays busy until the badges are current.
+      await deps.mergedBranches.recompute(root)
     },
     async openExternal(root, url) {
       await assertOpen(root)

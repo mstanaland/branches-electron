@@ -41,8 +41,8 @@ export function registerIpc(deps: IpcDeps): void {
     }
   })
 
-  // The last merged-branch result per repository. Refresh reads it; only a first read, a fetch
-  // or a delete asks GitHub again.
+  // The last merged-branch result per repository. A first read, a fetch, a Refresh, regaining
+  // focus or a delete asks GitHub again.
   const mergedBranches = createMergedBranchCache({
     find: (root) => findMergedBranchesOrNull(root, lookUpMergedPullRequests),
     onChanged: (root) => broadcast('repository:merged-branches-changed', root)
@@ -58,7 +58,13 @@ export function registerIpc(deps: IpcDeps): void {
   })
   // No network traffic from a backgrounded app.
   fetchScheduler.setFocused(BrowserWindow.getFocusedWindow() !== null)
-  app.on('browser-window-focus', () => fetchScheduler.setFocused(true))
+  // The repository the user is looking at, so regaining focus can check its merged branches.
+  let activeRoot: string | null = null
+  app.on('browser-window-focus', () => {
+    fetchScheduler.setFocused(true)
+    // A pull request merged while the user was away shows up now, not at the next fetch.
+    if (activeRoot !== null) void mergedBranches.recompute(activeRoot)
+  })
   app.on('browser-window-blur', () =>
     fetchScheduler.setFocused(BrowserWindow.getFocusedWindow() !== null)
   )
@@ -95,6 +101,7 @@ export function registerIpc(deps: IpcDeps): void {
         })
       }),
     setActiveRepository: (root) => {
+      activeRoot = root
       fetchScheduler.setActiveRepository(root)
       void windowTitle.follow(root)
     },
@@ -151,6 +158,9 @@ export function registerIpc(deps: IpcDeps): void {
   )
   ipcMain.handle('repository:merged-branches', (_event, root: string) =>
     settle(() => handlers.listMergedBranches(root))
+  )
+  ipcMain.handle('repository:recheck-merged-branches', (_event, root: string) =>
+    settle(() => handlers.recheckMergedBranches(root))
   )
   ipcMain.handle('repository:open-external', (_event, root: string, url: string) =>
     settle(() => handlers.openExternal(root, url))

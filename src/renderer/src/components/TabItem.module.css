@@ -34,7 +34,7 @@
   top: 25%;
   height: 50%;
   width: 1px;
-  background-color: var(--border);
+  background-color: var(--border-strong);
   /* transition: opacity var(--transition-duration) ease-out; */
 }
 

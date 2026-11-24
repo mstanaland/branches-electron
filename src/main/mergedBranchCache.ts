@@ -15,7 +15,11 @@ export interface MergedBranchCache {
   get: (root: string) => Promise<MergedBranch[]>
   /** The last result for `root` as it stands, or undefined before any. Never asks GitHub. */
   cached: (root: string) => readonly MergedBranch[] | undefined
-  /** Looks `root` up again after a fetch, reporting a change. Never rejects. */
+  /**
+   * Looks `root` up again — after a fetch, a Refresh or regaining focus — reporting a change.
+   * A call made while another is still waiting its turn joins that one, since it will read
+   * GitHub after the call anyway. Never rejects.
+   */
   recompute: (root: string) => Promise<void>
   /**
    * Drops a branch the user just deleted, at once and without asking GitHub, so the renderer's
@@ -32,8 +36,9 @@ function fingerprint(merged: readonly MergedBranch[]): string {
 }
 
 /**
- * Keeps the last **merged branches** result per repository in main, so **Refresh** and a
- * renderer re-read never reach GitHub: only a first read, a fetch or a delete does.
+ * Keeps the last **merged branches** result per repository in main, so a renderer re-read
+ * never reaches GitHub: only a first read, a recompute (after a fetch, a **Refresh** or the
+ * window regaining focus) or a delete does.
  *
  * Lookups of one repository run one at a time, so a slow, older lookup can never overwrite a
  * newer one. A lookup that fails keeps the last good result rather than clearing the badges.
@@ -48,6 +53,8 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
    * dropped altogether if the repository was removed meanwhile.
    */
   const inFlight = new Map<string, { deleted: Set<string>; forgotten: boolean }>()
+  /** Each repository's recompute that is queued but hasn't started, for later calls to join. */
+  const waiting = new Map<string, Promise<void>>()
 
   /** Runs `task` after every lookup of `root` already queued. */
   function enqueue(root: string, task: () => Promise<void>): Promise<void> {
@@ -88,9 +95,14 @@ export function createMergedBranchCache(deps: MergedBranchCacheDeps): MergedBran
     },
     cached: (root) => results.get(root),
     recompute(root) {
-      return enqueue(root, async () => {
+      const queued = waiting.get(root)
+      if (queued !== undefined) return queued
+      const run = enqueue(root, async () => {
+        waiting.delete(root)
         if (await lookUp(root)) deps.onChanged(root)
       })
+      waiting.set(root, run)
+      return run
     },
     branchDeleted(root, name) {
       inFlight.get(root)?.deleted.add(name)

@@ -26,3 +26,9 @@ not a view and selects nothing, so none of the above changes: the view switcher 
 and the branch tree. It lives here rather than in the **operations area** because Refresh only
 re-reads the repository from disk, and the operations area holds what acts on the repository or
 its remote — keeping it apart keeps "touches the network" a property of where a control sits.
+
+## Amendment: Refresh moves to the operations area
+
+Refresh now also asks GitHub for the **merged branches** (ADR-0011), so "touches the network" no
+longer separates it from the **operations area**, and it sits there, after Push or Publish. The
+sidebar is back to the view switcher alone.

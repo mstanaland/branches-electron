@@ -120,10 +120,27 @@ describe('createMergedBranchCache', () => {
     find.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
 
     const first = cache.recompute('/repo')
-    const second = cache.recompute('/repo')
     await vi.waitFor(() => expect(find).toHaveBeenCalledTimes(1))
+    const second = cache.recompute('/repo')
     release?.([merged('older')])
     await Promise.all([first, second])
+
+    expect(find).toHaveBeenCalledTimes(2)
+    await expect(cache.get('/repo')).resolves.toEqual([merged('newer')])
+  })
+
+  it('folds recomputes made while one is waiting its turn into that one', async () => {
+    let release: ((merged: MergedBranch[]) => void) | undefined
+    const { cache, find } = setup([merged('newer')])
+    find.mockImplementationOnce(() => new Promise((resolve) => (release = resolve)))
+
+    const running = cache.recompute('/repo')
+    await vi.waitFor(() => expect(find).toHaveBeenCalledTimes(1))
+    const queued = cache.recompute('/repo')
+    const joined = cache.recompute('/repo')
+    expect(joined).toBe(queued)
+    release?.([merged('older')])
+    await Promise.all([running, queued, joined])
 
     expect(find).toHaveBeenCalledTimes(2)
     await expect(cache.get('/repo')).resolves.toEqual([merged('newer')])

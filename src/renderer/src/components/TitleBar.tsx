@@ -3,7 +3,8 @@ import {
   ArrowDownToLine,
   ArrowUpFromDot,
   CloudUpload,
-  LoaderCircle
+  LoaderCircle,
+  RefreshCw
 } from 'lucide-react'
 import { useState } from 'react'
 import type { PublishableTarget, PublishTarget, RepositoryStatus } from '../../../shared/git'
@@ -15,6 +16,7 @@ import {
   usePublishTarget,
   usePullRepository,
   usePushRepository,
+  useRefreshRepository,
   useRepositories,
   useStatus,
   useTabs
@@ -27,8 +29,8 @@ import styles from './TitleBar.module.css'
 /**
  * The **title bar**: the full-width row at the top of the window, with the traffic lights
  * inset on the left and the **operations area** on the right, where the operations on the
- * **active repository** — Fetch, Pull and Push today, the overflow menu when it arrives —
- * live.
+ * **active repository** — Fetch, Pull, Push and Refresh today, the overflow menu when it
+ * arrives — live.
  *
  * The row is the window's drag region, which is what makes the chrome behave like a Mac
  * window's own: the operations are excluded from it in CSS, because a control under a drag
@@ -61,6 +63,7 @@ export function TitleBar(): React.JSX.Element {
             <FetchButton disabled />
             <PullButton disabled />
             <PushButton label="Push" disabled />
+            <RefreshButton disabled />
           </>
         )}
       </div>
@@ -98,6 +101,7 @@ function Operations({ root }: { root: string }): React.JSX.Element {
       <FetchButton busy={fetch.busy} onClick={fetch.start} />
       <Pull root={root} pull={pull} />
       <Push root={root} push={push} />
+      <Refresh root={root} />
     </>
   )
 }
@@ -277,6 +281,42 @@ function PushButton({
       {label}
       {/* Part of the accessible name, as on Pull: "Push 2" is what the control offers. */}
       {ahead > 0 && <span className={styles.count}>{ahead}</span>}
+    </Button>
+  )
+}
+
+/**
+ * The **Refresh** control, last in the row: re-reads the repository from disk, as regaining
+ * focus does, for when something changed it behind the app's back and the window never lost
+ * focus, and asks GitHub again for the merged branches. It never runs `git fetch` — that is
+ * Fetch's job.
+ *
+ * While a refresh is in flight the icon spins and the control is disabled, read from the query
+ * client so switching tab and back doesn't lose it.
+ */
+function Refresh({ root }: { root: string }): React.JSX.Element {
+  const refresh = useRefreshRepository(root)
+  return <RefreshButton busy={refresh.busy} onClick={refresh.start} />
+}
+
+function RefreshButton({
+  busy = false,
+  disabled = false,
+  onClick
+}: {
+  busy?: boolean
+  disabled?: boolean
+  onClick?: () => void
+}): React.JSX.Element {
+  return (
+    <Button
+      variant="quiet"
+      disabled={disabled || busy}
+      aria-busy={busy || undefined}
+      onClick={onClick}
+    >
+      <RefreshCw className={busy ? shared.spinner : undefined} />
+      Refresh
     </Button>
   )
 }

@@ -37,11 +37,3 @@
   background: var(--bg-selected-strong);
   color: var(--on-accent);
 }
-
-/* Refresh, pinned to the bottom of the column below the branch tree, which scrolls above it. */
-.footer {
-  display: flex;
-  flex: none;
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--border);
-}

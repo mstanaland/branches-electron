@@ -1,8 +1,7 @@
-import { FileDiff, RefreshCw } from 'lucide-react'
-import { WORKING, useRefreshRepository, useSelection, useStatus } from '../data'
+import { FileDiff } from 'lucide-react'
+import { WORKING, useSelection, useStatus } from '../data'
 import { Badge, Button } from '../ui'
 import { BranchTree } from './BranchTree'
-import shared from './shared.module.css'
 import styles from './Sidebar.module.css'
 
 /**
@@ -46,35 +45,9 @@ function WorkingItem({
 }
 
 /**
- * The **Refresh** control, at the foot of the column: re-reads the repository from disk, as
- * regaining focus does, for when something changed it behind the app's back and the window
- * never lost focus. It touches no network — that is Fetch's job, in the title bar.
- *
- * While a refresh is in flight the icon spins and the control is disabled, read from the query
- * client so switching tab and back doesn't lose it.
- */
-function RefreshButton({ root }: { root: string }): React.JSX.Element {
-  const refresh = useRefreshRepository(root)
-
-  return (
-    <div className={styles.footer}>
-      <Button
-        variant="quiet"
-        disabled={refresh.busy}
-        aria-busy={refresh.busy || undefined}
-        onClick={refresh.start}
-      >
-        <RefreshCw className={refresh.busy ? shared.spinner : undefined} />
-        Refresh
-      </Button>
-    </div>
-  )
-}
-
-/**
  * The **view** switcher for the **focused tab**'s repository: Working, then its branches, and
- * nothing else; Refresh sits at its foot, outside the switcher (ADR 0006). Repositories are chosen from tabs now (ADR 0007), so the foldable repository
- * picker that used to sit above this is gone and the branch list has the whole column.
+ * nothing else (ADR 0006). Repositories are chosen from tabs now (ADR 0007), so the foldable
+ * repository picker that used to sit above this is gone and the branch list has the whole column.
  *
  * Rendered only where there is a repository to switch views within, so never for a
  * **Repositories tab**, the **backdrop**, or a **missing repository**, which has no branches.
@@ -92,7 +65,6 @@ export function Sidebar({ root }: { root: string }): React.JSX.Element {
         />
       </div>
       <BranchTree root={root} />
-      <RefreshButton root={root} />
     </div>
   )
 }
