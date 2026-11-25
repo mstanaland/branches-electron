@@ -101,6 +101,10 @@ export async function isAncestor(
  * default branch has moved on past it. This is where the default branch's line starts in
  * `ref`'s graph. Null when there is no default branch, when either side resolves to nothing,
  * or when the two share no history.
+ *
+ * The default branch counts as wherever its local branch or its upstream has got to, so a
+ * local branch that hasn't been pulled lately still finds the commits merged in from the
+ * remote's — as when the host merges the default branch into a pull request's branch.
  */
 export async function findDefaultBranchBase(
   root: string,
@@ -110,16 +114,23 @@ export async function findDefaultBranchBase(
   if (defaultName === null) return null
   const defaultRef = `refs/heads/${defaultName}`
   if (!(await resolves(root, defaultRef)) || !(await resolves(root, ref))) return null
+  const upstream = await upstreamOf(root, defaultRef)
+  const tips = upstream === null ? [defaultRef] : [defaultRef, upstream]
   try {
-    const [base, tip] = await Promise.all([
-      runGit(root, ['merge-base', defaultRef, ref]),
-      runGit(root, ['rev-parse', '--verify', `${defaultRef}^{commit}`])
-    ])
-    const oid = base.stdout.trim()
-    return { oid, movedOn: oid !== tip.stdout.trim() }
+    // With more than one tip, git finds the newest commit `ref` shares with any of them.
+    const base = await runGit(root, ['merge-base', ref, ...tips])
+    const contained = await Promise.all(tips.map((tip) => isAncestor(root, tip, ref)))
+    return { oid: base.stdout.trim(), movedOn: contained.includes(false) }
   } catch (error) {
     // Exit 1 is git's "no common ancestor"; anything else is a real failure.
     if (error instanceof GitError && error.exitCode === 1) return null
     throw error
   }
+}
+
+/** The full name of `branchRef`'s upstream, or null when it has none or it no longer resolves. */
+async function upstreamOf(root: string, branchRef: string): Promise<string | null> {
+  const { stdout } = await runGit(root, ['for-each-ref', '--format=%(upstream)', branchRef])
+  const upstream = stdout.trim()
+  return upstream !== '' && (await resolves(root, upstream)) ? upstream : null
 }

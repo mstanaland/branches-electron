@@ -1,6 +1,12 @@
 import { afterAll, describe, expect, it } from 'vitest'
 import { findDefaultBranchBase, listCommits, parseCommits } from './log'
-import { cleanupTestRepos, createRepo, createRepoWithCommit, type TestRepo } from './test-repo'
+import {
+  cleanupTestRepos,
+  cloneRepo,
+  createRepo,
+  createRepoWithCommit,
+  type TestRepo
+} from './test-repo'
 
 afterAll(cleanupTestRepos)
 
@@ -198,6 +204,60 @@ describe('findDefaultBranchBase', () => {
     const repo = await createRepoWithCommit()
     expect(await findDefaultBranchBase(repo.root, 'main')).toEqual({
       oid: await head(repo, 'main'),
+      movedOn: false
+    })
+  })
+
+  it("follows the default branch's upstream when the local branch is behind it", async () => {
+    const origin = await createRepoWithCommit()
+    const repo = await cloneRepo(origin)
+    const fork = await head(repo, 'main')
+    await repo.git('checkout', '-q', '-b', 'work')
+    await repo.write('work.txt')
+    await repo.commit('Work commit')
+    // The default branch moves on at the remote, and the branch merges that in — as the host
+    // does when it updates a pull request's branch — while local main stays where it was.
+    await origin.write('remote.txt')
+    await origin.commit('Remote main commit')
+    const remoteTip = await head(origin, 'main')
+    await repo.git('fetch', '-q', 'origin')
+    await repo.git('merge', '-q', '--no-edit', 'origin/main')
+    expect(await head(repo, 'main')).toBe(fork)
+
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({
+      oid: remoteTip,
+      movedOn: false
+    })
+
+    // The remote moves on again, and the fetch brings that in.
+    await origin.write('later.txt')
+    await origin.commit('Later remote commit')
+    await repo.git('fetch', '-q', 'origin')
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({
+      oid: remoteTip,
+      movedOn: true
+    })
+  })
+
+  it('follows the local default branch when it is ahead of its upstream', async () => {
+    const origin = await createRepoWithCommit()
+    const repo = await cloneRepo(origin)
+    await repo.write('local.txt')
+    await repo.commit('Unpushed main commit')
+    const localTip = await head(repo, 'main')
+    await repo.git('checkout', '-q', '-b', 'work')
+    await repo.write('work.txt')
+    await repo.commit('Work commit')
+
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({
+      oid: localTip,
+      movedOn: false
+    })
+
+    // An upstream that no longer resolves is left out rather than failing.
+    await repo.git('update-ref', '-d', 'refs/remotes/origin/main')
+    expect(await findDefaultBranchBase(repo.root, 'work')).toEqual({
+      oid: localTip,
       movedOn: false
     })
   })
